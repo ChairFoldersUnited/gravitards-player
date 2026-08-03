@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#080c10">
-  <meta name="description" content="Gravitards Live Archive">
-  <title>Gravitards Live Archive</title>
+  <meta name="description" content="The Gravitards Vault – live recordings, rehearsals, demos and ideas">
+  <title>The Gravitards Vault</title>
   <link rel="icon" type="image/png" href="/favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -22,7 +22,7 @@
     <div class="archive-bar__inner">
       <div class="archive-name">
         <span aria-hidden="true">♫</span>
-        <span>GRAVITARDS LIVE ARCHIVE</span>
+        <span>THE GRAVITARDS VAULT</span>
       </div>
 
       <div class="archive-actions">
@@ -37,10 +37,11 @@
       <header class="library-header">
         <div>
           <div class="library-title">
-            <h2>Livearkiv</h2>
-            <span id="trackCount" class="count-pill">0 inspelningar</span>
+            <h2>The Vault</h2>
+            <span id="trackCount" class="count-pill">0 Vault Entries</span>
           </div>
-          <p id="archiveRange" class="archive-range">Läser in arkivet…</p>
+          <p class="vault-subtitle">Live recordings · Rehearsals · Demos · Ideas</p>
+          <p id="archiveRange" class="archive-range">Läser in valvet…</p>
         </div>
 
         <div class="library-tools">
@@ -68,8 +69,16 @@
         </div>
       </header>
 
+      <section class="vault-timeline-wrap">
+        <div class="vault-timeline-heading">
+          <span>VAULT TIMELINE</span>
+          <button id="clearTimelineFilterButton" class="text-button hidden" type="button">Visa alla år</button>
+        </div>
+        <div id="vaultTimeline" class="vault-timeline" aria-label="Årtidslinje"></div>
+      </section>
+
       <section class="quick-actions">
-        <button id="shuffleAllButton" class="gold-button" type="button">⤨ Blanda hela arkivet</button>
+        <button id="shuffleAllButton" class="gold-button" type="button">⤨ Blanda hela valvet</button>
         <button id="favoritesFilterButton" class="text-button filter-button" type="button">☆ Favoriter</button>
         <button id="recentFilterButton" class="text-button filter-button" type="button">◷ Senast spelade</button>
         <button id="expandAllButton" class="text-button" type="button">Visa alla år</button>
@@ -97,7 +106,7 @@
         </div>
 
         <div class="now-copy">
-          <strong id="nowTitle">Välj en inspelning</strong>
+          <strong id="nowTitle">Välj en Vault Entry</strong>
           <span id="nowMeta">Inget spelas</span>
         </div>
 
@@ -126,10 +135,10 @@
 
       <section class="comments-card">
         <div class="comments-heading">
-          <h2>Kommentar</h2>
+          <h2>Vault Comment</h2>
           <span id="commentStatus">Ingen inspelning vald</span>
         </div>
-        <textarea id="commentInput" rows="5" maxlength="2000" placeholder="Skriv en kommentar om inspelningen…"></textarea>
+        <textarea id="commentInput" rows="5" maxlength="2000" placeholder="Skriv en kommentar om denna Vault Entry…"></textarea>
         <div class="comments-actions">
           <button id="saveCommentButton" class="gold-button" type="button" disabled>Spara kommentar</button>
           <button id="deleteCommentButton" class="text-button danger-button" type="button" disabled>Ta bort</button>
@@ -137,9 +146,35 @@
         <p class="comments-note">Kommentaren sparas lokalt i den här webbläsaren.</p>
       </section>
 
+      <section class="timestamp-card">
+        <div class="timestamp-heading">
+          <div>
+            <h2>Timestamp Notes</h2>
+            <p>Klicka på en tid för att hoppa dit.</p>
+          </div>
+          <button id="addTimestampButton" class="gold-button compact-button" type="button" disabled>＋ Anteckning</button>
+        </div>
+
+        <div id="timestampComposer" class="timestamp-composer hidden">
+          <div class="timestamp-time-row">
+            <strong id="timestampComposerTime">0:00</strong>
+            <span>Aktuell position</span>
+          </div>
+          <textarea id="timestampInput" rows="3" maxlength="500" placeholder="Vad händer här?"></textarea>
+          <div class="comments-actions">
+            <button id="saveTimestampButton" class="gold-button" type="button">Spara anteckning</button>
+            <button id="cancelTimestampButton" class="text-button" type="button">Avbryt</button>
+          </div>
+        </div>
+
+        <div id="timestampList" class="timestamp-list">
+          <p class="empty-timestamps">Välj en inspelning för att se anteckningar.</p>
+        </div>
+      </section>
+
       <section class="info-card">
-        <h2>Om arkivet</h2>
-        <p>Årtal hämtas i första hand från filnamn eller mappsökväg. Om inget år hittas används filens Dropbox-datum.</p>
+        <h2>Om valvet</h2>
+        <p>Årtal hämtas i första hand från filnamn eller mappsökväg. Om inget år hittas används Dropbox-datumet.</p>
         <p>Mellanslag spelar eller pausar. Piltangenter byter inspelning.</p>
       </section>
     </aside>

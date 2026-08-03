@@ -22,6 +22,15 @@ const trackCount = document.querySelector("#trackCount");
 const librarySummary = document.querySelector("#librarySummary");
 const archiveRange = document.querySelector("#archiveRange");
 const folderPath = document.querySelector("#folderPath");
+const vaultTimeline = document.querySelector("#vaultTimeline");
+const clearTimelineFilterButton = document.querySelector("#clearTimelineFilterButton");
+const addTimestampButton = document.querySelector("#addTimestampButton");
+const timestampComposer = document.querySelector("#timestampComposer");
+const timestampComposerTime = document.querySelector("#timestampComposerTime");
+const timestampInput = document.querySelector("#timestampInput");
+const saveTimestampButton = document.querySelector("#saveTimestampButton");
+const cancelTimestampButton = document.querySelector("#cancelTimestampButton");
+const timestampList = document.querySelector("#timestampList");
 const yearJumpSelect = document.querySelector("#yearJumpSelect");
 const favoritesFilterButton = document.querySelector("#favoritesFilterButton");
 const recentFilterButton = document.querySelector("#recentFilterButton");
@@ -37,16 +46,22 @@ let shuffled = false;
 let repeatMode = 0;
 let shuffledQueue = [];
 let activeFilter = "all";
+let timelineYearFilter = null;
+let pendingTimestampSeconds = 0;
 
 const FAVORITES_STORAGE_KEY = "gravitards-favorites";
 const COMMENTS_STORAGE_KEY = "gravitards-comments";
 const RECENT_STORAGE_KEY = "gravitards-recent";
+const TIMESTAMPS_STORAGE_KEY = "gravitards-timestamps";
 
 const favoriteIds = new Set(
   JSON.parse(localStorage.getItem(FAVORITES_STORAGE_KEY) || "[]")
 );
 const comments = JSON.parse(localStorage.getItem(COMMENTS_STORAGE_KEY) || "{}");
 let recentIds = JSON.parse(localStorage.getItem(RECENT_STORAGE_KEY) || "[]");
+const timestampNotes = JSON.parse(
+  localStorage.getItem(TIMESTAMPS_STORAGE_KEY) || "{}"
+);
 
 const COLLAPSED_STORAGE_KEY = "gravitards-collapsed-years";
 const collapsedYears = new Set(
@@ -207,6 +222,62 @@ function addToRecent(trackId) {
   saveRecent();
 }
 
+function saveTimestampNotes() {
+  localStorage.setItem(TIMESTAMPS_STORAGE_KEY, JSON.stringify(timestampNotes));
+}
+
+function renderTimeline() {
+  const years = [...new Set(
+    tracks
+      .map(track => track.year)
+      .filter(year => typeof year === "number")
+  )].sort((a, b) => a - b);
+
+  vaultTimeline.innerHTML = years.map(year => `
+    <button class="timeline-year ${timelineYearFilter === String(year) ? "active" : ""}"
+            type="button"
+            data-timeline-year="${year}">
+      ${year}
+    </button>
+  `).join("");
+
+  clearTimelineFilterButton.classList.toggle("hidden", !timelineYearFilter);
+}
+
+function renderTimestampNotes() {
+  if (!currentTrack) {
+    timestampList.innerHTML =
+      '<p class="empty-timestamps">Välj en inspelning för att se anteckningar.</p>';
+    addTimestampButton.disabled = true;
+    return;
+  }
+
+  addTimestampButton.disabled = false;
+  const notes = [...(timestampNotes[currentTrack.id] || [])]
+    .sort((a, b) => a.seconds - b.seconds);
+
+  if (!notes.length) {
+    timestampList.innerHTML =
+      '<p class="empty-timestamps">Inga tidsstämplade anteckningar ännu.</p>';
+    return;
+  }
+
+  timestampList.innerHTML = notes.map((note, index) => `
+    <div class="timestamp-note">
+      <button class="timestamp-jump"
+              type="button"
+              data-jump-seconds="${note.seconds}">
+        ${formatTime(note.seconds)}
+      </button>
+      <div class="timestamp-text">${escapeHtml(note.text)}</div>
+      <button class="timestamp-delete"
+              type="button"
+              data-delete-timestamp="${index}"
+              title="Ta bort">×</button>
+    </div>
+  `).join("");
+}
+
 function saveCollapsedYears() {
   localStorage.setItem(
     COLLAPSED_STORAGE_KEY,
@@ -233,7 +304,7 @@ function updateSummary() {
     .sort((a, b) => a - b);
 
   trackCount.textContent =
-    `${tracks.length} ${tracks.length === 1 ? "inspelning" : "inspelningar"}`;
+    `${tracks.length} ${tracks.length === 1 ? "Vault Entry" : "Vault Entries"}`;
 
   if (numericYears.length) {
     const first = numericYears[0];
@@ -245,7 +316,7 @@ function updateSummary() {
 
   const yearCount = new Set(tracks.map(track => String(track.year))).size;
   librarySummary.textContent =
-    `${tracks.length} ${tracks.length === 1 ? "inspelning" : "inspelningar"} · ${yearCount} ${yearCount === 1 ? "år" : "årsgrupper"}`;
+    `${tracks.length} ${tracks.length === 1 ? "Vault Entry" : "Vault Entries"} · ${yearCount} ${yearCount === 1 ? "år" : "årsgrupper"}`;
 }
 
 function groupByYear(list) {
@@ -268,6 +339,10 @@ function renderTracks() {
       .toLocaleLowerCase("sv")
       .includes(query)
   );
+
+  if (timelineYearFilter) {
+    filtered = filtered.filter(track => String(track.year) === timelineYearFilter);
+  }
 
   if (activeFilter === "favorites") {
     filtered = filtered.filter(track => favoriteIds.has(track.id));
@@ -302,7 +377,7 @@ function renderTracks() {
         <div class="track ${active ? "active" : ""}" role="button" tabindex="0" data-id="${escapeHtml(track.id)}">
           <span class="track-index">${active && !audio.paused ? "▶" : "♫"}</span>
           <span class="track-copy">
-            <span class="track-title">${escapeHtml(track.displayTitle)}${comments[track.id] ? '<span class="track-comment-badge" title="Har kommentar">●</span>' : ''}</span>
+            <span class="track-title">${escapeHtml(track.displayTitle)}${comments[track.id] ? '<span class="track-comment-badge" title="Har kommentar">●</span>' : ''}${timestampNotes[track.id]?.length ? '<span class="track-comment-badge" title="Har tidsanteckningar">◆</span>' : ''}</span>
             <span class="track-folder">${escapeHtml(cleanFolder(track.folder))}</span>
           </span>
           <span class="track-date">${escapeHtml(formatDate(track.modified))}</span>
@@ -350,6 +425,7 @@ async function loadTracks(force = false) {
     folderPath.textContent = `▱ ${data.folder}`;
     updateSummary();
     updateYearJump();
+    renderTimeline();
     renderTracks();
 
     if (!tracks.length) {
@@ -387,6 +463,8 @@ async function playTrack(track) {
   nowMeta.textContent = `${track.year} · ${cleanFolder(track.folder)}`;
   audio.src = `/api/play/${encodeURIComponent(track.id)}?t=${Date.now()}`;
   loadCommentForCurrentTrack();
+  renderTimestampNotes();
+  timestampComposer.classList.add("hidden");
   renderTracks();
 
   try {
@@ -482,6 +560,100 @@ yearJumpSelect.addEventListener("change", () => {
 });
 
 
+
+vaultTimeline.addEventListener("click", event => {
+  const button = event.target.closest("[data-timeline-year]");
+  if (!button) return;
+
+  timelineYearFilter =
+    timelineYearFilter === button.dataset.timelineYear
+      ? null
+      : button.dataset.timelineYear;
+
+  renderTimeline();
+  renderTracks();
+
+  if (timelineYearFilter) {
+    requestAnimationFrame(() => {
+      document.querySelector(".year-group")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+    });
+  }
+});
+
+clearTimelineFilterButton.addEventListener("click", () => {
+  timelineYearFilter = null;
+  renderTimeline();
+  renderTracks();
+});
+
+addTimestampButton.addEventListener("click", () => {
+  if (!currentTrack) return;
+
+  pendingTimestampSeconds = Math.max(0, Math.floor(audio.currentTime || 0));
+  timestampComposerTime.textContent = formatTime(pendingTimestampSeconds);
+  timestampInput.value = "";
+  timestampComposer.classList.remove("hidden");
+  timestampInput.focus();
+});
+
+cancelTimestampButton.addEventListener("click", () => {
+  timestampComposer.classList.add("hidden");
+  timestampInput.value = "";
+});
+
+saveTimestampButton.addEventListener("click", () => {
+  if (!currentTrack) return;
+
+  const text = timestampInput.value.trim();
+  if (!text) {
+    timestampInput.focus();
+    return;
+  }
+
+  timestampNotes[currentTrack.id] ||= [];
+  timestampNotes[currentTrack.id].push({
+    seconds: pendingTimestampSeconds,
+    text,
+    createdAt: new Date().toISOString()
+  });
+
+  saveTimestampNotes();
+  timestampComposer.classList.add("hidden");
+  timestampInput.value = "";
+  renderTimestampNotes();
+  renderTracks();
+});
+
+timestampInput.addEventListener("keydown", event => {
+  if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+    saveTimestampButton.click();
+  }
+});
+
+timestampList.addEventListener("click", event => {
+  const jumpButton = event.target.closest("[data-jump-seconds]");
+  if (jumpButton) {
+    audio.currentTime = Number(jumpButton.dataset.jumpSeconds);
+    if (audio.paused) audio.play();
+    return;
+  }
+
+  const deleteButton = event.target.closest("[data-delete-timestamp]");
+  if (!deleteButton || !currentTrack) return;
+
+  const notes = timestampNotes[currentTrack.id] || [];
+  notes.splice(Number(deleteButton.dataset.deleteTimestamp), 1);
+
+  if (!notes.length) delete timestampNotes[currentTrack.id];
+
+  saveTimestampNotes();
+  renderTimestampNotes();
+  renderTracks();
+});
+
 favoritesFilterButton.addEventListener("click", () => {
   activeFilter = activeFilter === "favorites" ? "all" : "favorites";
   renderTracks();
@@ -505,6 +677,8 @@ saveCommentButton.addEventListener("click", () => {
 
   saveComments();
   loadCommentForCurrentTrack();
+  renderTimestampNotes();
+  timestampComposer.classList.add("hidden");
   renderTracks();
   commentStatus.textContent = value ? "Sparad" : currentTrack.displayTitle;
 
@@ -518,6 +692,8 @@ deleteCommentButton.addEventListener("click", () => {
   delete comments[currentTrack.id];
   saveComments();
   loadCommentForCurrentTrack();
+  renderTimestampNotes();
+  timestampComposer.classList.add("hidden");
   renderTracks();
 });
 
@@ -631,4 +807,5 @@ document.addEventListener("keydown", event => {
 
 updateFilterButtons();
 loadCommentForCurrentTrack();
+renderTimestampNotes();
 loadTracks();

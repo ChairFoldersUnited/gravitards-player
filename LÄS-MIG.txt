@@ -1,18 +1,22 @@
-GRAVITARDS LIVE ARCHIVE V2.2
+THE GRAVITARDS VAULT V3
 
-Ersätt:
+Ersätt dessa filer i GitHub:
 - index.html
 - style.css
 - app.js
 
-Nytt:
-- Favoriter
-- Senast spelade
-- Kommentar per inspelning
-- Markering i listan när en kommentar finns
+Bilderna behöver inte ersättas igen.
 
-VIKTIGT:
-Kommentarer, favoriter och senast spelade sparas lokalt i den aktuella
-webbläsaren. De delas inte automatiskt mellan olika datorer eller användare.
-Gemensamma kommentarer kräver senare en databas och inloggning eller annan
-behörighetslösning.
+NYTT
+- Nytt namn: The Gravitards Vault
+- Vault Entries i stället för inspelningar
+- Horisontell Vault Timeline för snabb filtrering per år
+- Timestamp Notes
+- Klicka på “＋ Anteckning” medan en inspelning spelas
+- Anteckningen får automatiskt aktuell tid
+- Klicka senare på tiden för att hoppa direkt dit
+- Kommentarer, favoriter, historik och tidsanteckningar sparas lokalt
+
+VIKTIGT
+Data som kommentarer och tidsanteckningar sparas i webbläsarens localStorage.
+De delas inte mellan olika personer eller enheter ännu.
