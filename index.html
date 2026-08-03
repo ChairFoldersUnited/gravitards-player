@@ -3,62 +3,113 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#111318">
-  <title>Tardplayer</title>
+  <meta name="theme-color" content="#080c10">
+  <meta name="description" content="Gravitards Music Archive">
+  <title>Gravitards Music Archive</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Italianno&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <header class="topbar">
-    <div>
-      <p class="eyebrow">Gravitards music</p>
-      <h1>Tardplayer</h1>
-      <p id="libraryInfo" class="muted">Laddar biblioteket…</p>
-    </div>
-    <button id="refreshButton" class="ghost" type="button" title="Läs in mappen på nytt">↻ Uppdatera</button>
+  <header class="hero">
+    <div class="hero-shade"></div>
+    <h1>Gravitards</h1>
   </header>
 
-  <main>
-    <section class="controls" aria-label="Biblioteksverktyg">
-      <label class="search">
-        <span aria-hidden="true">⌕</span>
-        <input id="searchInput" type="search" placeholder="Sök efter låt eller mapp…" autocomplete="off">
-      </label>
-      <button id="shuffleAllButton" class="primary" type="button">Blanda alla</button>
+  <nav class="archive-bar">
+    <div class="archive-bar__inner">
+      <div class="archive-name">
+        <span aria-hidden="true">♫</span>
+        <span>GRAVITARDS MUSIC ARCHIVE</span>
+      </div>
+
+      <div class="archive-actions">
+        <span id="folderPath" class="folder-path">▱ /Musik/Gravitards</span>
+        <button id="refreshButton" class="refresh-button" type="button">
+          <span aria-hidden="true">↻</span>
+          Uppdatera
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="layout">
+    <section class="library-card">
+      <header class="library-header">
+        <div class="library-title">
+          <h2>Bibliotek</h2>
+          <span id="trackCount" class="count-pill">0 låtar</span>
+        </div>
+
+        <label class="search-box">
+          <span aria-hidden="true">⌕</span>
+          <input id="searchInput" type="search" placeholder="Sök låt eller mapp…" autocomplete="off">
+        </label>
+      </header>
+
+      <div class="table-heading" aria-hidden="true">
+        <span>♫</span>
+        <span>LÅT</span>
+        <span>STORLEK</span>
+      </div>
+
+      <section id="message" class="message hidden" role="status"></section>
+      <section id="trackList" class="track-list" aria-label="Låtar"></section>
+
+      <footer class="library-footer">
+        <span id="librarySummary">0 låtar</span>
+      </footer>
     </section>
 
-    <section id="message" class="message hidden" role="status"></section>
-    <section id="trackList" class="track-list" aria-label="Låtar"></section>
+    <aside class="sidebar">
+      <section class="now-card">
+        <header class="card-heading">
+          <h2>Spelas nu</h2>
+          <span class="equalizer" aria-hidden="true">▮▮▮</span>
+        </header>
+
+        <div class="cover">
+          <div class="cover-pattern"></div>
+          <span aria-hidden="true">♫</span>
+        </div>
+
+        <div class="now-copy">
+          <strong id="nowTitle">Välj ett spår</strong>
+          <span id="nowFolder">Inget spelas</span>
+        </div>
+
+        <div class="timeline">
+          <input id="seekBar" type="range" min="0" max="1000" value="0" aria-label="Spola">
+          <div class="time-row">
+            <span id="currentTime">0:00</span>
+            <span id="duration">0:00</span>
+          </div>
+        </div>
+
+        <div class="transport">
+          <button id="shuffleButton" class="round-button small" type="button" title="Blanda">⤨</button>
+          <button id="prevButton" class="round-button" type="button" title="Föregående">⏮</button>
+          <button id="playButton" class="main-play" type="button" title="Spela eller pausa">▶</button>
+          <button id="nextButton" class="round-button" type="button" title="Nästa">⏭</button>
+          <button id="repeatButton" class="round-button small" type="button" title="Upprepa">↻</button>
+        </div>
+
+        <div class="volume-row">
+          <span aria-hidden="true">◀</span>
+          <input id="volumeBar" type="range" min="0" max="1" step="0.01" value="0.85" aria-label="Volym">
+          <span aria-hidden="true">▶</span>
+        </div>
+      </section>
+
+      <section class="info-card">
+        <h2><span aria-hidden="true">▱</span> Information</h2>
+        <p>Musiken hämtas direkt från Dropbox.</p>
+        <p>Klicka på en låt för att spela.</p>
+      </section>
+    </aside>
   </main>
-
-  <footer class="player">
-    <div class="now-playing">
-      <div class="art" aria-hidden="true">♫</div>
-      <div class="track-meta">
-        <strong id="nowTitle">Välj ett spår</strong>
-        <span id="nowFolder">Inget spelas</span>
-      </div>
-    </div>
-
-    <div class="transport">
-      <div class="buttons">
-        <button id="shuffleButton" class="icon-button" type="button" title="Blanda">⤨</button>
-        <button id="prevButton" class="icon-button" type="button" title="Föregående">⏮</button>
-        <button id="playButton" class="play-button" type="button" title="Spela eller pausa">▶</button>
-        <button id="nextButton" class="icon-button" type="button" title="Nästa">⏭</button>
-        <button id="repeatButton" class="icon-button" type="button" title="Upprepa">↻</button>
-      </div>
-      <div class="timeline">
-        <span id="currentTime">0:00</span>
-        <input id="seekBar" type="range" min="0" max="1000" value="0" aria-label="Spolning">
-        <span id="duration">0:00</span>
-      </div>
-    </div>
-
-    <div class="volume">
-      <span aria-hidden="true">🔊</span>
-      <input id="volumeBar" type="range" min="0" max="1" step="0.01" value="0.85" aria-label="Volym">
-    </div>
-  </footer>
 
   <audio id="audio" preload="metadata"></audio>
   <script src="/app.js" defer></script>

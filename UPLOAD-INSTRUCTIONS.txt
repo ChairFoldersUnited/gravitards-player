@@ -1,0 +1,11 @@
+Ladda upp dessa filer till roten av ditt GitHub-repository:
+
+- index.html (ersätter den gamla)
+- style.css (ersätter den gamla)
+- app.js (ersätter den gamla)
+- favicon.png
+
+Ladda upp mappen assets med:
+- assets/background.jpg
+
+Ändra inte server.js, package.json eller dina Render Environment Variables.
