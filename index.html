@@ -111,10 +111,14 @@
         </div>
 
         <div class="timeline">
-          <input id="seekBar" type="range" min="0" max="1000" value="0" aria-label="Spola">
+          <div id="seekWrap" class="seek-wrap">
+            <input id="seekBar" type="range" min="0" max="1000" value="0" aria-label="Spola">
+            <div id="chapterMarkers" class="chapter-markers" aria-hidden="true"></div>
+            <div id="seekTooltip" class="seek-tooltip hidden">0:00</div>
+          </div>
           <div class="time-row">
-            <span id="currentTime">0:00</span>
-            <span id="duration">0:00</span>
+            <button id="currentTime" class="time-display" type="button" title="Dubbelklicka för att byta tidsformat">0:00</button>
+            <button id="duration" class="time-display" type="button" title="Klicka för att växla mellan total och återstående tid">0:00</button>
           </div>
         </div>
 

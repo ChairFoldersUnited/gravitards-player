@@ -1,11 +1,15 @@
-THE GRAVITARDS VAULT V3.1
+THE GRAVITARDS VAULT V3.2
 
-Ersätt endast:
+Ersätt:
+- index.html
 - style.css
+- app.js
 
-Fix:
-- Högerspalten ligger kvar när du scrollar i arkivet.
-- Högerspalten har en egen diskret scrollbar.
-- Vault Comment-rutan är större.
-- Timestamp Notes får egen scrollbar när listan blir lång.
-- På mobil och surfplatta används vanlig sidscrollning.
+Nytt:
+- Tid över en timme visas som h:mm:ss.
+- Höger tid visar återstående tid med minustecken.
+- Klicka på höger tid för att växla mellan återstående och total tid.
+- Dubbelklicka på någon av tiderna för att växla:
+  h:mm:ss → totala minuter → sekunder.
+- Håll musen över progressbaren för tidsförhandsvisning.
+- Tidsstämplade anteckningar visas som kapitelmarkeringar på progressbaren.

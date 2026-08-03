@@ -13,6 +13,9 @@ const refreshButton = document.querySelector("#refreshButton");
 const expandAllButton = document.querySelector("#expandAllButton");
 const collapseAllButton = document.querySelector("#collapseAllButton");
 const seekBar = document.querySelector("#seekBar");
+const seekWrap = document.querySelector("#seekWrap");
+const seekTooltip = document.querySelector("#seekTooltip");
+const chapterMarkers = document.querySelector("#chapterMarkers");
 const volumeBar = document.querySelector("#volumeBar");
 const currentTime = document.querySelector("#currentTime");
 const duration = document.querySelector("#duration");
@@ -48,6 +51,8 @@ let shuffledQueue = [];
 let activeFilter = "all";
 let timelineYearFilter = null;
 let pendingTimestampSeconds = 0;
+let timeDisplayMode = 0;
+let showRemainingTime = true;
 
 const FAVORITES_STORAGE_KEY = "gravitards-favorites";
 const COMMENTS_STORAGE_KEY = "gravitards-comments";
@@ -72,10 +77,28 @@ const savedVolume = Number(localStorage.getItem("gravitards-volume"));
 audio.volume = Number.isFinite(savedVolume) ? savedVolume : 0.85;
 volumeBar.value = audio.volume;
 
-function formatTime(seconds) {
+function formatTime(seconds, mode = 0) {
   if (!Number.isFinite(seconds)) return "0:00";
-  const minutes = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60).toString().padStart(2, "0");
+
+  const safeSeconds = Math.max(0, Math.floor(seconds));
+
+  if (mode === 2) {
+    return `${safeSeconds} s`;
+  }
+
+  const hours = Math.floor(safeSeconds / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60);
+  const totalMinutes = Math.floor(safeSeconds / 60);
+  const secs = (safeSeconds % 60).toString().padStart(2, "0");
+
+  if (mode === 1) {
+    return `${totalMinutes}:${secs}`;
+  }
+
+  if (hours > 0) {
+    return `${hours}:${minutes.toString().padStart(2, "0")}:${secs}`;
+  }
+
   return `${minutes}:${secs}`;
 }
 
@@ -244,7 +267,47 @@ function renderTimeline() {
   clearTimelineFilterButton.classList.toggle("hidden", !timelineYearFilter);
 }
 
+function renderChapterMarkers() {
+  chapterMarkers.innerHTML = "";
+
+  if (!currentTrack || !Number.isFinite(audio.duration) || audio.duration <= 0) {
+    return;
+  }
+
+  const notes = timestampNotes[currentTrack.id] || [];
+
+  chapterMarkers.innerHTML = notes
+    .filter(note => Number.isFinite(note.seconds) && note.seconds >= 0 && note.seconds <= audio.duration)
+    .map(note => {
+      const percentage = (note.seconds / audio.duration) * 100;
+      return `<span class="chapter-marker"
+                    style="left:${percentage}%"
+                    title="${escapeHtml(`${formatTime(note.seconds)} – ${note.text}`)}"></span>`;
+    })
+    .join("");
+}
+
+function updateDisplayedTimes() {
+  currentTime.textContent = formatTime(audio.currentTime, timeDisplayMode);
+
+  if (!Number.isFinite(audio.duration)) {
+    duration.textContent = "0:00";
+    return;
+  }
+
+  if (showRemainingTime) {
+    const remaining = Math.max(0, audio.duration - audio.currentTime);
+    duration.textContent = `−${formatTime(remaining, timeDisplayMode)}`;
+    duration.title = "Klicka för att visa total speltid";
+  } else {
+    duration.textContent = formatTime(audio.duration, timeDisplayMode);
+    duration.title = "Klicka för att visa återstående tid";
+  }
+}
+
 function renderTimestampNotes() {
+  renderChapterMarkers();
+
   if (!currentTrack) {
     timestampList.innerHTML =
       '<p class="empty-timestamps">Välj en inspelning för att se anteckningar.</p>';
@@ -462,6 +525,9 @@ async function playTrack(track) {
   nowTitle.textContent = track.displayTitle;
   nowMeta.textContent = `${track.year} · ${cleanFolder(track.folder)}`;
   audio.src = `/api/play/${encodeURIComponent(track.id)}?t=${Date.now()}`;
+  currentTime.textContent = "0:00";
+  duration.textContent = "0:00";
+  chapterMarkers.innerHTML = "";
   loadCommentForCurrentTrack();
   renderTimestampNotes();
   timestampComposer.classList.add("hidden");
@@ -750,11 +816,12 @@ audio.addEventListener("pause", () => {
 });
 
 audio.addEventListener("loadedmetadata", () => {
-  duration.textContent = formatTime(audio.duration);
+  updateDisplayedTimes();
+  renderChapterMarkers();
 });
 
 audio.addEventListener("timeupdate", () => {
-  currentTime.textContent = formatTime(audio.currentTime);
+  updateDisplayedTimes();
   seekBar.value = audio.duration
     ? Math.round((audio.currentTime / audio.duration) * 1000)
     : 0;
@@ -771,6 +838,41 @@ audio.addEventListener("ended", () => {
 
 audio.addEventListener("error", () => {
   showMessage("Inspelningen kunde inte spelas. Prova att klicka på den igen.", true);
+});
+
+
+duration.addEventListener("click", () => {
+  showRemainingTime = !showRemainingTime;
+  updateDisplayedTimes();
+});
+
+currentTime.addEventListener("dblclick", () => {
+  timeDisplayMode = (timeDisplayMode + 1) % 3;
+  updateDisplayedTimes();
+  renderTimestampNotes();
+});
+
+duration.addEventListener("dblclick", event => {
+  event.preventDefault();
+  timeDisplayMode = (timeDisplayMode + 1) % 3;
+  updateDisplayedTimes();
+  renderTimestampNotes();
+});
+
+seekWrap.addEventListener("mousemove", event => {
+  if (!Number.isFinite(audio.duration) || audio.duration <= 0) return;
+
+  const rect = seekWrap.getBoundingClientRect();
+  const ratio = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
+  const previewSeconds = ratio * audio.duration;
+
+  seekTooltip.textContent = formatTime(previewSeconds, timeDisplayMode);
+  seekTooltip.style.left = `${ratio * 100}%`;
+  seekTooltip.classList.remove("hidden");
+});
+
+seekWrap.addEventListener("mouseleave", () => {
+  seekTooltip.classList.add("hidden");
 });
 
 seekBar.addEventListener("input", () => {
