@@ -609,7 +609,16 @@ volumeBar.addEventListener("input", () => {
 });
 
 document.addEventListener("keydown", event => {
-  if (event.target.matches("input, select")) return;
+  const target = event.target;
+
+  const isTyping =
+    target instanceof HTMLElement &&
+    (
+      target.matches("input, textarea, select") ||
+      target.isContentEditable
+    );
+
+  if (isTyping) return;
 
   if (event.code === "Space") {
     event.preventDefault();
