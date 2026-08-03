@@ -9,7 +9,7 @@ const PORT = Number(process.env.PORT || 3000);
 const DROPBOX_FOLDER = normalizeFolder(process.env.DROPBOX_FOLDER || "");
 
 app.disable("x-powered-by");
-app.use(express.static(path.join(__dirname, "public"), {
+app.use(express.static(path.join(__dirname, "."), {
   extensions: ["html"],
   maxAge: "1h"
 }));
