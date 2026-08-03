@@ -255,14 +255,7 @@
         </header>
 
         <div class="youtube-frame">
-          <iframe
-            id="filmPlayer"
-            src="https://www.youtube-nocookie.com/embed/videoseries?list=PLA74wG8-e4XBIKCB6HkAg-s2nvVR1hFQ8&rel=0"
-            title="The Gravitards Vault – videospelare"
-            loading="lazy"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowfullscreen>
-          </iframe>
+          <div id="filmPlayer" aria-label="The Gravitards Vault – videospelare"></div>
         </div>
       </section>
 
@@ -307,25 +300,22 @@
           </div>
 
           <div class="film-timestamp-composer">
-            <label>
-              <span>Tid</span>
-              <input id="filmTimestampTime"
-                     type="text"
-                     inputmode="numeric"
-                     placeholder="t.ex. 1:23 eller 1:02:15">
-            </label>
+            <div class="film-current-position">
+              <span>Aktuell videoposition</span>
+              <strong id="filmCurrentTime">0:00</strong>
+            </div>
 
             <textarea id="filmTimestampInput"
                       rows="3"
                       maxlength="500"
-                      placeholder="Vad händer här?"></textarea>
+                      placeholder="Skriv vad som händer vid den aktuella positionen…"></textarea>
 
             <div class="comments-actions">
               <button id="saveFilmTimestampButton"
                       class="gold-button"
                       type="button"
                       disabled>
-                Spara tidsanteckning
+                Spara vid aktuell tid
               </button>
             </div>
           </div>
@@ -379,6 +369,7 @@
   </main>
 
   <audio id="audio" preload="metadata"></audio>
+  <script src="https://www.youtube.com/iframe_api"></script>
   <script src="/app.js" defer></script>
 </body>
 </html>

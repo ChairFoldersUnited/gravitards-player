@@ -4,7 +4,7 @@ const filmArchiveTab = document.querySelector("#filmArchiveTab");
 const audioArchiveView = document.querySelector("#audioArchiveView");
 const filmArchiveView = document.querySelector("#filmArchiveView");
 const audioArchiveCount = document.querySelector("#audioArchiveCount");
-const filmPlayer = document.querySelector("#filmPlayer");
+const filmPlayerElement = document.querySelector("#filmPlayer");
 const filmNowTitle = document.querySelector("#filmNowTitle");
 const filmNowMeta = document.querySelector("#filmNowMeta");
 const filmYouTubeLink = document.querySelector("#filmYouTubeLink");
@@ -20,7 +20,7 @@ const filmCommentInput = document.querySelector("#filmCommentInput");
 const filmCommentStatus = document.querySelector("#filmCommentStatus");
 const saveFilmCommentButton = document.querySelector("#saveFilmCommentButton");
 const deleteFilmCommentButton = document.querySelector("#deleteFilmCommentButton");
-const filmTimestampTime = document.querySelector("#filmTimestampTime");
+const filmCurrentTime = document.querySelector("#filmCurrentTime");
 const filmTimestampInput = document.querySelector("#filmTimestampInput");
 const saveFilmTimestampButton = document.querySelector("#saveFilmTimestampButton");
 const filmTimestampList = document.querySelector("#filmTimestampList");
@@ -73,6 +73,10 @@ let films = [];
 let visibleFilms = [];
 let currentFilm = null;
 let filmYearFilter = null;
+let youtubePlayer = null;
+let youtubePlayerReady = false;
+let pendingFilmId = null;
+let filmClockTimer = null;
 
 const FILM_COMMENTS_STORAGE_KEY = "gravitards-film-comments";
 const FILM_TIMESTAMPS_STORAGE_KEY = "gravitards-film-timestamps";
@@ -583,23 +587,58 @@ function saveFilmTimestampNotes() {
   );
 }
 
-function parseTimestampValue(value) {
-  const parts = String(value || "")
-    .trim()
-    .split(":")
-    .map(Number);
-
-  if (!parts.length || parts.some(number => !Number.isFinite(number) || number < 0)) {
-    return null;
+function updateFilmCurrentTime() {
+  if (!youtubePlayerReady || !youtubePlayer?.getCurrentTime) {
+    filmCurrentTime.textContent = "0:00";
+    return;
   }
 
-  if (parts.length === 1) return Math.floor(parts[0]);
-  if (parts.length === 2) return Math.floor(parts[0] * 60 + parts[1]);
-  if (parts.length === 3) {
-    return Math.floor(parts[0] * 3600 + parts[1] * 60 + parts[2]);
-  }
+  const seconds = Math.max(
+    0,
+    Math.floor(youtubePlayer.getCurrentTime() || 0)
+  );
 
-  return null;
+  filmCurrentTime.textContent = formatFilmDuration(seconds);
+}
+
+function startFilmClock() {
+  window.clearInterval(filmClockTimer);
+  filmClockTimer = window.setInterval(updateFilmCurrentTime, 500);
+}
+
+function createYouTubePlayer() {
+  if (!window.YT?.Player || youtubePlayer) return;
+
+  youtubePlayer = new YT.Player("filmPlayer", {
+    host: "https://www.youtube-nocookie.com",
+    width: "100%",
+    height: "100%",
+    playerVars: {
+      rel: 0,
+      playsinline: 1,
+      listType: "playlist",
+      list: "PLA74wG8-e4XBIKCB6HkAg-s2nvVR1hFQ8"
+    },
+    events: {
+      onReady: () => {
+        youtubePlayerReady = true;
+        saveFilmTimestampButton.disabled = !currentFilm;
+        startFilmClock();
+
+        if (pendingFilmId) {
+          youtubePlayer.loadVideoById(pendingFilmId);
+          pendingFilmId = null;
+        }
+      },
+      onStateChange: updateFilmCurrentTime
+    }
+  });
+}
+
+window.onYouTubeIframeAPIReady = createYouTubePlayer;
+
+if (window.YT?.Player) {
+  createYouTubePlayer();
 }
 
 function renderFilmTimeline() {
@@ -646,7 +685,7 @@ function renderFilmTimestampNotes() {
     return;
   }
 
-  saveFilmTimestampButton.disabled = false;
+  saveFilmTimestampButton.disabled = !youtubePlayerReady;
 
   const notes = [...(filmTimestampNotes[currentFilm.id] || [])]
     .sort((a, b) => a.seconds - b.seconds);
@@ -750,6 +789,8 @@ function selectFilm(film) {
   if (!film) return;
 
   currentFilm = film;
+  filmCurrentTime.textContent = "0:00";
+  saveFilmTimestampButton.disabled = !youtubePlayerReady;
   filmNowTitle.textContent = film.title;
 
   const pieces = [
@@ -759,15 +800,19 @@ function selectFilm(film) {
   ].filter(Boolean);
 
   filmNowMeta.textContent = pieces.join(" · ");
-  filmPlayer.src =
-    `https://www.youtube-nocookie.com/embed/${encodeURIComponent(film.id)}?autoplay=1&rel=0&list=PLA74wG8-e4XBIKCB6HkAg-s2nvVR1hFQ8`;
+  if (youtubePlayerReady && youtubePlayer?.loadVideoById) {
+    youtubePlayer.loadVideoById(film.id);
+  } else {
+    pendingFilmId = film.id;
+    createYouTubePlayer();
+  }
   filmYouTubeLink.href =
     `https://www.youtube.com/watch?v=${encodeURIComponent(film.id)}&list=PLA74wG8-e4XBIKCB6HkAg-s2nvVR1hFQ8`;
 
   loadFilmComment();
   renderFilmTimestampNotes();
   renderFilms();
-  filmPlayer.scrollIntoView({ behavior: "smooth", block: "center" });
+  filmPlayerElement.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
 async function loadFilms(force = false) {
@@ -1349,20 +1394,21 @@ deleteFilmCommentButton.addEventListener("click", () => {
 });
 
 saveFilmTimestampButton.addEventListener("click", () => {
-  if (!currentFilm) return;
-
-  const seconds = parseTimestampValue(filmTimestampTime.value);
-  const text = filmTimestampInput.value.trim();
-
-  if (seconds === null) {
-    filmTimestampTime.focus();
+  if (!currentFilm || !youtubePlayerReady || !youtubePlayer?.getCurrentTime) {
     return;
   }
+
+  const text = filmTimestampInput.value.trim();
 
   if (!text) {
     filmTimestampInput.focus();
     return;
   }
+
+  const seconds = Math.max(
+    0,
+    Math.floor(youtubePlayer.getCurrentTime() || 0)
+  );
 
   filmTimestampNotes[currentFilm.id] ||= [];
   filmTimestampNotes[currentFilm.id].push({
@@ -1372,7 +1418,6 @@ saveFilmTimestampButton.addEventListener("click", () => {
   });
 
   saveFilmTimestampNotes();
-  filmTimestampTime.value = "";
   filmTimestampInput.value = "";
   renderFilmTimestampNotes();
   renderFilms();
@@ -1389,7 +1434,7 @@ filmTimestampList.addEventListener("click", event => {
       `?autoplay=1&rel=0&start=${Math.max(0, Math.floor(seconds))}` +
       `&list=PLA74wG8-e4XBIKCB6HkAg-s2nvVR1hFQ8`;
 
-    filmPlayer.scrollIntoView({ behavior: "smooth", block: "center" });
+    filmPlayerElement.scrollIntoView({ behavior: "smooth", block: "center" });
     return;
   }
 

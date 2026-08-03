@@ -1,24 +1,16 @@
-THE GRAVITARDS VAULT V5.2 – FILM NOTES
+THE GRAVITARDS VAULT V5.3 – AUTOMATISKA VIDEOTIDSSTÄMPLAR
 
 Ersätt:
 - index.html
 - style.css
 - app.js
 
-Server.js behöver inte ändras från V5.1.
+Server.js behöver inte ändras.
 
 NYTT
-- Film Timeline med filtrering efter år.
-- Kommentarer per video.
-- Tidsstämplade anteckningar per video.
-- Klick på en tidsstämpel öppnar videon vid den tiden.
-- Kommentar- och anteckningsmarkeringar på videokorten.
+- Ingen manuell tidsangivelse krävs.
+- Aktuell videoposition visas automatiskt.
+- “Spara vid aktuell tid” hämtar positionen direkt från YouTube-spelaren.
+- Klick på en tidsanteckning hoppar direkt dit utan omladdning.
 
-Tidsformat som accepteras:
-- 83
-- 1:23
-- 1:02:15
-
-VIKTIGT
-Filmkommentarer och videotidsanteckningar sparas lokalt i webbläsaren.
-De delas inte mellan användare eller datorer.
+Data sparas fortfarande lokalt i webbläsaren.
