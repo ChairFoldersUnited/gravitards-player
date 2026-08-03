@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#080c10">
-  <meta name="description" content="Gravitards Music Archive">
-  <title>Gravitards Music Archive</title>
+  <meta name="description" content="Gravitards Live Archive">
+  <title>Gravitards Live Archive</title>
   <link rel="icon" type="image/png" href="/favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -22,15 +22,12 @@
     <div class="archive-bar__inner">
       <div class="archive-name">
         <span aria-hidden="true">♫</span>
-        <span>GRAVITARDS MUSIC ARCHIVE</span>
+        <span>GRAVITARDS LIVE ARCHIVE</span>
       </div>
 
       <div class="archive-actions">
         <span id="folderPath" class="folder-path">▱ /Musik/Gravitards</span>
-        <button id="refreshButton" class="refresh-button" type="button">
-          <span aria-hidden="true">↻</span>
-          Uppdatera
-        </button>
+        <button id="refreshButton" class="text-button" type="button">↻ Uppdatera</button>
       </div>
     </div>
   </nav>
@@ -38,28 +35,43 @@
   <main class="layout">
     <section class="library-card">
       <header class="library-header">
-        <div class="library-title">
-          <h2>Bibliotek</h2>
-          <span id="trackCount" class="count-pill">0 låtar</span>
+        <div>
+          <div class="library-title">
+            <h2>Livearkiv</h2>
+            <span id="trackCount" class="count-pill">0 inspelningar</span>
+          </div>
+          <p id="archiveRange" class="archive-range">Läser in arkivet…</p>
         </div>
 
-        <label class="search-box">
-          <span aria-hidden="true">⌕</span>
-          <input id="searchInput" type="search" placeholder="Sök låt eller mapp…" autocomplete="off">
-        </label>
+        <div class="library-tools">
+          <label class="search-box">
+            <span aria-hidden="true">⌕</span>
+            <input id="searchInput" type="search" placeholder="Sök inspelning…" autocomplete="off">
+          </label>
+
+          <label class="sort-box">
+            <span>Sortera</span>
+            <select id="sortSelect">
+              <option value="year-desc">Nyaste år först</option>
+              <option value="year-asc">Äldsta år först</option>
+              <option value="title-asc">Titel A–Ö</option>
+              <option value="modified-desc">Senast ändrad</option>
+            </select>
+          </label>
+        </div>
       </header>
 
-      <div class="table-heading" aria-hidden="true">
-        <span>♫</span>
-        <span>LÅT</span>
-        <span>STORLEK</span>
-      </div>
+      <section class="quick-actions">
+        <button id="shuffleAllButton" class="gold-button" type="button">⤨ Blanda hela arkivet</button>
+        <button id="expandAllButton" class="text-button" type="button">Visa alla år</button>
+        <button id="collapseAllButton" class="text-button" type="button">Fäll ihop alla</button>
+      </section>
 
       <section id="message" class="message hidden" role="status"></section>
-      <section id="trackList" class="track-list" aria-label="Låtar"></section>
+      <section id="yearGroups" class="year-groups" aria-label="Inspelningar sorterade efter år"></section>
 
       <footer class="library-footer">
-        <span id="librarySummary">0 låtar</span>
+        <span id="librarySummary">0 inspelningar</span>
       </footer>
     </section>
 
@@ -76,8 +88,8 @@
         </div>
 
         <div class="now-copy">
-          <strong id="nowTitle">Välj ett spår</strong>
-          <span id="nowFolder">Inget spelas</span>
+          <strong id="nowTitle">Välj en inspelning</strong>
+          <span id="nowMeta">Inget spelas</span>
         </div>
 
         <div class="timeline">
@@ -104,9 +116,9 @@
       </section>
 
       <section class="info-card">
-        <h2><span aria-hidden="true">▱</span> Information</h2>
-        <p>Musiken hämtas direkt från Dropbox.</p>
-        <p>Klicka på en låt för att spela.</p>
+        <h2>Om arkivet</h2>
+        <p>Årtal hämtas i första hand från filnamn eller mappsökväg. Om inget år hittas används filens Dropbox-datum.</p>
+        <p>Mellanslag spelar eller pausar. Piltangenter byter inspelning.</p>
       </section>
     </aside>
   </main>

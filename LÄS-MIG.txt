@@ -1,0 +1,25 @@
+GRAVITARDS LIVE ARCHIVE V2
+
+Ladda upp följande till roten av GitHub-repot och ersätt befintliga filer:
+
+- index.html
+- style.css
+- app.js
+- favicon.png (om den finns i paketet)
+
+Ladda även upp:
+- assets/background.jpg
+
+Ändra INTE:
+- server.js
+- package.json
+- Render Environment Variables
+
+Årslogik:
+1. Ett fyrsiffrigt årtal i filnamnet används först.
+2. Därefter ett årtal i mappsökvägen.
+3. Om inget år hittas används Dropbox-fältet server_modified.
+
+Exempel på bra filnamn:
+2023-08-14 Royal March.mp3
+2021 Purple Lagoon.mp3

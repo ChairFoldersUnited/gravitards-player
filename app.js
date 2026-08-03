@@ -1,21 +1,26 @@
 const audio = document.querySelector("#audio");
-const trackList = document.querySelector("#trackList");
+const yearGroups = document.querySelector("#yearGroups");
 const searchInput = document.querySelector("#searchInput");
+const sortSelect = document.querySelector("#sortSelect");
 const message = document.querySelector("#message");
 const playButton = document.querySelector("#playButton");
 const prevButton = document.querySelector("#prevButton");
 const nextButton = document.querySelector("#nextButton");
 const shuffleButton = document.querySelector("#shuffleButton");
 const repeatButton = document.querySelector("#repeatButton");
+const shuffleAllButton = document.querySelector("#shuffleAllButton");
 const refreshButton = document.querySelector("#refreshButton");
+const expandAllButton = document.querySelector("#expandAllButton");
+const collapseAllButton = document.querySelector("#collapseAllButton");
 const seekBar = document.querySelector("#seekBar");
 const volumeBar = document.querySelector("#volumeBar");
 const currentTime = document.querySelector("#currentTime");
 const duration = document.querySelector("#duration");
 const nowTitle = document.querySelector("#nowTitle");
-const nowFolder = document.querySelector("#nowFolder");
+const nowMeta = document.querySelector("#nowMeta");
 const trackCount = document.querySelector("#trackCount");
 const librarySummary = document.querySelector("#librarySummary");
+const archiveRange = document.querySelector("#archiveRange");
 const folderPath = document.querySelector("#folderPath");
 
 let tracks = [];
@@ -24,6 +29,7 @@ let currentTrack = null;
 let shuffled = false;
 let repeatMode = 0;
 let shuffledQueue = [];
+const collapsedYears = new Set();
 
 const savedVolume = Number(localStorage.getItem("gravitards-volume"));
 audio.volume = Number.isFinite(savedVolume) ? savedVolume : 0.85;
@@ -40,6 +46,47 @@ function formatSize(bytes) {
   if (!Number.isFinite(bytes)) return "";
   const mb = bytes / 1024 / 1024;
   return `${mb.toFixed(mb >= 10 ? 0 : 1)} MB`;
+}
+
+function formatDate(dateValue) {
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("sv-SE", {
+    year: "numeric",
+    month: "short",
+    day: "numeric"
+  }).format(date);
+}
+
+function extractYear(track) {
+  const source = `${track.name || ""} ${track.path || ""} ${track.folder || ""}`;
+  const matches = source.match(/(?:19|20)\d{2}/g);
+
+  if (matches?.length) {
+    const plausible = matches
+      .map(Number)
+      .filter(year => year >= 1950 && year <= new Date().getFullYear() + 1);
+
+    if (plausible.length) return Math.max(...plausible);
+  }
+
+  const modified = new Date(track.modified);
+  if (!Number.isNaN(modified.getTime())) return modified.getFullYear();
+
+  return "Okänt år";
+}
+
+function cleanTitle(track) {
+  let title = track.title || track.name || "Namnlös inspelning";
+
+  title = title
+    .replace(/^(?:19|20)\d{2}[-_. /]*/i, "")
+    .replace(/^\d{4}[-_.]\d{1,2}[-_.]\d{1,2}[-_. ]*/i, "")
+    .replace(/^\d{1,2}[-_.]\d{1,2}[-_.](?:19|20)\d{2}[-_. ]*/i, "")
+    .replace(/[_]+/g, " ")
+    .trim();
+
+  return title || track.title;
 }
 
 function cleanFolder(folder) {
@@ -65,38 +112,116 @@ function hideMessage() {
   message.classList.add("hidden");
 }
 
+function decorateTracks(rawTracks) {
+  return rawTracks.map(track => ({
+    ...track,
+    year: extractYear(track),
+    displayTitle: cleanTitle(track)
+  }));
+}
+
+function sortTracks(list) {
+  const mode = sortSelect.value;
+  return [...list].sort((a, b) => {
+    if (mode === "title-asc") {
+      return a.displayTitle.localeCompare(b.displayTitle, "sv", { numeric: true });
+    }
+
+    if (mode === "modified-desc") {
+      return new Date(b.modified) - new Date(a.modified);
+    }
+
+    const ay = typeof a.year === "number" ? a.year : -Infinity;
+    const by = typeof b.year === "number" ? b.year : -Infinity;
+
+    if (mode === "year-asc") {
+      return ay - by || a.displayTitle.localeCompare(b.displayTitle, "sv", { numeric: true });
+    }
+
+    return by - ay || a.displayTitle.localeCompare(b.displayTitle, "sv", { numeric: true });
+  });
+}
+
 function updateSummary() {
-  trackCount.textContent = `${tracks.length} ${tracks.length === 1 ? "låt" : "låtar"}`;
-  const folders = new Set(tracks.map(track => track.folder));
+  const numericYears = tracks
+    .map(track => track.year)
+    .filter(year => typeof year === "number")
+    .sort((a, b) => a - b);
+
+  trackCount.textContent =
+    `${tracks.length} ${tracks.length === 1 ? "inspelning" : "inspelningar"}`;
+
+  if (numericYears.length) {
+    const first = numericYears[0];
+    const last = numericYears.at(-1);
+    archiveRange.textContent = first === last ? `${first}` : `${first}–${last}`;
+  } else {
+    archiveRange.textContent = "Årtal saknas";
+  }
+
+  const yearCount = new Set(tracks.map(track => String(track.year))).size;
   librarySummary.textContent =
-    `${tracks.length} ${tracks.length === 1 ? "låt" : "låtar"} · ${folders.size} ${folders.size === 1 ? "mapp" : "mappar"}`;
+    `${tracks.length} ${tracks.length === 1 ? "inspelning" : "inspelningar"} · ${yearCount} ${yearCount === 1 ? "år" : "årsgrupper"}`;
+}
+
+function groupByYear(list) {
+  const groups = new Map();
+
+  list.forEach(track => {
+    const key = String(track.year);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(track);
+  });
+
+  return groups;
 }
 
 function renderTracks() {
   const query = searchInput.value.trim().toLocaleLowerCase("sv");
 
-  visibleTracks = tracks.filter(track =>
-    `${track.title} ${track.folder}`.toLocaleLowerCase("sv").includes(query)
+  visibleTracks = sortTracks(
+    tracks.filter(track =>
+      `${track.displayTitle} ${track.folder} ${track.year}`
+        .toLocaleLowerCase("sv")
+        .includes(query)
+    )
   );
 
   if (!visibleTracks.length) {
-    trackList.innerHTML = `<div class="message">${
-      tracks.length ? "Inga spår matchar sökningen." : "Inga ljudfiler hittades."
-    }</div>`;
+    yearGroups.innerHTML =
+      `<div class="message">${tracks.length ? "Inga inspelningar matchar sökningen." : "Inga ljudfiler hittades."}</div>`;
     return;
   }
 
-  trackList.innerHTML = visibleTracks.map((track, index) => {
-    const active = currentTrack?.id === track.id;
+  const groups = groupByYear(visibleTracks);
+
+  yearGroups.innerHTML = [...groups.entries()].map(([year, items]) => {
+    const collapsed = collapsedYears.has(year);
+    const tracksHtml = items.map(track => {
+      const active = currentTrack?.id === track.id;
+
+      return `
+        <button class="track ${active ? "active" : ""}" type="button" data-id="${escapeHtml(track.id)}">
+          <span class="track-index">${active && !audio.paused ? "▶" : "♫"}</span>
+          <span class="track-copy">
+            <span class="track-title">${escapeHtml(track.displayTitle)}</span>
+            <span class="track-folder">${escapeHtml(cleanFolder(track.folder))}</span>
+          </span>
+          <span class="track-date">${escapeHtml(formatDate(track.modified))}</span>
+          <span class="track-size">${formatSize(track.size)}</span>
+        </button>
+      `;
+    }).join("");
+
     return `
-      <button class="track ${active ? "active" : ""}" type="button" data-id="${escapeHtml(track.id)}">
-        <span class="track-index">${active && !audio.paused ? "▶" : "♫"}</span>
-        <span class="track-copy">
-          <span class="track-title">${escapeHtml(track.title)}</span>
-          <span class="track-folder">${escapeHtml(cleanFolder(track.folder))}</span>
-        </span>
-        <span class="track-size">${formatSize(track.size)}</span>
-      </button>
+      <section class="year-group ${collapsed ? "collapsed" : ""}" data-year="${escapeHtml(year)}">
+        <button class="year-heading" type="button" data-toggle-year="${escapeHtml(year)}">
+          <span class="year-number">${escapeHtml(year)}</span>
+          <span class="year-count">${items.length} ${items.length === 1 ? "inspelning" : "inspelningar"}</span>
+          <span class="chevron">▾</span>
+        </button>
+        <div class="year-tracks">${tracksHtml}</div>
+      </section>
     `;
   }).join("");
 }
@@ -104,20 +229,22 @@ function renderTracks() {
 async function loadTracks(force = false) {
   hideMessage();
   refreshButton.disabled = true;
-  refreshButton.lastElementChild && (refreshButton.lastElementChild.textContent = "Uppdaterar");
+  refreshButton.textContent = "↻ Uppdaterar…";
 
   try {
     if (force) {
       const refreshResponse = await fetch("/api/refresh", { method: "POST" });
       const refreshData = await refreshResponse.json();
-      if (!refreshResponse.ok) throw new Error(refreshData.error || "Uppdateringen misslyckades.");
+      if (!refreshResponse.ok) {
+        throw new Error(refreshData.error || "Uppdateringen misslyckades.");
+      }
     }
 
     const response = await fetch("/api/tracks");
     const data = await response.json();
-    if (!response.ok) throw new Error(data.error || "Biblioteket kunde inte läsas.");
+    if (!response.ok) throw new Error(data.error || "Arkivet kunde inte läsas.");
 
-    tracks = data.tracks;
+    tracks = decorateTracks(data.tracks);
     folderPath.textContent = `▱ ${data.folder}`;
     updateSummary();
     renderTracks();
@@ -129,11 +256,13 @@ async function loadTracks(force = false) {
     showMessage(error.message, true);
   } finally {
     refreshButton.disabled = false;
+    refreshButton.textContent = "↻ Uppdatera";
   }
 }
 
 function buildQueue() {
-  const base = searchInput.value.trim() ? visibleTracks : tracks;
+  const base = visibleTracks.length ? visibleTracks : tracks;
+
   if (!shuffled) return base;
 
   if (
@@ -150,8 +279,8 @@ async function playTrack(track) {
   if (!track) return;
 
   currentTrack = track;
-  nowTitle.textContent = track.title;
-  nowFolder.textContent = cleanFolder(track.folder);
+  nowTitle.textContent = track.displayTitle;
+  nowMeta.textContent = `${track.year} · ${cleanFolder(track.folder)}`;
   audio.src = `/api/play/${encodeURIComponent(track.id)}?t=${Date.now()}`;
   renderTracks();
 
@@ -176,15 +305,49 @@ function step(direction) {
   playTrack(queue[nextIndex]);
 }
 
-trackList.addEventListener("click", event => {
-  const button = event.target.closest("[data-id]");
-  if (!button) return;
-  playTrack(tracks.find(track => track.id === button.dataset.id));
+yearGroups.addEventListener("click", event => {
+  const yearButton = event.target.closest("[data-toggle-year]");
+
+  if (yearButton) {
+    const year = yearButton.dataset.toggleYear;
+    collapsedYears.has(year) ? collapsedYears.delete(year) : collapsedYears.add(year);
+    renderTracks();
+    return;
+  }
+
+  const trackButton = event.target.closest("[data-id]");
+  if (!trackButton) return;
+
+  playTrack(tracks.find(track => track.id === trackButton.dataset.id));
 });
 
 searchInput.addEventListener("input", () => {
   shuffledQueue = [];
   renderTracks();
+});
+
+sortSelect.addEventListener("change", () => {
+  shuffledQueue = [];
+  renderTracks();
+});
+
+expandAllButton.addEventListener("click", () => {
+  collapsedYears.clear();
+  renderTracks();
+});
+
+collapseAllButton.addEventListener("click", () => {
+  visibleTracks.forEach(track => collapsedYears.add(String(track.year)));
+  renderTracks();
+});
+
+shuffleAllButton.addEventListener("click", () => {
+  if (!tracks.length) return;
+  shuffled = true;
+  shuffledQueue = [];
+  shuffleButton.classList.add("on");
+  const queue = buildQueue();
+  playTrack(queue[0]);
 });
 
 playButton.addEventListener("click", () => {
@@ -209,7 +372,7 @@ repeatButton.addEventListener("click", () => {
   repeatMode = (repeatMode + 1) % 3;
   repeatButton.classList.toggle("on", repeatMode > 0);
   repeatButton.textContent = repeatMode === 2 ? "↻¹" : "↻";
-  repeatButton.title = ["Upprepa av", "Upprepa kö", "Upprepa spår"][repeatMode];
+  repeatButton.title = ["Upprepa av", "Upprepa kö", "Upprepa inspelning"][repeatMode];
 });
 
 refreshButton.addEventListener("click", () => loadTracks(true));
@@ -239,13 +402,13 @@ audio.addEventListener("ended", () => {
   if (repeatMode === 2) {
     audio.currentTime = 0;
     audio.play();
-  } else if (repeatMode === 1 || currentTrack !== tracks.at(-1)) {
+  } else {
     step(1);
   }
 });
 
 audio.addEventListener("error", () => {
-  showMessage("Spåret kunde inte spelas. Prova att klicka på det igen.", true);
+  showMessage("Inspelningen kunde inte spelas. Prova att klicka på den igen.", true);
 });
 
 seekBar.addEventListener("input", () => {
@@ -260,7 +423,7 @@ volumeBar.addEventListener("input", () => {
 });
 
 document.addEventListener("keydown", event => {
-  if (event.target.matches("input")) return;
+  if (event.target.matches("input, select")) return;
 
   if (event.code === "Space") {
     event.preventDefault();
