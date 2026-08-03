@@ -1,14 +1,18 @@
-GRAVITARDS LIVE ARCHIVE V2.1
+GRAVITARDS LIVE ARCHIVE V2.2
 
-Ersätt endast:
+Ersätt:
 - index.html
 - style.css
 - app.js
 
-Du behöver inte ersätta bilderna igen.
-
 Nytt:
-- Prefixet “Gravitards -” tas bort från visade låttitlar.
-- Aktiv inspelning markeras med en pulserande ikon.
-- Ihopfällda år sparas i webbläsaren.
-- Meny för att hoppa direkt till ett år.
+- Favoriter
+- Senast spelade
+- Kommentar per inspelning
+- Markering i listan när en kommentar finns
+
+VIKTIGT:
+Kommentarer, favoriter och senast spelade sparas lokalt i den aktuella
+webbläsaren. De delas inte automatiskt mellan olika datorer eller användare.
+Gemensamma kommentarer kräver senare en databas och inloggning eller annan
+behörighetslösning.

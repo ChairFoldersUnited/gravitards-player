@@ -23,6 +23,12 @@ const librarySummary = document.querySelector("#librarySummary");
 const archiveRange = document.querySelector("#archiveRange");
 const folderPath = document.querySelector("#folderPath");
 const yearJumpSelect = document.querySelector("#yearJumpSelect");
+const favoritesFilterButton = document.querySelector("#favoritesFilterButton");
+const recentFilterButton = document.querySelector("#recentFilterButton");
+const commentInput = document.querySelector("#commentInput");
+const commentStatus = document.querySelector("#commentStatus");
+const saveCommentButton = document.querySelector("#saveCommentButton");
+const deleteCommentButton = document.querySelector("#deleteCommentButton");
 
 let tracks = [];
 let visibleTracks = [];
@@ -30,6 +36,18 @@ let currentTrack = null;
 let shuffled = false;
 let repeatMode = 0;
 let shuffledQueue = [];
+let activeFilter = "all";
+
+const FAVORITES_STORAGE_KEY = "gravitards-favorites";
+const COMMENTS_STORAGE_KEY = "gravitards-comments";
+const RECENT_STORAGE_KEY = "gravitards-recent";
+
+const favoriteIds = new Set(
+  JSON.parse(localStorage.getItem(FAVORITES_STORAGE_KEY) || "[]")
+);
+const comments = JSON.parse(localStorage.getItem(COMMENTS_STORAGE_KEY) || "{}");
+let recentIds = JSON.parse(localStorage.getItem(RECENT_STORAGE_KEY) || "[]");
+
 const COLLAPSED_STORAGE_KEY = "gravitards-collapsed-years";
 const collapsedYears = new Set(
   JSON.parse(localStorage.getItem(COLLAPSED_STORAGE_KEY) || "[]")
@@ -147,6 +165,48 @@ function sortTracks(list) {
   });
 }
 
+function saveFavorites() {
+  localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify([...favoriteIds]));
+}
+
+function saveComments() {
+  localStorage.setItem(COMMENTS_STORAGE_KEY, JSON.stringify(comments));
+}
+
+function saveRecent() {
+  localStorage.setItem(RECENT_STORAGE_KEY, JSON.stringify(recentIds));
+}
+
+function updateFilterButtons() {
+  favoritesFilterButton.classList.toggle("active", activeFilter === "favorites");
+  recentFilterButton.classList.toggle("active", activeFilter === "recent");
+  favoritesFilterButton.textContent =
+    `${activeFilter === "favorites" ? "★" : "☆"} Favoriter (${favoriteIds.size})`;
+}
+
+function loadCommentForCurrentTrack() {
+  if (!currentTrack) {
+    commentInput.value = "";
+    commentInput.disabled = true;
+    saveCommentButton.disabled = true;
+    deleteCommentButton.disabled = true;
+    commentStatus.textContent = "Ingen inspelning vald";
+    return;
+  }
+
+  const value = comments[currentTrack.id] || "";
+  commentInput.disabled = false;
+  saveCommentButton.disabled = false;
+  deleteCommentButton.disabled = !value;
+  commentInput.value = value;
+  commentStatus.textContent = currentTrack.displayTitle;
+}
+
+function addToRecent(trackId) {
+  recentIds = [trackId, ...recentIds.filter(id => id !== trackId)].slice(0, 30);
+  saveRecent();
+}
+
 function saveCollapsedYears() {
   localStorage.setItem(
     COLLAPSED_STORAGE_KEY,
@@ -203,13 +263,27 @@ function groupByYear(list) {
 function renderTracks() {
   const query = searchInput.value.trim().toLocaleLowerCase("sv");
 
-  visibleTracks = sortTracks(
-    tracks.filter(track =>
-      `${track.displayTitle} ${track.folder} ${track.year}`
-        .toLocaleLowerCase("sv")
-        .includes(query)
-    )
+  let filtered = tracks.filter(track =>
+    `${track.displayTitle} ${track.folder} ${track.year}`
+      .toLocaleLowerCase("sv")
+      .includes(query)
   );
+
+  if (activeFilter === "favorites") {
+    filtered = filtered.filter(track => favoriteIds.has(track.id));
+  }
+
+  if (activeFilter === "recent") {
+    const position = new Map(recentIds.map((id, index) => [id, index]));
+    filtered = filtered
+      .filter(track => position.has(track.id))
+      .sort((a, b) => position.get(a.id) - position.get(b.id));
+    visibleTracks = filtered;
+  } else {
+    visibleTracks = sortTracks(filtered);
+  }
+
+  updateFilterButtons();
 
   if (!visibleTracks.length) {
     yearGroups.innerHTML =
@@ -225,15 +299,19 @@ function renderTracks() {
       const active = currentTrack?.id === track.id;
 
       return `
-        <button class="track ${active ? "active" : ""}" type="button" data-id="${escapeHtml(track.id)}">
+        <div class="track ${active ? "active" : ""}" role="button" tabindex="0" data-id="${escapeHtml(track.id)}">
           <span class="track-index">${active && !audio.paused ? "▶" : "♫"}</span>
           <span class="track-copy">
-            <span class="track-title">${escapeHtml(track.displayTitle)}</span>
+            <span class="track-title">${escapeHtml(track.displayTitle)}${comments[track.id] ? '<span class="track-comment-badge" title="Har kommentar">●</span>' : ''}</span>
             <span class="track-folder">${escapeHtml(cleanFolder(track.folder))}</span>
           </span>
           <span class="track-date">${escapeHtml(formatDate(track.modified))}</span>
           <span class="track-size">${formatSize(track.size)}</span>
-        </button>
+          <button class="track-favorite ${favoriteIds.has(track.id) ? "on" : ""}"
+                  type="button"
+                  data-favorite-id="${escapeHtml(track.id)}"
+                  title="Favorit">${favoriteIds.has(track.id) ? "★" : "☆"}</button>
+        </div>
       `;
     }).join("");
 
@@ -304,9 +382,11 @@ async function playTrack(track) {
   if (!track) return;
 
   currentTrack = track;
+  addToRecent(track.id);
   nowTitle.textContent = track.displayTitle;
   nowMeta.textContent = `${track.year} · ${cleanFolder(track.folder)}`;
   audio.src = `/api/play/${encodeURIComponent(track.id)}?t=${Date.now()}`;
+  loadCommentForCurrentTrack();
   renderTracks();
 
   try {
@@ -331,6 +411,17 @@ function step(direction) {
 }
 
 yearGroups.addEventListener("click", event => {
+  const favoriteButton = event.target.closest("[data-favorite-id]");
+
+  if (favoriteButton) {
+    event.stopPropagation();
+    const id = favoriteButton.dataset.favoriteId;
+    favoriteIds.has(id) ? favoriteIds.delete(id) : favoriteIds.add(id);
+    saveFavorites();
+    renderTracks();
+    return;
+  }
+
   const yearButton = event.target.closest("[data-toggle-year]");
 
   if (yearButton) {
@@ -388,6 +479,52 @@ yearJumpSelect.addEventListener("change", () => {
   });
 
   yearJumpSelect.value = "";
+});
+
+
+favoritesFilterButton.addEventListener("click", () => {
+  activeFilter = activeFilter === "favorites" ? "all" : "favorites";
+  renderTracks();
+});
+
+recentFilterButton.addEventListener("click", () => {
+  activeFilter = activeFilter === "recent" ? "all" : "recent";
+  renderTracks();
+});
+
+saveCommentButton.addEventListener("click", () => {
+  if (!currentTrack) return;
+
+  const value = commentInput.value.trim();
+
+  if (value) {
+    comments[currentTrack.id] = value;
+  } else {
+    delete comments[currentTrack.id];
+  }
+
+  saveComments();
+  loadCommentForCurrentTrack();
+  renderTracks();
+  commentStatus.textContent = value ? "Sparad" : currentTrack.displayTitle;
+
+  window.setTimeout(() => {
+    if (currentTrack) commentStatus.textContent = currentTrack.displayTitle;
+  }, 1200);
+});
+
+deleteCommentButton.addEventListener("click", () => {
+  if (!currentTrack) return;
+  delete comments[currentTrack.id];
+  saveComments();
+  loadCommentForCurrentTrack();
+  renderTracks();
+});
+
+commentInput.addEventListener("keydown", event => {
+  if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+    saveCommentButton.click();
+  }
 });
 
 shuffleAllButton.addEventListener("click", () => {
@@ -483,4 +620,6 @@ document.addEventListener("keydown", event => {
   if (event.code === "ArrowLeft") step(-1);
 });
 
+updateFilterButtons();
+loadCommentForCurrentTrack();
 loadTracks();
