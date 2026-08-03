@@ -1,4 +1,9 @@
 const audio = document.querySelector("#audio");
+const audioArchiveTab = document.querySelector("#audioArchiveTab");
+const filmArchiveTab = document.querySelector("#filmArchiveTab");
+const audioArchiveView = document.querySelector("#audioArchiveView");
+const filmArchiveView = document.querySelector("#filmArchiveView");
+const audioArchiveCount = document.querySelector("#audioArchiveCount");
 const yearGroups = document.querySelector("#yearGroups");
 const searchInput = document.querySelector("#searchInput");
 const sortSelect = document.querySelector("#sortSelect");
@@ -472,6 +477,18 @@ function renderTracks() {
   }).join("");
 }
 
+function setArchiveView(view) {
+  const showAudio = view === "audio";
+
+  audioArchiveTab.classList.toggle("active", showAudio);
+  filmArchiveTab.classList.toggle("active", !showAudio);
+  audioArchiveView.classList.toggle("hidden", !showAudio);
+  filmArchiveView.classList.toggle("hidden", showAudio);
+
+  localStorage.setItem("gravitards-archive-view", view);
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
 async function loadTracks(force = false) {
   hideMessage();
   refreshButton.disabled = true;
@@ -491,6 +508,8 @@ async function loadTracks(force = false) {
     if (!response.ok) throw new Error(data.error || "Arkivet kunde inte läsas.");
 
     tracks = decorateTracks(data.tracks);
+    audioArchiveCount.textContent =
+      `${tracks.length} ${tracks.length === 1 ? "Vault Entry" : "Vault Entries"}`;
     folderPath.textContent = `▱ ${data.folder}`;
     updateSummary();
     updateYearJump();
@@ -930,6 +949,12 @@ document.addEventListener("keydown", event => {
   if (event.code === "ArrowRight") step(1);
   if (event.code === "ArrowLeft") step(-1);
 });
+
+audioArchiveTab.addEventListener("click", () => setArchiveView("audio"));
+filmArchiveTab.addEventListener("click", () => setArchiveView("film"));
+
+const savedArchiveView = localStorage.getItem("gravitards-archive-view") || "audio";
+setArchiveView(savedArchiveView === "film" ? "film" : "audio");
 
 updateFilterButtons();
 loadCommentForCurrentTrack();

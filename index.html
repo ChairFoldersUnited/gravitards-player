@@ -33,7 +33,27 @@
     </div>
   </nav>
 
-  <main class="layout">
+  <section class="archive-switcher" aria-label="Välj arkiv">
+    <div class="archive-switcher__inner">
+      <button id="audioArchiveTab" class="archive-tab active" type="button" data-archive-view="audio">
+        <span class="archive-tab__icon" aria-hidden="true">♫</span>
+        <span>
+          <strong>Audio Archive</strong>
+          <small id="audioArchiveCount">Vault Entries</small>
+        </span>
+      </button>
+
+      <button id="filmArchiveTab" class="archive-tab" type="button" data-archive-view="film">
+        <span class="archive-tab__icon" aria-hidden="true">▸</span>
+        <span>
+          <strong>Film Archive</strong>
+          <small>Gravitards videos</small>
+        </span>
+      </button>
+    </div>
+  </section>
+
+  <main id="audioArchiveView" class="layout archive-view active">
     <section class="library-card">
       <header class="library-header">
         <div>
@@ -180,10 +200,75 @@
 
       <section class="info-card">
         <h2>Om valvet</h2>
-        <p>Årtal hämtas i första hand från filnamn eller mappsökväg. Om inget år hittas används Dropbox-datumet.</p>
+        <p>Varje inspelning är ett fragment ur Gravitards historia. Här bevaras repetitioner, improvisationer och färdiga verk i den ordning de skapades – ett valv över år av musikaliska experiment och gemensamt skapande.</p>
         <p>Mellanslag spelar eller pausar. Piltangenter byter inspelning.</p>
       </section>
     </aside>
+  </main>
+
+  <main id="filmArchiveView" class="film-layout archive-view hidden">
+    <section class="film-hero-card">
+      <div class="film-hero-copy">
+        <p class="section-kicker">THE GRAVITARDS VAULT</p>
+        <h2>The Film Archive</h2>
+        <p>
+          En samlad visuell dokumentation av Gravitards historia – liveframträdanden,
+          repetitioner, experiment, musikvideor och andra bevarade ögonblick.
+        </p>
+      </div>
+
+      <div class="film-seal" aria-hidden="true">
+        <span>FILM</span>
+        <strong>ARCHIVE</strong>
+      </div>
+    </section>
+
+    <section class="film-player-card">
+      <header class="film-card-heading">
+        <div>
+          <p class="section-kicker">CURATED PLAYLIST</p>
+          <h2>Samlade videor</h2>
+        </div>
+        <a class="youtube-link" href="https://www.youtube.com/playlist?list=PLA74wG8-e4XBIKCB6HkAg-s2nvVR1hFQ8" target="_blank" rel="noopener noreferrer">
+          Öppna på YouTube ↗
+        </a>
+      </header>
+
+      <div class="youtube-frame">
+        <iframe
+          src="https://www.youtube-nocookie.com/embed/videoseries?list=PLA74wG8-e4XBIKCB6HkAg-s2nvVR1hFQ8&rel=0"
+          title="The Gravitards Vault – YouTube-spellista"
+          loading="lazy"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowfullscreen>
+        </iframe>
+      </div>
+
+      <footer class="film-card-footer">
+        <span>FILM ARCHIVE</span>
+        <span>PLAYLIST ID · PLA74wG8-e4XBIKCB6HkAg-s2nvVR1hFQ8</span>
+      </footer>
+    </section>
+
+    <section class="film-info-grid">
+      <article class="film-info-card">
+        <span class="film-info-number">01</span>
+        <h3>Live</h3>
+        <p>Framträdanden och dokumentation från scenen.</p>
+      </article>
+
+      <article class="film-info-card">
+        <span class="film-info-number">02</span>
+        <h3>Rehearsals</h3>
+        <p>Repetitioner, arbetsmaterial och musikaliska experiment.</p>
+      </article>
+
+      <article class="film-info-card">
+        <span class="film-info-number">03</span>
+        <h3>Archive</h3>
+        <p>Videofragment som bevarar bandets utveckling genom åren.</p>
+      </article>
+    </section>
   </main>
 
   <audio id="audio" preload="metadata"></audio>

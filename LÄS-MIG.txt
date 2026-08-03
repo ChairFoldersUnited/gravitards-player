@@ -1,15 +1,17 @@
-THE GRAVITARDS VAULT – INDUSTRIAL V4.1 HEADER FIX
+THE GRAVITARDS VAULT V5 – MULTI ARCHIVE
 
-Ladda upp och ersätt:
-- style.css
-
-Ladda dessutom upp denna fil direkt i repots rot:
-- vault-header.jpg
-
-Den ska ligga bredvid:
+Ersätt:
 - index.html
-- app.js
-- server.js
 - style.css
+- app.js
 
-Du behöver inte använda assets/vault-header.jpg längre.
+Server.js och bilderna behöver inte ändras.
+
+NYTT
+- Två arkivvyer: Audio Archive och Film Archive.
+- Inbäddad YouTube-spellista:
+  https://www.youtube.com/playlist?list=PLA74wG8-e4XBIKCB6HkAg-s2nvVR1hFQ8
+- Knapp för att öppna hela spellistan på YouTube.
+- Film Archive har samma industriella stil som resten av valvet.
+- Sidan minns vilken arkivvy som senast var öppen.
+- Texten i Om valvet har uppdaterats.
