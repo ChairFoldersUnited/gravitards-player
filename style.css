@@ -928,3 +928,43 @@ button:disabled { opacity: .45; cursor: wait; }
 .time-display:hover {
   color: var(--gold-light);
 }
+
+
+.track {
+  grid-template-columns: 30px minmax(0,1fr) 115px 70px 40px 38px;
+}
+
+.track-download {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #83909c;
+  cursor: pointer;
+  font-size: 1rem;
+  text-decoration: none;
+}
+
+.track-download:hover {
+  color: var(--gold-light);
+  background: rgba(245,185,66,.09);
+}
+
+@media (max-width: 760px) {
+  .track {
+    grid-template-columns: 25px minmax(0,1fr) 34px 34px;
+  }
+
+  .track-size {
+    display: none;
+  }
+
+  .track-download,
+  .track-favorite {
+    width: 28px;
+    height: 28px;
+  }
+}

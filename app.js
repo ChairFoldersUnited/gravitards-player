@@ -8,6 +8,7 @@ const prevButton = document.querySelector("#prevButton");
 const nextButton = document.querySelector("#nextButton");
 const shuffleButton = document.querySelector("#shuffleButton");
 const repeatButton = document.querySelector("#repeatButton");
+const downloadCurrentButton = document.querySelector("#downloadCurrentButton");
 const shuffleAllButton = document.querySelector("#shuffleAllButton");
 const refreshButton = document.querySelector("#refreshButton");
 const expandAllButton = document.querySelector("#expandAllButton");
@@ -449,6 +450,11 @@ function renderTracks() {
                   type="button"
                   data-favorite-id="${escapeHtml(track.id)}"
                   title="Favorit">${favoriteIds.has(track.id) ? "★" : "☆"}</button>
+          <a class="track-download"
+             href="/api/download/${encodeURIComponent(track.id)}"
+             data-download-id="${escapeHtml(track.id)}"
+             title="Ladda ned filen"
+             aria-label="Ladda ned ${escapeHtml(track.displayTitle)}">↓</a>
         </div>
       `;
     }).join("");
@@ -521,6 +527,7 @@ async function playTrack(track) {
   if (!track) return;
 
   currentTrack = track;
+  downloadCurrentButton.disabled = false;
   addToRecent(track.id);
   nowTitle.textContent = track.displayTitle;
   nowMeta.textContent = `${track.year} · ${cleanFolder(track.folder)}`;
@@ -555,6 +562,13 @@ function step(direction) {
 }
 
 yearGroups.addEventListener("click", event => {
+  const downloadLink = event.target.closest("[data-download-id]");
+
+  if (downloadLink) {
+    event.stopPropagation();
+    return;
+  }
+
   const favoriteButton = event.target.closest("[data-favorite-id]");
 
   if (favoriteButton) {
@@ -776,6 +790,16 @@ shuffleAllButton.addEventListener("click", () => {
   shuffleButton.classList.add("on");
   const queue = buildQueue();
   playTrack(queue[0]);
+});
+
+downloadCurrentButton.addEventListener("click", () => {
+  if (!currentTrack) return;
+
+  const link = document.createElement("a");
+  link.href = `/api/download/${encodeURIComponent(currentTrack.id)}`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
 });
 
 playButton.addEventListener("click", () => {

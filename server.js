@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { Readable } from "node:stream";
 
 const app = express();
 
@@ -58,21 +59,29 @@ async function dropboxRpc(endpoint, body) {
 
   if (!response.ok) {
     const details = await response.text();
-
-    throw new Error(
-      `Dropbox API-fel ${response.status}: ${details}`
-    );
+    throw new Error(`Dropbox API-fel ${response.status}: ${details}`);
   }
 
   return response.json();
 }
 
-function isAudioFile(entry) {
-  if (entry[".tag"] !== "file") {
-    return false;
-  }
+async function dropboxDownload(pathValue) {
+  const accessToken = getAccessToken();
 
-  return /\.(mp3|m4a|aac|wav|ogg|flac)$/i.test(entry.name);
+  return fetch("https://content.dropboxapi.com/2/files/download", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Dropbox-API-Arg": JSON.stringify({ path: pathValue })
+    }
+  });
+}
+
+function isAudioFile(entry) {
+  return (
+    entry[".tag"] === "file" &&
+    /\.(mp3|m4a|aac|wav|ogg|flac)$/i.test(entry.name)
+  );
 }
 
 function titleFromFilename(filename) {
@@ -80,6 +89,12 @@ function titleFromFilename(filename) {
     .replace(/\.[^.]+$/, "")
     .replaceAll("_", " ")
     .trim();
+}
+
+function safeDownloadFilename(filename) {
+  return String(filename || "gravitards-recording.mp3")
+    .replace(/[\r\n"]/g, "")
+    .trim() || "gravitards-recording.mp3";
 }
 
 async function fetchLibrary() {
@@ -98,12 +113,9 @@ async function fetchLibrary() {
   const entries = [...result.entries];
 
   while (result.has_more) {
-    result = await dropboxRpc(
-      "files/list_folder/continue",
-      {
-        cursor: result.cursor
-      }
-    );
+    result = await dropboxRpc("files/list_folder/continue", {
+      cursor: result.cursor
+    });
 
     entries.push(...result.entries);
   }
@@ -126,14 +138,10 @@ async function fetchLibrary() {
       };
     })
     .sort((a, b) =>
-      a.path.localeCompare(
-        b.path,
-        "sv",
-        {
-          numeric: true,
-          sensitivity: "base"
-        }
-      )
+      a.path.localeCompare(b.path, "sv", {
+        numeric: true,
+        sensitivity: "base"
+      })
     );
 
   libraryCache = {
@@ -147,9 +155,7 @@ async function fetchLibrary() {
 app.get("/api/status", (_req, res) => {
   res.json({
     running: true,
-    dropboxConfigured: Boolean(
-      process.env.DROPBOX_ACCESS_TOKEN
-    ),
+    dropboxConfigured: Boolean(process.env.DROPBOX_ACCESS_TOKEN),
     folder: DROPBOX_FOLDER || "/"
   });
 });
@@ -165,10 +171,7 @@ app.get("/api/tracks", async (_req, res) => {
     });
   } catch (error) {
     console.error(error);
-
-    res.status(500).json({
-      error: error.message
-    });
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -177,57 +180,79 @@ app.post("/api/refresh", async (_req, res) => {
 
   try {
     const tracks = await fetchLibrary();
-
-    res.json({
-      ok: true,
-      count: tracks.length
-    });
+    res.json({ ok: true, count: tracks.length });
   } catch (error) {
     console.error(error);
-
-    res.status(500).json({
-      error: error.message
-    });
+    res.status(500).json({ error: error.message });
   }
 });
 
 app.get("/api/play/:id", async (req, res) => {
   try {
     const tracks = await fetchLibrary();
-
-    const track = tracks.find(
-      (item) => item.id === req.params.id
-    );
+    const track = tracks.find((item) => item.id === req.params.id);
 
     if (!track) {
       return res.status(404).send("Spåret hittades inte.");
     }
 
-    const data = await dropboxRpc(
-      "files/get_temporary_link",
-      {
-        path: track.path
-      }
-    );
+    const data = await dropboxRpc("files/get_temporary_link", {
+      path: track.path
+    });
 
     res.set("Cache-Control", "no-store");
     return res.redirect(302, data.link);
   } catch (error) {
     console.error(error);
-
     return res.status(500).send(error.message);
   }
 });
 
-/*
- * Dina webbfiler ligger direkt i GitHub-repots rot:
- *
- * index.html
- * app.js
- * style.css
- *
- * Därför serverar vi filer direkt från __dirname.
- */
+app.get("/api/download/:id", async (req, res) => {
+  try {
+    const tracks = await fetchLibrary();
+    const track = tracks.find((item) => item.id === req.params.id);
+
+    if (!track) {
+      return res.status(404).send("Inspelningen hittades inte.");
+    }
+
+    const response = await dropboxDownload(track.path);
+
+    if (!response.ok || !response.body) {
+      const details = await response.text();
+      throw new Error(
+        `Dropbox-nedladdning misslyckades (${response.status}): ${details}`
+      );
+    }
+
+    const filename = safeDownloadFilename(track.name);
+
+    res.set({
+      "Content-Type":
+        response.headers.get("content-type") || "application/octet-stream",
+      "Content-Disposition":
+        `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`,
+      "Cache-Control": "private, no-store"
+    });
+
+    const contentLength = response.headers.get("content-length");
+    if (contentLength) {
+      res.set("Content-Length", contentLength);
+    }
+
+    Readable.fromWeb(response.body).pipe(res);
+  } catch (error) {
+    console.error(error);
+
+    if (!res.headersSent) {
+      res.status(500).send(error.message);
+    } else {
+      res.destroy(error);
+    }
+  }
+});
+
 app.use(
   express.static(__dirname, {
     extensions: ["html"],
@@ -236,23 +261,14 @@ app.use(
 );
 
 app.get("/", (_req, res) => {
-  res.sendFile(
-    path.join(__dirname, "index.html")
-  );
+  res.sendFile(path.join(__dirname, "index.html"));
 });
 
 app.use((_req, res) => {
-  res.status(404).sendFile(
-    path.join(__dirname, "index.html")
-  );
+  res.status(404).sendFile(path.join(__dirname, "index.html"));
 });
 
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(
-    `Gravitards Player kör på port ${PORT}`
-  );
-
-  console.log(
-    `Dropbox-mapp: ${DROPBOX_FOLDER || "/"}`
-  );
+  console.log(`The Gravitards Vault kör på port ${PORT}`);
+  console.log(`Dropbox-mapp: ${DROPBOX_FOLDER || "/"}`);
 });

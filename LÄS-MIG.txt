@@ -1,15 +1,17 @@
-THE GRAVITARDS VAULT V3.2
+THE GRAVITARDS VAULT V3.3
 
 Ersätt:
+- server.js
 - index.html
 - style.css
 - app.js
 
-Nytt:
-- Tid över en timme visas som h:mm:ss.
-- Höger tid visar återstående tid med minustecken.
-- Klicka på höger tid för att växla mellan återstående och total tid.
-- Dubbelklicka på någon av tiderna för att växla:
-  h:mm:ss → totala minuter → sekunder.
-- Håll musen över progressbaren för tidsförhandsvisning.
-- Tidsstämplade anteckningar visas som kapitelmarkeringar på progressbaren.
+NYTT
+- Nedladdningsknapp på varje Vault Entry.
+- Nedladdningsknapp i spelaren för vald inspelning.
+- Originalfilnamnet behålls vid nedladdning.
+- Ingen ny Dropbox-behörighet behövs.
+
+OBS
+Filen strömmas via Render utan att sparas där. Stora filer använder dock
+Render-trafik under hela nedladdningen.
