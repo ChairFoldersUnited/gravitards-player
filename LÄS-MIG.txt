@@ -1,17 +1,26 @@
-THE GRAVITARDS VAULT V3.3
+THE GRAVITARDS VAULT – INDUSTRIAL V4
 
-Ersätt:
-- server.js
+Ladda upp och ersätt:
 - index.html
 - style.css
 - app.js
+- server.js
+- favicon.png
 
-NYTT
-- Nedladdningsknapp på varje Vault Entry.
-- Nedladdningsknapp i spelaren för vald inspelning.
-- Originalfilnamnet behålls vid nedladdning.
-- Ingen ny Dropbox-behörighet behövs.
+Ladda även upp:
+- assets/background.jpg
+- assets/vault-header.jpg
 
-OBS
-Filen strömmas via Render utan att sparas där. Stora filer använder dock
-Render-trafik under hela nedladdningen.
+Den här versionen behåller alla funktioner från V3.3:
+- Dropbox-uppspelning
+- nedladdning
+- favoriter
+- senast spelade
+- kommentarer
+- tidsstämplade anteckningar
+- årstidslinje
+- kapitelmarkeringar
+- timformat och återstående tid
+
+Det nya är en fullständig visuell redesign i samma mörka, slitna,
+industriella och kosmiska stil som headerbilden.
