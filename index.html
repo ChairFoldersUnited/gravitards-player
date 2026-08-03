@@ -223,51 +223,75 @@
       </div>
     </section>
 
-    <section class="film-player-card">
-      <header class="film-card-heading">
-        <div>
-          <p class="section-kicker">CURATED PLAYLIST</p>
-          <h2>Samlade videor</h2>
+    <section class="film-browser">
+      <section class="film-player-card">
+        <header class="film-card-heading">
+          <div>
+            <p class="section-kicker">CURRENT FILM ENTRY</p>
+            <h2 id="filmNowTitle">Välj en video</h2>
+            <p id="filmNowMeta" class="film-now-meta">Hela spellistan visas nedan.</p>
+          </div>
+
+          <a id="filmYouTubeLink"
+             class="youtube-link"
+             href="https://www.youtube.com/playlist?list=PLA74wG8-e4XBIKCB6HkAg-s2nvVR1hFQ8"
+             target="_blank"
+             rel="noopener noreferrer">
+            Öppna på YouTube ↗
+          </a>
+        </header>
+
+        <div class="youtube-frame">
+          <iframe
+            id="filmPlayer"
+            src="https://www.youtube-nocookie.com/embed/videoseries?list=PLA74wG8-e4XBIKCB6HkAg-s2nvVR1hFQ8&rel=0"
+            title="The Gravitards Vault – videospelare"
+            loading="lazy"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowfullscreen>
+          </iframe>
         </div>
-        <a class="youtube-link" href="https://www.youtube.com/playlist?list=PLA74wG8-e4XBIKCB6HkAg-s2nvVR1hFQ8" target="_blank" rel="noopener noreferrer">
-          Öppna på YouTube ↗
-        </a>
-      </header>
+      </section>
 
-      <div class="youtube-frame">
-        <iframe
-          src="https://www.youtube-nocookie.com/embed/videoseries?list=PLA74wG8-e4XBIKCB6HkAg-s2nvVR1hFQ8&rel=0"
-          title="The Gravitards Vault – YouTube-spellista"
-          loading="lazy"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          allowfullscreen>
-        </iframe>
-      </div>
+      <section class="film-library-card">
+        <header class="film-library-header">
+          <div>
+            <p class="section-kicker">FILM INDEX</p>
+            <h2>Alla videor</h2>
+            <p id="filmCount" class="film-count">Läser in Film Archive…</p>
+          </div>
 
-      <footer class="film-card-footer">
-        <span>FILM ARCHIVE</span>
-        <span>PLAYLIST ID · PLA74wG8-e4XBIKCB6HkAg-s2nvVR1hFQ8</span>
-      </footer>
-    </section>
+          <div class="film-tools">
+            <label class="search-box film-search-box">
+              <span aria-hidden="true">⌕</span>
+              <input id="filmSearchInput"
+                     type="search"
+                     placeholder="Sök bland videor…"
+                     autocomplete="off">
+            </label>
 
-    <section class="film-info-grid">
-      <article class="film-info-card">
-        <span class="film-info-number">01</span>
-        <h3>Live</h3>
-        <p>Framträdanden och dokumentation från scenen.</p>
-      </article>
+            <label class="sort-box film-sort-box">
+              <span>Sortera</span>
+              <select id="filmSortSelect">
+                <option value="playlist">Spellistans ordning</option>
+                <option value="newest">Nyaste först</option>
+                <option value="oldest">Äldsta först</option>
+                <option value="title">Titel A–Ö</option>
+                <option value="duration">Längsta först</option>
+              </select>
+            </label>
 
-      <article class="film-info-card">
-        <span class="film-info-number">02</span>
-        <h3>Rehearsals</h3>
-        <p>Repetitioner, arbetsmaterial och musikaliska experiment.</p>
-      </article>
+            <button id="refreshFilmsButton"
+                    class="youtube-link film-refresh-button"
+                    type="button">
+              Uppdatera
+            </button>
+          </div>
+        </header>
 
-      <article class="film-info-card">
-        <span class="film-info-number">03</span>
-        <h3>Archive</h3>
-        <p>Videofragment som bevarar bandets utveckling genom åren.</p>
-      </article>
+        <section id="filmMessage" class="message hidden" role="status"></section>
+        <section id="filmGrid" class="film-grid" aria-label="Videor"></section>
+      </section>
     </section>
   </main>
 

@@ -14,6 +14,14 @@ const DROPBOX_FOLDER = normalizeFolder(
   process.env.DROPBOX_FOLDER || "/Musik/Gravitards"
 );
 
+const YOUTUBE_PLAYLIST_ID = "PLA74wG8-e4XBIKCB6HkAg-s2nvVR1hFQ8";
+const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY || "";
+
+let youtubeCache = {
+  expiresAt: 0,
+  videos: []
+};
+
 app.disable("x-powered-by");
 app.use(express.json());
 
@@ -152,10 +160,182 @@ async function fetchLibrary() {
   return tracks;
 }
 
+
+function parseIsoDuration(value) {
+  const match = String(value || "").match(
+    /^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/
+  );
+
+  if (!match) return 0;
+
+  const days = Number(match[1] || 0);
+  const hours = Number(match[2] || 0);
+  const minutes = Number(match[3] || 0);
+  const seconds = Number(match[4] || 0);
+
+  return days * 86400 + hours * 3600 + minutes * 60 + seconds;
+}
+
+async function youtubeGet(endpoint, params) {
+  if (!YOUTUBE_API_KEY) {
+    throw new Error(
+      "YOUTUBE_API_KEY saknas i Render Environment Variables."
+    );
+  }
+
+  const url = new URL(`https://www.googleapis.com/youtube/v3/${endpoint}`);
+
+  Object.entries({
+    ...params,
+    key: YOUTUBE_API_KEY
+  }).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      url.searchParams.set(key, String(value));
+    }
+  });
+
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    const details = await response.text();
+    throw new Error(`YouTube API-fel ${response.status}: ${details}`);
+  }
+
+  return response.json();
+}
+
+async function fetchYouTubeVideos() {
+  if (Date.now() < youtubeCache.expiresAt) {
+    return youtubeCache.videos;
+  }
+
+  const playlistItems = [];
+  let pageToken = "";
+
+  do {
+    const data = await youtubeGet("playlistItems", {
+      part: "snippet,contentDetails,status",
+      playlistId: YOUTUBE_PLAYLIST_ID,
+      maxResults: 50,
+      pageToken
+    });
+
+    playlistItems.push(...(data.items || []));
+    pageToken = data.nextPageToken || "";
+  } while (pageToken);
+
+  const usableItems = playlistItems.filter((item) => {
+    const videoId =
+      item.contentDetails?.videoId ||
+      item.snippet?.resourceId?.videoId;
+
+    const title = item.snippet?.title || "";
+
+    return (
+      videoId &&
+      title !== "Deleted video" &&
+      title !== "Private video"
+    );
+  });
+
+  const videoIds = usableItems.map((item) =>
+    item.contentDetails?.videoId || item.snippet?.resourceId?.videoId
+  );
+
+  const detailsById = new Map();
+
+  for (let index = 0; index < videoIds.length; index += 50) {
+    const batch = videoIds.slice(index, index + 50);
+
+    const data = await youtubeGet("videos", {
+      part: "snippet,contentDetails,status",
+      id: batch.join(",")
+    });
+
+    for (const video of data.items || []) {
+      detailsById.set(video.id, video);
+    }
+  }
+
+  const videos = usableItems
+    .map((item, position) => {
+      const videoId =
+        item.contentDetails?.videoId ||
+        item.snippet?.resourceId?.videoId;
+
+      const details = detailsById.get(videoId);
+      const snippet = details?.snippet || item.snippet || {};
+      const thumbnails = snippet.thumbnails || {};
+
+      return {
+        id: videoId,
+        title: snippet.title || "Namnlös video",
+        description: snippet.description || "",
+        publishedAt:
+          snippet.publishedAt ||
+          item.contentDetails?.videoPublishedAt ||
+          item.snippet?.publishedAt ||
+          "",
+        addedAt: item.snippet?.publishedAt || "",
+        channelTitle: snippet.channelTitle || "",
+        durationSeconds: parseIsoDuration(
+          details?.contentDetails?.duration
+        ),
+        thumbnail:
+          thumbnails.maxres?.url ||
+          thumbnails.standard?.url ||
+          thumbnails.high?.url ||
+          thumbnails.medium?.url ||
+          thumbnails.default?.url ||
+          `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+        position: Number(item.snippet?.position ?? position),
+        embeddable: details?.status?.embeddable !== false,
+        privacyStatus: details?.status?.privacyStatus || "public"
+      };
+    })
+    .filter((video) => video.privacyStatus !== "private")
+    .sort((a, b) => a.position - b.position);
+
+  youtubeCache = {
+    expiresAt: Date.now() + 15 * 60 * 1000,
+    videos
+  };
+
+  return videos;
+}
+
+app.get("/api/videos", async (_req, res) => {
+  try {
+    const videos = await fetchYouTubeVideos();
+
+    res.json({
+      playlistId: YOUTUBE_PLAYLIST_ID,
+      count: videos.length,
+      videos
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/videos/refresh", async (_req, res) => {
+  youtubeCache.expiresAt = 0;
+
+  try {
+    const videos = await fetchYouTubeVideos();
+    res.json({ ok: true, count: videos.length });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.get("/api/status", (_req, res) => {
   res.json({
     running: true,
     dropboxConfigured: Boolean(process.env.DROPBOX_ACCESS_TOKEN),
+    youtubeConfigured: Boolean(YOUTUBE_API_KEY),
     folder: DROPBOX_FOLDER || "/"
   });
 });

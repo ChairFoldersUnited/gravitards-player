@@ -4,6 +4,16 @@ const filmArchiveTab = document.querySelector("#filmArchiveTab");
 const audioArchiveView = document.querySelector("#audioArchiveView");
 const filmArchiveView = document.querySelector("#filmArchiveView");
 const audioArchiveCount = document.querySelector("#audioArchiveCount");
+const filmPlayer = document.querySelector("#filmPlayer");
+const filmNowTitle = document.querySelector("#filmNowTitle");
+const filmNowMeta = document.querySelector("#filmNowMeta");
+const filmYouTubeLink = document.querySelector("#filmYouTubeLink");
+const filmCount = document.querySelector("#filmCount");
+const filmGrid = document.querySelector("#filmGrid");
+const filmMessage = document.querySelector("#filmMessage");
+const filmSearchInput = document.querySelector("#filmSearchInput");
+const filmSortSelect = document.querySelector("#filmSortSelect");
+const refreshFilmsButton = document.querySelector("#refreshFilmsButton");
 const yearGroups = document.querySelector("#yearGroups");
 const searchInput = document.querySelector("#searchInput");
 const sortSelect = document.querySelector("#sortSelect");
@@ -49,6 +59,9 @@ const saveCommentButton = document.querySelector("#saveCommentButton");
 const deleteCommentButton = document.querySelector("#deleteCommentButton");
 
 let tracks = [];
+let films = [];
+let visibleFilms = [];
+let currentFilm = null;
 let visibleTracks = [];
 let currentTrack = null;
 let shuffled = false;
@@ -477,6 +490,199 @@ function renderTracks() {
   }).join("");
 }
 
+
+function formatFilmDuration(seconds) {
+  if (!Number.isFinite(seconds) || seconds <= 0) return "";
+
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60).toString().padStart(2, "0");
+
+  return hours > 0
+    ? `${hours}:${minutes.toString().padStart(2, "0")}:${secs}`
+    : `${minutes}:${secs}`;
+}
+
+function formatFilmDate(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  return new Intl.DateTimeFormat("sv-SE", {
+    year: "numeric",
+    month: "short",
+    day: "numeric"
+  }).format(date);
+}
+
+function filmYear(film) {
+  const date = new Date(film.publishedAt || film.addedAt);
+  return Number.isNaN(date.getTime()) ? "Okänt år" : date.getFullYear();
+}
+
+function sortFilms(list) {
+  const mode = filmSortSelect.value;
+
+  return [...list].sort((a, b) => {
+    if (mode === "newest") {
+      return new Date(b.publishedAt) - new Date(a.publishedAt);
+    }
+
+    if (mode === "oldest") {
+      return new Date(a.publishedAt) - new Date(b.publishedAt);
+    }
+
+    if (mode === "title") {
+      return a.title.localeCompare(b.title, "sv", {
+        numeric: true,
+        sensitivity: "base"
+      });
+    }
+
+    if (mode === "duration") {
+      return b.durationSeconds - a.durationSeconds;
+    }
+
+    return a.position - b.position;
+  });
+}
+
+function renderFilms() {
+  const query = filmSearchInput.value.trim().toLocaleLowerCase("sv");
+
+  visibleFilms = sortFilms(
+    films.filter((film) =>
+      `${film.title} ${film.description} ${film.channelTitle}`
+        .toLocaleLowerCase("sv")
+        .includes(query)
+    )
+  );
+
+  filmCount.textContent =
+    `${visibleFilms.length} av ${films.length} ` +
+    `${films.length === 1 ? "film" : "filmer"}`;
+
+  if (!visibleFilms.length) {
+    filmGrid.innerHTML =
+      '<div class="message">Inga videor matchar sökningen.</div>';
+    return;
+  }
+
+  const groupByYear =
+    filmSortSelect.value === "newest" ||
+    filmSortSelect.value === "oldest";
+
+  let previousYear = null;
+  const html = [];
+
+  for (const film of visibleFilms) {
+    const year = filmYear(film);
+
+    if (groupByYear && year !== previousYear) {
+      html.push(
+        `<div class="film-year-heading">${escapeHtml(year)}</div>`
+      );
+      previousYear = year;
+    }
+
+    html.push(`
+      <button class="film-entry ${currentFilm?.id === film.id ? "active" : ""}"
+              type="button"
+              data-film-id="${escapeHtml(film.id)}">
+        <div class="film-thumbnail-wrap">
+          <img class="film-thumbnail"
+               src="${escapeHtml(film.thumbnail)}"
+               alt=""
+               loading="lazy">
+          <span class="film-play-mark" aria-hidden="true">▶</span>
+          ${film.durationSeconds
+            ? `<span class="film-duration">${formatFilmDuration(film.durationSeconds)}</span>`
+            : ""}
+        </div>
+
+        <div class="film-entry-copy">
+          <strong class="film-entry-title">${escapeHtml(film.title)}</strong>
+          <span class="film-entry-meta">
+            <span>${escapeHtml(formatFilmDate(film.publishedAt))}</span>
+            <span>${escapeHtml(film.channelTitle)}</span>
+          </span>
+        </div>
+      </button>
+    `);
+  }
+
+  filmGrid.innerHTML = html.join("");
+}
+
+function selectFilm(film) {
+  if (!film) return;
+
+  currentFilm = film;
+  filmNowTitle.textContent = film.title;
+
+  const pieces = [
+    formatFilmDate(film.publishedAt),
+    formatFilmDuration(film.durationSeconds),
+    film.channelTitle
+  ].filter(Boolean);
+
+  filmNowMeta.textContent = pieces.join(" · ");
+  filmPlayer.src =
+    `https://www.youtube-nocookie.com/embed/${encodeURIComponent(film.id)}?autoplay=1&rel=0&list=PLA74wG8-e4XBIKCB6HkAg-s2nvVR1hFQ8`;
+  filmYouTubeLink.href =
+    `https://www.youtube.com/watch?v=${encodeURIComponent(film.id)}&list=PLA74wG8-e4XBIKCB6HkAg-s2nvVR1hFQ8`;
+
+  renderFilms();
+  filmPlayer.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+async function loadFilms(force = false) {
+  filmMessage.classList.add("hidden");
+  refreshFilmsButton.disabled = true;
+  refreshFilmsButton.textContent = "Uppdaterar…";
+
+  try {
+    if (force) {
+      const refreshResponse = await fetch("/api/videos/refresh", {
+        method: "POST"
+      });
+
+      const refreshData = await refreshResponse.json();
+
+      if (!refreshResponse.ok) {
+        throw new Error(
+          refreshData.error || "Film Archive kunde inte uppdateras."
+        );
+      }
+    }
+
+    const response = await fetch("/api/videos");
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data.error || "Film Archive kunde inte läsas."
+      );
+    }
+
+    films = data.videos || [];
+    filmArchiveTab.querySelector("small").textContent =
+      `${films.length} ${films.length === 1 ? "film" : "filmer"}`;
+
+    renderFilms();
+
+    if (films.length && !currentFilm) {
+      selectFilm(films[0]);
+    }
+  } catch (error) {
+    filmMessage.textContent = error.message;
+    filmMessage.classList.remove("hidden");
+    filmCount.textContent = "Film Archive kunde inte läsas";
+  } finally {
+    refreshFilmsButton.disabled = false;
+    refreshFilmsButton.textContent = "Uppdatera";
+  }
+}
+
 function setArchiveView(view) {
   const showAudio = view === "audio";
 
@@ -486,6 +692,11 @@ function setArchiveView(view) {
   filmArchiveView.classList.toggle("hidden", showAudio);
 
   localStorage.setItem("gravitards-archive-view", view);
+
+  if (!showAudio && films.length === 0) {
+    loadFilms();
+  }
+
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -949,6 +1160,18 @@ document.addEventListener("keydown", event => {
   if (event.code === "ArrowRight") step(1);
   if (event.code === "ArrowLeft") step(-1);
 });
+
+
+filmGrid.addEventListener("click", event => {
+  const button = event.target.closest("[data-film-id]");
+  if (!button) return;
+
+  selectFilm(films.find((film) => film.id === button.dataset.filmId));
+});
+
+filmSearchInput.addEventListener("input", renderFilms);
+filmSortSelect.addEventListener("change", renderFilms);
+refreshFilmsButton.addEventListener("click", () => loadFilms(true));
 
 audioArchiveTab.addEventListener("click", () => setArchiveView("audio"));
 filmArchiveTab.addEventListener("click", () => setArchiveView("film"));

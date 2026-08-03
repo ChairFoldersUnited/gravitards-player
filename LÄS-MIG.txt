@@ -1,17 +1,23 @@
-THE GRAVITARDS VAULT V5 – MULTI ARCHIVE
+THE GRAVITARDS VAULT V5.1 – FILM LIBRARY
 
 Ersätt:
+- server.js
 - index.html
 - style.css
 - app.js
 
-Server.js och bilderna behöver inte ändras.
+Render ska redan ha:
+- YOUTUBE_API_KEY
+
+Film Archive hämtar automatiskt alla videor i spellistan:
+https://www.youtube.com/playlist?list=PLA74wG8-e4XBIKCB6HkAg-s2nvVR1hFQ8
 
 NYTT
-- Två arkivvyer: Audio Archive och Film Archive.
-- Inbäddad YouTube-spellista:
-  https://www.youtube.com/playlist?list=PLA74wG8-e4XBIKCB6HkAg-s2nvVR1hFQ8
-- Knapp för att öppna hela spellistan på YouTube.
-- Film Archive har samma industriella stil som resten av valvet.
-- Sidan minns vilken arkivvy som senast var öppen.
-- Texten i Om valvet har uppdaterats.
+- Alla videor visas med thumbnail, titel, datum och längd.
+- Sökning.
+- Sortering efter spellistans ordning, datum, titel eller längd.
+- Klick på en video öppnar den i den inbyggda spelaren.
+- Resultatet cachas på servern i 15 minuter.
+- Uppdatera-knappen tömmer cachen och läser spellistan igen.
+
+YouTube API-nyckeln ska bara ligga i Render och aldrig i GitHub.
