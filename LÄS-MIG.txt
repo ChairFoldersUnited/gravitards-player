@@ -1,26 +1,15 @@
-THE GRAVITARDS VAULT – INDUSTRIAL V4
+THE GRAVITARDS VAULT – INDUSTRIAL V4.1 HEADER FIX
 
 Ladda upp och ersätt:
-- index.html
 - style.css
+
+Ladda dessutom upp denna fil direkt i repots rot:
+- vault-header.jpg
+
+Den ska ligga bredvid:
+- index.html
 - app.js
 - server.js
-- favicon.png
+- style.css
 
-Ladda även upp:
-- assets/background.jpg
-- assets/vault-header.jpg
-
-Den här versionen behåller alla funktioner från V3.3:
-- Dropbox-uppspelning
-- nedladdning
-- favoriter
-- senast spelade
-- kommentarer
-- tidsstämplade anteckningar
-- årstidslinje
-- kapitelmarkeringar
-- timformat och återstående tid
-
-Det nya är en fullständig visuell redesign i samma mörka, slitna,
-industriella och kosmiska stil som headerbilden.
+Du behöver inte använda assets/vault-header.jpg längre.

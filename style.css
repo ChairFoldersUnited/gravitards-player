@@ -60,7 +60,7 @@ button, select { color: inherit; }
   overflow: hidden;
   border-bottom: 1px solid rgba(205,193,174,.25);
   background:
-    #050505 url("/assets/vault-header.jpg") center / cover no-repeat;
+    #050505 url("/vault-header.jpg") center / cover no-repeat;
   box-shadow:
     inset 0 -45px 70px rgba(0,0,0,.52),
     0 14px 45px rgba(0,0,0,.48);
@@ -667,7 +667,7 @@ button:disabled { opacity: .4; cursor: wait; }
   inset: 0;
   opacity: .22;
   background:
-    url("/assets/vault-header.jpg") center / cover;
+    url("/vault-header.jpg") center / cover;
   filter: grayscale(1) contrast(1.25);
 }
 
