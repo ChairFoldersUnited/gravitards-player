@@ -22,6 +22,7 @@ const trackCount = document.querySelector("#trackCount");
 const librarySummary = document.querySelector("#librarySummary");
 const archiveRange = document.querySelector("#archiveRange");
 const folderPath = document.querySelector("#folderPath");
+const yearJumpSelect = document.querySelector("#yearJumpSelect");
 
 let tracks = [];
 let visibleTracks = [];
@@ -29,7 +30,10 @@ let currentTrack = null;
 let shuffled = false;
 let repeatMode = 0;
 let shuffledQueue = [];
-const collapsedYears = new Set();
+const COLLAPSED_STORAGE_KEY = "gravitards-collapsed-years";
+const collapsedYears = new Set(
+  JSON.parse(localStorage.getItem(COLLAPSED_STORAGE_KEY) || "[]")
+);
 
 const savedVolume = Number(localStorage.getItem("gravitards-volume"));
 audio.volume = Number.isFinite(savedVolume) ? savedVolume : 0.85;
@@ -83,6 +87,7 @@ function cleanTitle(track) {
     .replace(/^(?:19|20)\d{2}[-_. /]*/i, "")
     .replace(/^\d{4}[-_.]\d{1,2}[-_.]\d{1,2}[-_. ]*/i, "")
     .replace(/^\d{1,2}[-_.]\d{1,2}[-_.](?:19|20)\d{2}[-_. ]*/i, "")
+    .replace(/^gravitards\s*[-–—:]\s*/i, "")
     .replace(/[_]+/g, " ")
     .trim();
 
@@ -140,6 +145,25 @@ function sortTracks(list) {
 
     return by - ay || a.displayTitle.localeCompare(b.displayTitle, "sv", { numeric: true });
   });
+}
+
+function saveCollapsedYears() {
+  localStorage.setItem(
+    COLLAPSED_STORAGE_KEY,
+    JSON.stringify([...collapsedYears])
+  );
+}
+
+function updateYearJump() {
+  const years = [...new Set(
+    tracks
+      .map(track => track.year)
+      .filter(year => typeof year === "number")
+  )].sort((a, b) => b - a);
+
+  yearJumpSelect.innerHTML =
+    '<option value="">Välj år</option>' +
+    years.map(year => `<option value="${year}">${year}</option>`).join("");
 }
 
 function updateSummary() {
@@ -247,6 +271,7 @@ async function loadTracks(force = false) {
     tracks = decorateTracks(data.tracks);
     folderPath.textContent = `▱ ${data.folder}`;
     updateSummary();
+    updateYearJump();
     renderTracks();
 
     if (!tracks.length) {
@@ -311,6 +336,7 @@ yearGroups.addEventListener("click", event => {
   if (yearButton) {
     const year = yearButton.dataset.toggleYear;
     collapsedYears.has(year) ? collapsedYears.delete(year) : collapsedYears.add(year);
+    saveCollapsedYears();
     renderTracks();
     return;
   }
@@ -333,12 +359,35 @@ sortSelect.addEventListener("change", () => {
 
 expandAllButton.addEventListener("click", () => {
   collapsedYears.clear();
+  saveCollapsedYears();
   renderTracks();
 });
 
 collapseAllButton.addEventListener("click", () => {
   visibleTracks.forEach(track => collapsedYears.add(String(track.year)));
+  saveCollapsedYears();
   renderTracks();
+});
+
+
+yearJumpSelect.addEventListener("change", () => {
+  const year = yearJumpSelect.value;
+  if (!year) return;
+
+  collapsedYears.delete(year);
+  saveCollapsedYears();
+  renderTracks();
+
+  requestAnimationFrame(() => {
+    const group = document.querySelector(`.year-group[data-year="${CSS.escape(year)}"]`);
+    if (!group) return;
+
+    group.scrollIntoView({ behavior: "smooth", block: "start" });
+    group.classList.add("flash-highlight");
+    window.setTimeout(() => group.classList.remove("flash-highlight"), 1500);
+  });
+
+  yearJumpSelect.value = "";
 });
 
 shuffleAllButton.addEventListener("click", () => {

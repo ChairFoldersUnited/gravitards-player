@@ -134,7 +134,7 @@ button, select { color: inherit; }
 .library-tools {
   width: min(570px, 58%);
   display: grid;
-  grid-template-columns: minmax(210px, 1fr) 170px;
+  grid-template-columns: minmax(210px, 1fr) 170px 145px;
   gap: 10px;
 }
 .search-box, .sort-box {
@@ -452,4 +452,32 @@ button:disabled { opacity: .45; cursor: wait; }
   }
   .track-date { display: none; }
   .year-heading { top: 58px; padding-inline: 14px; }
+}
+
+
+.track.active .track-index {
+  animation: playingPulse 1.15s ease-in-out infinite;
+}
+
+@keyframes playingPulse {
+  0%, 100% { opacity: .45; transform: scale(.9); }
+  50% { opacity: 1; transform: scale(1.12); }
+}
+
+.year-group.flash-highlight .year-heading {
+  animation: yearFlash 1.4s ease;
+}
+
+@keyframes yearFlash {
+  0%, 100% { background: rgba(16,22,29,.96); }
+  35% { background: rgba(245,185,66,.18); }
+}
+
+@media (max-width: 1080px) and (min-width: 761px) {
+  .library-tools {
+    grid-template-columns: minmax(220px, 1fr) 170px;
+  }
+  .jump-box {
+    grid-column: 1 / -1;
+  }
 }
