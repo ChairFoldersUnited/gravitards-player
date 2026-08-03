@@ -223,6 +223,19 @@
       </div>
     </section>
 
+    <section class="film-timeline-card">
+      <div class="film-timeline-heading">
+        <div>
+          <p class="section-kicker">FILM TIMELINE</p>
+          <h2>År</h2>
+        </div>
+        <button id="clearFilmYearButton" class="text-button hidden" type="button">
+          Visa alla år
+        </button>
+      </div>
+      <div id="filmTimeline" class="vault-timeline" aria-label="Filmer efter år"></div>
+    </section>
+
     <section class="film-browser">
       <section class="film-player-card">
         <header class="film-card-heading">
@@ -251,6 +264,76 @@
             allowfullscreen>
           </iframe>
         </div>
+      </section>
+
+      <section class="film-annotation-grid">
+        <section class="comments-card film-comments-card">
+          <div class="comments-heading">
+            <h2>Film Comment</h2>
+            <span id="filmCommentStatus">Ingen video vald</span>
+          </div>
+
+          <textarea id="filmCommentInput"
+                    rows="5"
+                    maxlength="2000"
+                    placeholder="Skriv en kommentar om videon…"></textarea>
+
+          <div class="comments-actions">
+            <button id="saveFilmCommentButton"
+                    class="gold-button"
+                    type="button"
+                    disabled>
+              Spara kommentar
+            </button>
+            <button id="deleteFilmCommentButton"
+                    class="text-button danger-button"
+                    type="button"
+                    disabled>
+              Ta bort
+            </button>
+          </div>
+
+          <p class="comments-note">
+            Kommentaren sparas lokalt i den här webbläsaren.
+          </p>
+        </section>
+
+        <section class="timestamp-card film-timestamp-card">
+          <div class="timestamp-heading">
+            <div>
+              <h2>Film Timestamp Notes</h2>
+              <p>Klicka på en tid för att öppna videon där.</p>
+            </div>
+          </div>
+
+          <div class="film-timestamp-composer">
+            <label>
+              <span>Tid</span>
+              <input id="filmTimestampTime"
+                     type="text"
+                     inputmode="numeric"
+                     placeholder="t.ex. 1:23 eller 1:02:15">
+            </label>
+
+            <textarea id="filmTimestampInput"
+                      rows="3"
+                      maxlength="500"
+                      placeholder="Vad händer här?"></textarea>
+
+            <div class="comments-actions">
+              <button id="saveFilmTimestampButton"
+                      class="gold-button"
+                      type="button"
+                      disabled>
+                Spara tidsanteckning
+              </button>
+            </div>
+          </div>
+
+          <div id="filmTimestampList" class="timestamp-list">
+            <p class="empty-timestamps">Välj en video för att se anteckningar.</p>
+          </div>
+        </section>
       </section>
 
       <section class="film-library-card">

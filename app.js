@@ -14,6 +14,16 @@ const filmMessage = document.querySelector("#filmMessage");
 const filmSearchInput = document.querySelector("#filmSearchInput");
 const filmSortSelect = document.querySelector("#filmSortSelect");
 const refreshFilmsButton = document.querySelector("#refreshFilmsButton");
+const filmTimeline = document.querySelector("#filmTimeline");
+const clearFilmYearButton = document.querySelector("#clearFilmYearButton");
+const filmCommentInput = document.querySelector("#filmCommentInput");
+const filmCommentStatus = document.querySelector("#filmCommentStatus");
+const saveFilmCommentButton = document.querySelector("#saveFilmCommentButton");
+const deleteFilmCommentButton = document.querySelector("#deleteFilmCommentButton");
+const filmTimestampTime = document.querySelector("#filmTimestampTime");
+const filmTimestampInput = document.querySelector("#filmTimestampInput");
+const saveFilmTimestampButton = document.querySelector("#saveFilmTimestampButton");
+const filmTimestampList = document.querySelector("#filmTimestampList");
 const yearGroups = document.querySelector("#yearGroups");
 const searchInput = document.querySelector("#searchInput");
 const sortSelect = document.querySelector("#sortSelect");
@@ -62,6 +72,18 @@ let tracks = [];
 let films = [];
 let visibleFilms = [];
 let currentFilm = null;
+let filmYearFilter = null;
+
+const FILM_COMMENTS_STORAGE_KEY = "gravitards-film-comments";
+const FILM_TIMESTAMPS_STORAGE_KEY = "gravitards-film-timestamps";
+
+const filmComments = JSON.parse(
+  localStorage.getItem(FILM_COMMENTS_STORAGE_KEY) || "{}"
+);
+
+const filmTimestampNotes = JSON.parse(
+  localStorage.getItem(FILM_TIMESTAMPS_STORAGE_KEY) || "{}"
+);
 let visibleTracks = [];
 let currentTrack = null;
 let shuffled = false;
@@ -546,16 +568,127 @@ function sortFilms(list) {
   });
 }
 
+
+function saveFilmComments() {
+  localStorage.setItem(
+    FILM_COMMENTS_STORAGE_KEY,
+    JSON.stringify(filmComments)
+  );
+}
+
+function saveFilmTimestampNotes() {
+  localStorage.setItem(
+    FILM_TIMESTAMPS_STORAGE_KEY,
+    JSON.stringify(filmTimestampNotes)
+  );
+}
+
+function parseTimestampValue(value) {
+  const parts = String(value || "")
+    .trim()
+    .split(":")
+    .map(Number);
+
+  if (!parts.length || parts.some(number => !Number.isFinite(number) || number < 0)) {
+    return null;
+  }
+
+  if (parts.length === 1) return Math.floor(parts[0]);
+  if (parts.length === 2) return Math.floor(parts[0] * 60 + parts[1]);
+  if (parts.length === 3) {
+    return Math.floor(parts[0] * 3600 + parts[1] * 60 + parts[2]);
+  }
+
+  return null;
+}
+
+function renderFilmTimeline() {
+  const years = [...new Set(
+    films
+      .map(film => filmYear(film))
+      .filter(year => typeof year === "number")
+  )].sort((a, b) => a - b);
+
+  filmTimeline.innerHTML = years.map(year => `
+    <button class="timeline-year ${filmYearFilter === String(year) ? "active" : ""}"
+            type="button"
+            data-film-year="${year}">
+      ${year}
+    </button>
+  `).join("");
+
+  clearFilmYearButton.classList.toggle("hidden", !filmYearFilter);
+}
+
+function loadFilmComment() {
+  if (!currentFilm) {
+    filmCommentInput.value = "";
+    filmCommentInput.disabled = true;
+    saveFilmCommentButton.disabled = true;
+    deleteFilmCommentButton.disabled = true;
+    filmCommentStatus.textContent = "Ingen video vald";
+    return;
+  }
+
+  const value = filmComments[currentFilm.id] || "";
+  filmCommentInput.disabled = false;
+  saveFilmCommentButton.disabled = false;
+  deleteFilmCommentButton.disabled = !value;
+  filmCommentInput.value = value;
+  filmCommentStatus.textContent = currentFilm.title;
+}
+
+function renderFilmTimestampNotes() {
+  if (!currentFilm) {
+    filmTimestampList.innerHTML =
+      '<p class="empty-timestamps">Välj en video för att se anteckningar.</p>';
+    saveFilmTimestampButton.disabled = true;
+    return;
+  }
+
+  saveFilmTimestampButton.disabled = false;
+
+  const notes = [...(filmTimestampNotes[currentFilm.id] || [])]
+    .sort((a, b) => a.seconds - b.seconds);
+
+  if (!notes.length) {
+    filmTimestampList.innerHTML =
+      '<p class="empty-timestamps">Inga tidsanteckningar för videon ännu.</p>';
+    return;
+  }
+
+  filmTimestampList.innerHTML = notes.map((note, index) => `
+    <div class="timestamp-note">
+      <button class="timestamp-jump"
+              type="button"
+              data-film-jump="${note.seconds}">
+        ${formatFilmDuration(note.seconds)}
+      </button>
+      <div class="timestamp-text">${escapeHtml(note.text)}</div>
+      <button class="timestamp-delete"
+              type="button"
+              data-film-timestamp-delete="${index}"
+              title="Ta bort">×</button>
+    </div>
+  `).join("");
+}
+
 function renderFilms() {
   const query = filmSearchInput.value.trim().toLocaleLowerCase("sv");
 
-  visibleFilms = sortFilms(
-    films.filter((film) =>
-      `${film.title} ${film.description} ${film.channelTitle}`
-        .toLocaleLowerCase("sv")
-        .includes(query)
-    )
+  let filteredFilms = films.filter((film) =>
+    `${film.title} ${film.description} ${film.channelTitle}`
+      .toLocaleLowerCase("sv")
+      .includes(query)
   );
+
+  if (filmYearFilter) {
+    filteredFilms = filteredFilms.filter(
+      film => String(filmYear(film)) === filmYearFilter
+    );
+  }
+
+  visibleFilms = sortFilms(filteredFilms);
 
   filmCount.textContent =
     `${visibleFilms.length} av ${films.length} ` +
@@ -600,7 +733,7 @@ function renderFilms() {
         </div>
 
         <div class="film-entry-copy">
-          <strong class="film-entry-title">${escapeHtml(film.title)}</strong>
+          <strong class="film-entry-title">${escapeHtml(film.title)}${filmComments[film.id] ? '<span class="film-entry-note-badge" title="Har kommentar">●</span>' : ''}${filmTimestampNotes[film.id]?.length ? '<span class="film-entry-note-badge" title="Har tidsanteckningar">◆</span>' : ''}</strong>
           <span class="film-entry-meta">
             <span>${escapeHtml(formatFilmDate(film.publishedAt))}</span>
             <span>${escapeHtml(film.channelTitle)}</span>
@@ -631,6 +764,8 @@ function selectFilm(film) {
   filmYouTubeLink.href =
     `https://www.youtube.com/watch?v=${encodeURIComponent(film.id)}&list=PLA74wG8-e4XBIKCB6HkAg-s2nvVR1hFQ8`;
 
+  loadFilmComment();
+  renderFilmTimestampNotes();
   renderFilms();
   filmPlayer.scrollIntoView({ behavior: "smooth", block: "center" });
 }
@@ -665,6 +800,7 @@ async function loadFilms(force = false) {
     }
 
     films = data.videos || [];
+    renderFilmTimeline();
     filmArchiveTab.querySelector("small").textContent =
       `${films.length} ${films.length === 1 ? "film" : "filmer"}`;
 
@@ -1162,6 +1298,126 @@ document.addEventListener("keydown", event => {
 });
 
 
+
+filmTimeline.addEventListener("click", event => {
+  const button = event.target.closest("[data-film-year]");
+  if (!button) return;
+
+  filmYearFilter =
+    filmYearFilter === button.dataset.filmYear
+      ? null
+      : button.dataset.filmYear;
+
+  renderFilmTimeline();
+  renderFilms();
+});
+
+clearFilmYearButton.addEventListener("click", () => {
+  filmYearFilter = null;
+  renderFilmTimeline();
+  renderFilms();
+});
+
+saveFilmCommentButton.addEventListener("click", () => {
+  if (!currentFilm) return;
+
+  const value = filmCommentInput.value.trim();
+
+  if (value) {
+    filmComments[currentFilm.id] = value;
+  } else {
+    delete filmComments[currentFilm.id];
+  }
+
+  saveFilmComments();
+  loadFilmComment();
+  renderFilms();
+  filmCommentStatus.textContent = value ? "Sparad" : currentFilm.title;
+
+  window.setTimeout(() => {
+    if (currentFilm) filmCommentStatus.textContent = currentFilm.title;
+  }, 1200);
+});
+
+deleteFilmCommentButton.addEventListener("click", () => {
+  if (!currentFilm) return;
+
+  delete filmComments[currentFilm.id];
+  saveFilmComments();
+  loadFilmComment();
+  renderFilms();
+});
+
+saveFilmTimestampButton.addEventListener("click", () => {
+  if (!currentFilm) return;
+
+  const seconds = parseTimestampValue(filmTimestampTime.value);
+  const text = filmTimestampInput.value.trim();
+
+  if (seconds === null) {
+    filmTimestampTime.focus();
+    return;
+  }
+
+  if (!text) {
+    filmTimestampInput.focus();
+    return;
+  }
+
+  filmTimestampNotes[currentFilm.id] ||= [];
+  filmTimestampNotes[currentFilm.id].push({
+    seconds,
+    text,
+    createdAt: new Date().toISOString()
+  });
+
+  saveFilmTimestampNotes();
+  filmTimestampTime.value = "";
+  filmTimestampInput.value = "";
+  renderFilmTimestampNotes();
+  renderFilms();
+});
+
+filmTimestampList.addEventListener("click", event => {
+  const jumpButton = event.target.closest("[data-film-jump]");
+
+  if (jumpButton && currentFilm) {
+    const seconds = Number(jumpButton.dataset.filmJump);
+
+    filmPlayer.src =
+      `https://www.youtube-nocookie.com/embed/${encodeURIComponent(currentFilm.id)}` +
+      `?autoplay=1&rel=0&start=${Math.max(0, Math.floor(seconds))}` +
+      `&list=PLA74wG8-e4XBIKCB6HkAg-s2nvVR1hFQ8`;
+
+    filmPlayer.scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
+
+  const deleteButton = event.target.closest("[data-film-timestamp-delete]");
+  if (!deleteButton || !currentFilm) return;
+
+  const notes = filmTimestampNotes[currentFilm.id] || [];
+  notes.splice(Number(deleteButton.dataset.filmTimestampDelete), 1);
+
+  if (!notes.length) delete filmTimestampNotes[currentFilm.id];
+
+  saveFilmTimestampNotes();
+  renderFilmTimestampNotes();
+  renderFilms();
+});
+
+filmCommentInput.addEventListener("keydown", event => {
+  if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+    saveFilmCommentButton.click();
+  }
+});
+
+filmTimestampInput.addEventListener("keydown", event => {
+  if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+    saveFilmTimestampButton.click();
+  }
+});
+
 filmGrid.addEventListener("click", event => {
   const button = event.target.closest("[data-film-id]");
   if (!button) return;
@@ -1179,6 +1435,8 @@ filmArchiveTab.addEventListener("click", () => setArchiveView("film"));
 const savedArchiveView = localStorage.getItem("gravitards-archive-view") || "audio";
 setArchiveView(savedArchiveView === "film" ? "film" : "audio");
 
+loadFilmComment();
+renderFilmTimestampNotes();
 updateFilterButtons();
 loadCommentForCurrentTrack();
 renderTimestampNotes();

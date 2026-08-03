@@ -1,23 +1,24 @@
-THE GRAVITARDS VAULT V5.1 – FILM LIBRARY
+THE GRAVITARDS VAULT V5.2 – FILM NOTES
 
 Ersätt:
-- server.js
 - index.html
 - style.css
 - app.js
 
-Render ska redan ha:
-- YOUTUBE_API_KEY
-
-Film Archive hämtar automatiskt alla videor i spellistan:
-https://www.youtube.com/playlist?list=PLA74wG8-e4XBIKCB6HkAg-s2nvVR1hFQ8
+Server.js behöver inte ändras från V5.1.
 
 NYTT
-- Alla videor visas med thumbnail, titel, datum och längd.
-- Sökning.
-- Sortering efter spellistans ordning, datum, titel eller längd.
-- Klick på en video öppnar den i den inbyggda spelaren.
-- Resultatet cachas på servern i 15 minuter.
-- Uppdatera-knappen tömmer cachen och läser spellistan igen.
+- Film Timeline med filtrering efter år.
+- Kommentarer per video.
+- Tidsstämplade anteckningar per video.
+- Klick på en tidsstämpel öppnar videon vid den tiden.
+- Kommentar- och anteckningsmarkeringar på videokorten.
 
-YouTube API-nyckeln ska bara ligga i Render och aldrig i GitHub.
+Tidsformat som accepteras:
+- 83
+- 1:23
+- 1:02:15
+
+VIKTIGT
+Filmkommentarer och videotidsanteckningar sparas lokalt i webbläsaren.
+De delas inte mellan användare eller datorer.
