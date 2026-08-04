@@ -1,5 +1,8 @@
 const audio = document.querySelector("#audio");
 const shareAudioButton = document.querySelector("#shareAudioButton");
+const audioPreviousEntryButton = document.querySelector("#audioPreviousEntryButton");
+const audioNextEntryButton = document.querySelector("#audioNextEntryButton");
+const audioDownloadEntryButton = document.querySelector("#audioDownloadEntryButton");
 const audioArchiveTab = document.querySelector("#audioArchiveTab");
 const filmArchiveTab = document.querySelector("#filmArchiveTab");
 const audioArchiveView = document.querySelector("#audioArchiveView");
@@ -8,6 +11,8 @@ const audioArchiveCount = document.querySelector("#audioArchiveCount");
 const dropboxFilmPlayer = document.querySelector("#dropboxFilmPlayer");
 const filmDownloadLink = document.querySelector("#filmDownloadLink");
 const shareFilmButton = document.querySelector("#shareFilmButton");
+const filmPreviousButton = document.querySelector("#filmPreviousButton");
+const filmNextButton = document.querySelector("#filmNextButton");
 const youtubeFilmsTab = document.querySelector("#youtubeFilmsTab");
 const facebookStreamsTab = document.querySelector("#facebookStreamsTab");
 const youtubeFilmsCount = document.querySelector("#youtubeFilmsCount");
@@ -1100,6 +1105,8 @@ function selectFilm(film) {
 
   currentFilm = film;
   shareFilmButton.disabled = false;
+  filmPreviousButton.disabled = false;
+  filmNextButton.disabled = false;
   filmCurrentTime.textContent = "0:00";
   filmNowTitle.textContent = film.title;
 
@@ -1128,7 +1135,8 @@ function selectFilm(film) {
 
   dropboxFilmPlayer.src = playEndpoint;
   filmDownloadLink.href = downloadEndpoint;
-  filmDownloadLink.classList.remove("hidden");
+  filmDownloadLink.classList.remove("hidden", "disabled-link");
+  filmDownloadLink.setAttribute("aria-disabled", "false");
 
   dropboxFilmPlayer.play().catch(() => {});
   saveFilmTimestampButton.disabled = false;
@@ -1141,6 +1149,28 @@ function selectFilm(film) {
     behavior: "smooth",
     block: "center"
   });
+}
+
+
+function stepFilm(direction) {
+  const queue = visibleFilms.length ? visibleFilms : films;
+
+  if (!queue.length) return;
+
+  const currentIndex = queue.findIndex(
+    film => film.id === currentFilm?.id
+  );
+
+  let nextIndex = currentIndex + direction;
+
+  if (currentIndex < 0) {
+    nextIndex = direction > 0 ? 0 : queue.length - 1;
+  }
+
+  if (nextIndex >= queue.length) nextIndex = 0;
+  if (nextIndex < 0) nextIndex = queue.length - 1;
+
+  selectFilm(queue[nextIndex]);
 }
 
 async function loadYouTubeFilms(force = false) {
@@ -1443,6 +1473,9 @@ async function playTrack(track) {
 
   currentTrack = track;
   shareAudioButton.disabled = false;
+  audioPreviousEntryButton.disabled = false;
+  audioNextEntryButton.disabled = false;
+  audioDownloadEntryButton.disabled = false;
   downloadCurrentButton.disabled = false;
   addToRecent(track.id);
   nowTitle.textContent = track.displayTitle;
@@ -1735,6 +1768,24 @@ prevButton.addEventListener("click", () => {
 
 nextButton.addEventListener("click", () => step(1));
 
+audioPreviousEntryButton.addEventListener("click", () => {
+  step(-1);
+});
+
+audioNextEntryButton.addEventListener("click", () => {
+  step(1);
+});
+
+audioDownloadEntryButton.addEventListener("click", () => {
+  if (!currentTrack) return;
+
+  const link = document.createElement("a");
+  link.href = `/api/download/${encodeURIComponent(currentTrack.id)}`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+});
+
 shuffleButton.addEventListener("click", () => {
   shuffled = !shuffled;
   shuffledQueue = [];
@@ -1989,6 +2040,18 @@ facebookStreamsTab.addEventListener("click", () => {
 
 dropboxFilmPlayer.addEventListener("timeupdate", updateFilmCurrentTime);
 dropboxFilmPlayer.addEventListener("loadedmetadata", updateFilmCurrentTime);
+
+filmPreviousButton.addEventListener("click", () => {
+  stepFilm(-1);
+});
+
+filmNextButton.addEventListener("click", () => {
+  stepFilm(1);
+});
+
+dropboxFilmPlayer.addEventListener("ended", () => {
+  stepFilm(1);
+});
 
 filmGrid.addEventListener("click", event => {
   const button = event.target.closest("[data-film-id]");

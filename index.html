@@ -159,12 +159,33 @@
         </div>
       </section>
 
-      <div class="entry-share-row">
-        <button id="shareAudioButton"
-                class="youtube-link share-entry-button"
+      <div class="entry-control-row" aria-label="Kontroller för aktuell låt">
+        <button id="audioPreviousEntryButton"
+                class="entry-control-button"
                 type="button"
                 disabled>
-          Kopiera länk till låten ↗
+          ◀ Föregående
+        </button>
+
+        <button id="audioNextEntryButton"
+                class="entry-control-button"
+                type="button"
+                disabled>
+          Nästa ▶
+        </button>
+
+        <button id="shareAudioButton"
+                class="entry-control-button"
+                type="button"
+                disabled>
+          Kopiera länk ↗
+        </button>
+
+        <button id="audioDownloadEntryButton"
+                class="entry-control-button"
+                type="button"
+                disabled>
+          Ladda ned ↓
         </button>
       </div>
 
@@ -300,20 +321,36 @@
             <p id="filmNowMeta" class="film-now-meta">Hela spellistan visas nedan.</p>
           </div>
 
-          <div class="film-player-actions">
-            <a id="filmDownloadLink"
-               class="youtube-link hidden"
-               href="#"
-               download>
-              Ladda ned ↓
-            </a>
-          
+          <div class="film-player-actions entry-control-row" aria-label="Kontroller för aktuell video">
+            <button id="filmPreviousButton"
+                    class="entry-control-button"
+                    type="button"
+                    disabled>
+              ◀ Föregående
+            </button>
+
+            <button id="filmNextButton"
+                    class="entry-control-button"
+                    type="button"
+                    disabled>
+              Nästa ▶
+            </button>
+
             <button id="shareFilmButton"
-                    class="youtube-link share-entry-button"
+                    class="entry-control-button"
                     type="button"
                     disabled>
               Kopiera länk ↗
-            </button></div>
+            </button>
+
+            <a id="filmDownloadLink"
+               class="entry-control-button disabled-link"
+               href="#"
+               download
+               aria-disabled="true">
+              Ladda ned ↓
+            </a>
+          </div>
         </header>
 
         <div class="youtube-frame">
