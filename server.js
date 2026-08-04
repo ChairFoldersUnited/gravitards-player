@@ -407,12 +407,18 @@ async function fetchSharedVideoFolder(sharedLink, cache, source, fallbackLabel) 
       return {
         id: `${source}:${entry.id}`,
         dropboxId: entry.id,
-        title: displayTitleFromVideoFilename(entry.name, fallback),
+        title:
+          source === "facebook"
+            ? fallback
+            : displayTitleFromVideoFilename(entry.name, fallback),
         originalName: entry.name,
         size: entry.size,
         source,
         position: index,
-        publishedAt: extractUploadDateFromFilename(entry.name)
+        publishedAt:
+          source === "youtube"
+            ? extractUploadDateFromFilename(entry.name)
+            : ""
       };
     });
 
