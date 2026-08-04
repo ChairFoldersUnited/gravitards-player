@@ -599,7 +599,7 @@ function renderTracks() {
         <div class="track ${active ? "active" : ""}" role="button" tabindex="0" data-id="${escapeHtml(track.id)}">
           <span class="track-index">${active && !audio.paused ? "▶" : "♫"}</span>
           <span class="track-copy">
-            <span class="track-title">${escapeHtml(track.displayTitle)}${comments[track.id] ? '<span class="track-comment-badge" title="Har kommentar">●</span>' : ''}${timestampNotes[track.id]?.length ? '<span class="track-comment-badge" title="Har tidsanteckningar">◆</span>' : ''}</span>
+            <span class="track-title">${escapeHtml(track.displayTitle)}${timestampNotes[track.id]?.length ? '<span class="track-comment-badge" title="Har tidsanteckningar">◆</span>' : ''}</span>
             <span class="track-folder">${escapeHtml(cleanFolder(track.folder))}</span>
           </span>
           <span class="track-date">${escapeHtml(formatDate(track.modified))}</span>
@@ -915,7 +915,7 @@ function renderFilms() {
         </div>
 
         <div class="film-entry-copy">
-          <strong class="film-entry-title">${escapeHtml(film.title)}${filmComments[film.id] ? '<span class="film-entry-note-badge" title="Har kommentar">●</span>' : ''}${filmTimestampNotes[film.id]?.length ? '<span class="film-entry-note-badge" title="Har tidsanteckningar">◆</span>' : ''}</strong>
+          <strong class="film-entry-title">${escapeHtml(film.title)}${filmTimestampNotes[film.id]?.length ? '<span class="film-entry-note-badge" title="Har tidsanteckningar">◆</span>' : ''}</strong>
           <span class="film-entry-meta">
             <span>${escapeHtml(formatFilmDate(film.publishedAt))}</span>
             <span>${escapeHtml(film.channelTitle)}</span>

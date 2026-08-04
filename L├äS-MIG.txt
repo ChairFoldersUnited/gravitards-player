@@ -1,0 +1,11 @@
+THE GRAVITARDS VAULT V6.1 – SHARED COMMENTS FIX
+
+Ersätt endast:
+- app.js
+
+Fix:
+- Tar bort två kvarvarande referenser till det gamla lokala kommentarsystemet.
+- Löser felet “comments is not defined”.
+- Supabase-kommentarerna fortsätter fungera för både Audio Archive och Film Archive.
+
+Efter Render-deployen: uppdatera sidan med Ctrl + Shift + R.
