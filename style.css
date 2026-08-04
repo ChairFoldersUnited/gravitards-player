@@ -2326,10 +2326,10 @@ button:disabled { opacity: .4; cursor: wait; }
   height: 100%;
   object-fit: cover;
   object-position: center;
-  filter: saturate(.85) contrast(1.04) brightness(.82);
+  filter: saturate(.9) contrast(1.05) brightness(.84);
 }
 
 .film-entry:hover .vault-stream-thumbnail,
 .film-entry.active .vault-stream-thumbnail {
-  filter: saturate(1) contrast(1.06) brightness(.94);
+  filter: saturate(1) contrast(1.08) brightness(.96);
 }

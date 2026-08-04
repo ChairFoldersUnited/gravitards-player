@@ -1092,13 +1092,19 @@ function renderFilms() {
       previousYear = year;
     }
 
-    const thumbnail =
+    const coverImage =
       activeFilmSource === "youtube"
-        ? `<div class="facebook-stream-placeholder" aria-hidden="true">▶</div>`
-        : `<img class="film-thumbnail vault-stream-thumbnail"
-                src="vault-header.jpg"
-                alt=""
-                loading="lazy">`;
+        ? "youtube-cover.jpg"
+        : activeFilmSource === "facebook"
+          ? "facebook-cover.jpg"
+          : "instagram-cover.jpg";
+
+    const thumbnail = `
+      <img class="film-thumbnail vault-stream-thumbnail"
+           src="${coverImage}"
+           alt=""
+           loading="lazy">
+    `;
 
     const duration =
       film.durationSeconds
