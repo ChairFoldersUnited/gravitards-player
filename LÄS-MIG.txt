@@ -1,35 +1,31 @@
-THE GRAVITARDS VAULT V6.3 – FACEBOOK STREAMS
+THE GRAVITARDS VAULT V6.4 – DROPBOX YOUTUBE VIDEOS
 
-Ersätt i GitHub:
+Ersätt:
 - server.js
 - index.html
-- style.css
 - app.js
 
-NYTT
-- Film Archive har två underkategorier:
-  1. YouTube Videos
-  2. Facebook Streams
-- Facebook-streamarna hämtas från den delade Dropbox-mappen:
-  https://www.dropbox.com/scl/fo/lsx0wg0f2tiexxzpwu2o0/AGonZOKM_QsjIXpiYiqYrA4?rlkey=9k8nk34sp2tmrcur9l4pju5qa&st=6hjw6h1d&dl=0
-- Ingen datum- eller årsindelning används för Facebook Streams.
-- Visningsnamn skapas automatiskt:
-  Facebook Stream 01, Facebook Stream 02 osv.
-- Det ursprungliga filnamnet visas diskret under titeln.
-- Direkt uppspelning i HTML5-videospelare.
-- Nedladdningsknapp.
-- Gemensamma Supabase-kommentarer.
-- Befintliga klickbara tidsanteckningar fungerar även för Facebook Streams.
+style.css kan också ersättas, men innehåller inga kritiska ändringar från V6.3.
+
+ÄNDRAT
+- YouTube-spellistan och YouTube IFrame-spelaren är borttagna.
+- Kategorien heter fortfarande “YouTube Videos”.
+- Alla videor hämtas nu direkt från denna Dropbox-mapp:
+  https://www.dropbox.com/scl/fo/lyokgm77ua9ln34iryhmk/APgJunJSefCA8RHoNwwuV4c?rlkey=5pm7lmxvtk7ws2dg8iistbo1r&st=4w0nnw09&dl=0
+- Videorna spelas i den inbyggda HTML5-spelaren.
+- Alla videor kan laddas ned.
+- Supabase-kommentarer fungerar som tidigare.
+- Klickbara tidsanteckningar fungerar som tidigare.
+- Titlar hämtas från filnamnen.
+- Om filnamnet börjar med YYYYMMDD eller YYYY-MM-DD tas datumdelen bort ur
+  visningstiteln och används för tidslinjen.
+- Om inga användbara datum finns döljs tidslinjen automatiskt.
 
 INGA NYA RENDER-VARIABLER KRÄVS
-Den delade Dropbox-länken finns som standard i server.js.
 
 Valfritt kan du senare lägga till:
-FACEBOOK_STREAMS_SHARED_LINK
+YOUTUBE_VIDEOS_SHARED_LINK
 
-Då kan mappen bytas utan att server.js behöver ändras.
+Då kan Dropbox-mappen bytas utan att server.js ändras.
 
-OBS
-Dropbox-appen måste kunna läsa den delade länken. Om API:t ger ett
-shared_link_access_denied-fel, kontrollera att länken fortfarande är aktiv
-och att Dropbox-appen tillhör samma Dropbox-konto.
+YOUTUBE_API_KEY behövs inte längre för denna version och kan tas bort från Render.

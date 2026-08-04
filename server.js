@@ -28,11 +28,9 @@ const DROPBOX_REFRESH_TOKEN = process.env.DROPBOX_REFRESH_TOKEN || "";
 const DROPBOX_FALLBACK_ACCESS_TOKEN =
   process.env.DROPBOX_ACCESS_TOKEN || "";
 
-const YOUTUBE_PLAYLIST_ID =
-  process.env.YOUTUBE_PLAYLIST_ID ||
-  "PLA74wG8-e4XBIKCB6HkAg-s2nvVR1hFQ8";
-
-const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY || "";
+const YOUTUBE_VIDEOS_SHARED_LINK =
+  process.env.YOUTUBE_VIDEOS_SHARED_LINK ||
+  "https://www.dropbox.com/scl/fo/lyokgm77ua9ln34iryhmk/APgJunJSefCA8RHoNwwuV4c?rlkey=5pm7lmxvtk7ws2dg8iistbo1r&st=4w0nnw09&dl=0";
 
 const FACEBOOK_STREAMS_SHARED_LINK =
   process.env.FACEBOOK_STREAMS_SHARED_LINK ||
@@ -61,7 +59,7 @@ let libraryCache = {
   tracks: []
 };
 
-let youtubeCache = {
+let youtubeVideosCache = {
   expiresAt: 0,
   videos: []
 };
@@ -250,56 +248,12 @@ function isVideoFile(entry) {
 }
 
 async function fetchFacebookStreams() {
-  if (Date.now() < facebookStreamsCache.expiresAt) {
-    return facebookStreamsCache.streams;
-  }
-
-  let result = await dropboxRpc("files/list_folder", {
-    path: "",
-    recursive: false,
-    include_deleted: false,
-    include_non_downloadable_files: false,
-    limit: 2000,
-    shared_link: {
-      url: FACEBOOK_STREAMS_SHARED_LINK
-    }
-  });
-
-  const entries = [...(result.entries || [])];
-
-  while (result.has_more) {
-    result = await dropboxRpc("files/list_folder/continue", {
-      cursor: result.cursor
-    });
-
-    entries.push(...(result.entries || []));
-  }
-
-  const videoEntries = entries
-    .filter(isVideoFile)
-    .sort((a, b) =>
-      a.name.localeCompare(b.name, "sv", {
-        numeric: true,
-        sensitivity: "base"
-      })
-    );
-
-  const streams = videoEntries.map((entry, index) => ({
-    id: `facebook:${entry.id}`,
-    dropboxId: entry.id,
-    title: `Facebook Stream ${String(index + 1).padStart(2, "0")}`,
-    originalName: entry.name,
-    size: entry.size,
-    source: "facebook",
-    position: index
-  }));
-
-  facebookStreamsCache = {
-    expiresAt: Date.now() + 10 * 60 * 1000,
-    streams
-  };
-
-  return streams;
+  return fetchSharedVideoFolder(
+    FACEBOOK_STREAMS_SHARED_LINK,
+    facebookStreamsCache,
+    "facebook",
+    "Facebook Stream"
+  );
 }
 
 function isAudioFile(entry) {
@@ -382,326 +336,105 @@ async function fetchLibrary() {
   return tracks;
 }
 
-function parseIsoDuration(value) {
-  const match = String(value || "").match(
-    /^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/
-  );
 
-  if (!match) return 0;
+function displayTitleFromVideoFilename(filename, fallback) {
+  const withoutExtension = String(filename || "")
+    .replace(/\.[^.]+$/, "")
+    .trim();
 
-  const days = Number(match[1] || 0);
-  const hours = Number(match[2] || 0);
-  const minutes = Number(match[3] || 0);
-  const seconds = Number(match[4] || 0);
+  const withoutLeadingDate = withoutExtension
+    .replace(/^\d{8}\s*[-–—]\s*/, "")
+    .replace(/^\d{4}-\d{2}-\d{2}\s*[-–—]\s*/, "")
+    .trim();
 
-  return (
-    days * 86400 +
-    hours * 3600 +
-    minutes * 60 +
-    seconds
-  );
+  return withoutLeadingDate || fallback;
 }
 
-async function youtubeGet(endpoint, params) {
-  if (!YOUTUBE_API_KEY) {
-    throw new Error(
-      "YOUTUBE_API_KEY saknas i Render Environment Variables."
-    );
+function extractUploadDateFromFilename(filename) {
+  const compact = String(filename || "").match(/^(\d{4})(\d{2})(\d{2})/);
+
+  if (compact) {
+    return `${compact[1]}-${compact[2]}-${compact[3]}T00:00:00.000Z`;
   }
 
-  const url = new URL(
-    `https://www.googleapis.com/youtube/v3/${endpoint}`
-  );
+  const dashed = String(filename || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
 
-  Object.entries({
-    ...params,
-    key: YOUTUBE_API_KEY
-  }).forEach(([key, value]) => {
-    if (
-      value !== undefined &&
-      value !== null &&
-      value !== ""
-    ) {
-      url.searchParams.set(key, String(value));
+  if (dashed) {
+    return `${dashed[1]}-${dashed[2]}-${dashed[3]}T00:00:00.000Z`;
+  }
+
+  return "";
+}
+
+async function fetchSharedVideoFolder(sharedLink, cache, source, fallbackLabel) {
+  if (Date.now() < cache.expiresAt) {
+    return cache.videos || cache.streams || [];
+  }
+
+  let result = await dropboxRpc("files/list_folder", {
+    path: "",
+    recursive: false,
+    include_deleted: false,
+    include_non_downloadable_files: false,
+    limit: 2000,
+    shared_link: {
+      url: sharedLink
     }
   });
 
-  const response = await fetch(url);
+  const entries = [...(result.entries || [])];
 
-  if (!response.ok) {
-    const details = await response.text();
-
-    throw new Error(
-      `YouTube API-fel ${response.status}: ${details}`
-    );
-  }
-
-  return response.json();
-}
-
-async function fetchYouTubeVideos() {
-  if (Date.now() < youtubeCache.expiresAt) {
-    return youtubeCache.videos;
-  }
-
-  const playlistItems = [];
-  let pageToken = "";
-
-  do {
-    const data = await youtubeGet("playlistItems", {
-      part: "snippet,contentDetails,status",
-      playlistId: YOUTUBE_PLAYLIST_ID,
-      maxResults: 50,
-      pageToken
+  while (result.has_more) {
+    result = await dropboxRpc("files/list_folder/continue", {
+      cursor: result.cursor
     });
 
-    playlistItems.push(...(data.items || []));
-    pageToken = data.nextPageToken || "";
-  } while (pageToken);
-
-  const usableItems = playlistItems.filter((item) => {
-    const videoId =
-      item.contentDetails?.videoId ||
-      item.snippet?.resourceId?.videoId;
-
-    const title = item.snippet?.title || "";
-
-    return (
-      videoId &&
-      title !== "Deleted video" &&
-      title !== "Private video"
-    );
-  });
-
-  const videoIds = usableItems.map(
-    (item) =>
-      item.contentDetails?.videoId ||
-      item.snippet?.resourceId?.videoId
-  );
-
-  const detailsById = new Map();
-
-  for (
-    let index = 0;
-    index < videoIds.length;
-    index += 50
-  ) {
-    const batch = videoIds.slice(index, index + 50);
-
-    const data = await youtubeGet("videos", {
-      part: "snippet,contentDetails,status",
-      id: batch.join(",")
-    });
-
-    for (const video of data.items || []) {
-      detailsById.set(video.id, video);
-    }
+    entries.push(...(result.entries || []));
   }
 
-  const videos = usableItems
-    .map((item, position) => {
-      const videoId =
-        item.contentDetails?.videoId ||
-        item.snippet?.resourceId?.videoId;
-
-      const details = detailsById.get(videoId);
-      const snippet =
-        details?.snippet || item.snippet || {};
-
-      const thumbnails = snippet.thumbnails || {};
+  const videos = entries
+    .filter(isVideoFile)
+    .sort((a, b) =>
+      a.name.localeCompare(b.name, "sv", {
+        numeric: true,
+        sensitivity: "base"
+      })
+    )
+    .map((entry, index) => {
+      const fallback =
+        `${fallbackLabel} ${String(index + 1).padStart(2, "0")}`;
 
       return {
-        id: videoId,
-        title: snippet.title || "Namnlös video",
-        description: snippet.description || "",
-        publishedAt:
-          snippet.publishedAt ||
-          item.contentDetails?.videoPublishedAt ||
-          item.snippet?.publishedAt ||
-          "",
-        addedAt: item.snippet?.publishedAt || "",
-        channelTitle: snippet.channelTitle || "",
-        durationSeconds: parseIsoDuration(
-          details?.contentDetails?.duration
-        ),
-        thumbnail:
-          thumbnails.maxres?.url ||
-          thumbnails.standard?.url ||
-          thumbnails.high?.url ||
-          thumbnails.medium?.url ||
-          thumbnails.default?.url ||
-          `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
-        position: Number(
-          item.snippet?.position ?? position
-        ),
-        embeddable:
-          details?.status?.embeddable !== false,
-        privacyStatus:
-          details?.status?.privacyStatus || "public"
+        id: `${source}:${entry.id}`,
+        dropboxId: entry.id,
+        title: displayTitleFromVideoFilename(entry.name, fallback),
+        originalName: entry.name,
+        size: entry.size,
+        source,
+        position: index,
+        publishedAt: extractUploadDateFromFilename(entry.name)
       };
-    })
-    .filter(
-      (video) => video.privacyStatus !== "private"
-    )
-    .sort((a, b) => a.position - b.position);
+    });
 
-  youtubeCache = {
-    expiresAt: Date.now() + 15 * 60 * 1000,
-    videos
-  };
+  cache.expiresAt = Date.now() + 10 * 60 * 1000;
+
+  if ("videos" in cache) {
+    cache.videos = videos;
+  } else {
+    cache.streams = videos;
+  }
 
   return videos;
 }
 
-
-function hasSupabaseConfiguration() {
-  return Boolean(SUPABASE_URL && SUPABASE_SECRET_KEY);
+async function fetchYouTubeDropboxVideos() {
+  return fetchSharedVideoFolder(
+    YOUTUBE_VIDEOS_SHARED_LINK,
+    youtubeVideosCache,
+    "youtube",
+    "YouTube Video"
+  );
 }
-
-async function supabaseRequest(pathname, options = {}) {
-  if (!hasSupabaseConfiguration()) {
-    throw new Error(
-      "Supabase är inte konfigurerat. Lägg till SUPABASE_URL och " +
-      "SUPABASE_SECRET_KEY i Render Environment Variables."
-    );
-  }
-
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/${pathname}`, {
-    ...options,
-    headers: {
-      apikey: SUPABASE_SECRET_KEY,
-      Authorization: `Bearer ${SUPABASE_SECRET_KEY}`,
-      "Content-Type": "application/json",
-      ...(options.headers || {})
-    }
-  });
-
-  if (!response.ok) {
-    const details = await response.text();
-    throw new Error(`Supabase-fel ${response.status}: ${details}`);
-  }
-
-  if (response.status === 204) {
-    return null;
-  }
-
-  const text = await response.text();
-  return text ? JSON.parse(text) : null;
-}
-
-function validateCommentInput(value, field, maxLength) {
-  const normalized = String(value || "").trim();
-
-  if (!normalized) {
-    throw new Error(`${field} måste fyllas i.`);
-  }
-
-  if (normalized.length > maxLength) {
-    throw new Error(`${field} får innehålla högst ${maxLength} tecken.`);
-  }
-
-  return normalized;
-}
-
-app.get("/api/comments", async (req, res) => {
-  try {
-    const entryType = validateCommentInput(
-      req.query.type,
-      "Kommentarstyp",
-      10
-    );
-
-    const entryId = validateCommentInput(
-      req.query.id,
-      "Entry-ID",
-      500
-    );
-
-    if (!["audio", "video"].includes(entryType)) {
-      return res.status(400).json({
-        error: "Kommentarstypen måste vara audio eller video."
-      });
-    }
-
-    const query = new URLSearchParams({
-      select: "id,entry_type,entry_id,author,comment,created_at",
-      entry_type: `eq.${entryType}`,
-      entry_id: `eq.${entryId}`,
-      order: "created_at.asc"
-    });
-
-    const comments = await supabaseRequest(
-      `vault_comments?${query.toString()}`
-    );
-
-    res.json({
-      count: comments?.length || 0,
-      comments: comments || []
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.post("/api/comments", async (req, res) => {
-  try {
-    const entryType = validateCommentInput(
-      req.body?.entry_type,
-      "Kommentarstyp",
-      10
-    );
-
-    const entryId = validateCommentInput(
-      req.body?.entry_id,
-      "Entry-ID",
-      500
-    );
-
-    const author = validateCommentInput(
-      req.body?.author,
-      "Namn",
-      80
-    );
-
-    const comment = validateCommentInput(
-      req.body?.comment,
-      "Kommentar",
-      2000
-    );
-
-    if (!["audio", "video"].includes(entryType)) {
-      return res.status(400).json({
-        error: "Kommentarstypen måste vara audio eller video."
-      });
-    }
-
-    const inserted = await supabaseRequest("vault_comments", {
-      method: "POST",
-      headers: {
-        Prefer: "return=representation"
-      },
-      body: JSON.stringify({
-        entry_type: entryType,
-        entry_id: entryId,
-        author,
-        comment
-      })
-    });
-
-    res.status(201).json({
-      comment: inserted?.[0] || null
-    });
-  } catch (error) {
-    console.error(error);
-
-    const status = /måste|högst|Kommentarstyp/.test(error.message)
-      ? 400
-      : 500;
-
-    res.status(status).json({ error: error.message });
-  }
-});
 
 app.get("/api/status", async (_req, res) => {
   let dropboxReady = false;
@@ -722,7 +455,7 @@ app.get("/api/status", async (_req, res) => {
     running: true,
     dropboxConfigured: dropboxReady,
     dropboxAuthMode,
-    youtubeConfigured: Boolean(YOUTUBE_API_KEY),
+    youtubeConfigured: Boolean(YOUTUBE_VIDEOS_SHARED_LINK),
     supabaseConfigured: hasSupabaseConfiguration(),
     folder: DROPBOX_FOLDER || "/"
   });
@@ -952,44 +685,99 @@ app.get("/api/facebook-streams/download/:id", async (req, res) => {
 
 app.get("/api/videos", async (_req, res) => {
   try {
-    const videos = await fetchYouTubeVideos();
+    const videos = await fetchYouTubeDropboxVideos();
 
     res.json({
-      playlistId: YOUTUBE_PLAYLIST_ID,
       count: videos.length,
       videos
     });
   } catch (error) {
     console.error(error);
-
-    res.status(500).json({
-      error: error.message
-    });
+    res.status(500).json({ error: error.message });
   }
 });
 
-app.post(
-  "/api/videos/refresh",
-  async (_req, res) => {
-    youtubeCache.expiresAt = 0;
+app.post("/api/videos/refresh", async (_req, res) => {
+  youtubeVideosCache.expiresAt = 0;
 
-    try {
-      const videos =
-        await fetchYouTubeVideos();
+  try {
+    const videos = await fetchYouTubeDropboxVideos();
+    res.json({ ok: true, count: videos.length });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
-      res.json({
-        ok: true,
-        count: videos.length
-      });
-    } catch (error) {
-      console.error(error);
+app.get("/api/videos/play/:id", async (req, res) => {
+  try {
+    const videos = await fetchYouTubeDropboxVideos();
+    const video = videos.find(
+      item => item.dropboxId === req.params.id
+    );
 
-      res.status(500).json({
-        error: error.message
-      });
+    if (!video) {
+      return res.status(404).send("YouTube-videon hittades inte.");
+    }
+
+    const data = await dropboxRpc("files/get_temporary_link", {
+      path: video.dropboxId
+    });
+
+    res.set("Cache-Control", "no-store");
+    return res.redirect(302, data.link);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).send(error.message);
+  }
+});
+
+app.get("/api/videos/download/:id", async (req, res) => {
+  try {
+    const videos = await fetchYouTubeDropboxVideos();
+    const video = videos.find(
+      item => item.dropboxId === req.params.id
+    );
+
+    if (!video) {
+      return res.status(404).send("YouTube-videon hittades inte.");
+    }
+
+    const response = await dropboxDownload(video.dropboxId);
+
+    if (!response.ok || !response.body) {
+      const details = await response.text();
+      throw new Error(
+        `Dropbox-nedladdning misslyckades (${response.status}): ${details}`
+      );
+    }
+
+    const filename = safeDownloadFilename(video.originalName);
+
+    res.set({
+      "Content-Type":
+        response.headers.get("content-type") || "application/octet-stream",
+      "Content-Disposition":
+        `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`,
+      "Cache-Control": "private, no-store"
+    });
+
+    const contentLength = response.headers.get("content-length");
+    if (contentLength) {
+      res.set("Content-Length", contentLength);
+    }
+
+    Readable.fromWeb(response.body).pipe(res);
+  } catch (error) {
+    console.error(error);
+
+    if (!res.headersSent) {
+      res.status(500).send(error.message);
+    } else {
+      res.destroy(error);
     }
   }
-);
+});
 
 app.use(
   express.static(__dirname, {

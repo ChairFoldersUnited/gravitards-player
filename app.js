@@ -4,8 +4,7 @@ const filmArchiveTab = document.querySelector("#filmArchiveTab");
 const audioArchiveView = document.querySelector("#audioArchiveView");
 const filmArchiveView = document.querySelector("#filmArchiveView");
 const audioArchiveCount = document.querySelector("#audioArchiveCount");
-const filmPlayerElement = document.querySelector("#filmPlayer");
-const facebookPlayer = document.querySelector("#facebookPlayer");
+const dropboxFilmPlayer = document.querySelector("#dropboxFilmPlayer");
 const filmDownloadLink = document.querySelector("#filmDownloadLink");
 const youtubeFilmsTab = document.querySelector("#youtubeFilmsTab");
 const facebookStreamsTab = document.querySelector("#facebookStreamsTab");
@@ -15,7 +14,6 @@ const filmTimelineCard = document.querySelector("#filmTimelineCard");
 const filmLibraryTitle = document.querySelector("#filmLibraryTitle");
 const filmNowTitle = document.querySelector("#filmNowTitle");
 const filmNowMeta = document.querySelector("#filmNowMeta");
-const filmYouTubeLink = document.querySelector("#filmYouTubeLink");
 const filmCount = document.querySelector("#filmCount");
 const filmGrid = document.querySelector("#filmGrid");
 const filmMessage = document.querySelector("#filmMessage");
@@ -88,9 +86,6 @@ let activeFilmSource = "youtube";
 let audioSharedComments = [];
 let filmSharedComments = [];
 let filmYearFilter = null;
-let youtubePlayer = null;
-let youtubePlayerReady = false;
-let pendingFilmId = null;
 let filmClockTimer = null;
 
 const FILM_TIMESTAMPS_STORAGE_KEY = "gravitards-film-timestamps";
@@ -706,20 +701,9 @@ function saveFilmTimestampNotes() {
 }
 
 function getCurrentFilmSeconds() {
-  if (activeFilmSource === "facebook") {
-    return Number.isFinite(facebookPlayer.currentTime)
-      ? Math.max(0, Math.floor(facebookPlayer.currentTime))
-      : 0;
-  }
-
-  if (youtubePlayerReady && youtubePlayer?.getCurrentTime) {
-    return Math.max(
-      0,
-      Math.floor(youtubePlayer.getCurrentTime() || 0)
-    );
-  }
-
-  return 0;
+  return Number.isFinite(dropboxFilmPlayer.currentTime)
+    ? Math.max(0, Math.floor(dropboxFilmPlayer.currentTime))
+    : 0;
 }
 
 function updateFilmCurrentTime() {
@@ -732,59 +716,21 @@ function startFilmClock() {
   filmClockTimer = window.setInterval(updateFilmCurrentTime, 500);
 }
 
-function createYouTubePlayer() {
-  if (!window.YT?.Player || youtubePlayer) return;
-
-  youtubePlayer = new YT.Player("filmPlayer", {
-    host: "https://www.youtube-nocookie.com",
-    width: "100%",
-    height: "100%",
-    playerVars: {
-      rel: 0,
-      playsinline: 1,
-      listType: "playlist",
-      list: "PLA74wG8-e4XBIKCB6HkAg-s2nvVR1hFQ8"
-    },
-    events: {
-      onReady: () => {
-        youtubePlayerReady = true;
-        saveFilmTimestampButton.disabled = !currentFilm;
-        startFilmClock();
-
-        if (pendingFilmId) {
-          youtubePlayer.loadVideoById(pendingFilmId);
-          pendingFilmId = null;
-        }
-      },
-      onStateChange: updateFilmCurrentTime
-    }
-  });
-}
-
-window.onYouTubeIframeAPIReady = createYouTubePlayer;
-
-if (window.YT?.Player) {
-  createYouTubePlayer();
-}
-
 function renderFilmTimeline() {
-  filmTimelineCard.classList.toggle(
-    "hidden",
-    activeFilmSource === "facebook"
-  );
-
-  if (activeFilmSource === "facebook") {
-    filmYearFilter = null;
-    filmTimeline.innerHTML = "";
-    clearFilmYearButton.classList.add("hidden");
-    return;
-  }
-
   const years = [...new Set(
     films
       .map(film => filmYear(film))
       .filter(year => typeof year === "number")
   )].sort((a, b) => a - b);
+
+  filmTimelineCard.classList.toggle("hidden", years.length === 0);
+
+  if (!years.length) {
+    filmYearFilter = null;
+    filmTimeline.innerHTML = "";
+    clearFilmYearButton.classList.add("hidden");
+    return;
+  }
 
   filmTimeline.innerHTML = years.map(year => `
     <button class="timeline-year ${filmYearFilter === String(year) ? "active" : ""}"
@@ -859,8 +805,7 @@ function renderFilmTimestampNotes() {
     return;
   }
 
-  saveFilmTimestampButton.disabled =
-    activeFilmSource === "youtube" ? !youtubePlayerReady : false;
+  saveFilmTimestampButton.disabled = false;
 
   const notes = [...(filmTimestampNotes[currentFilm.id] || [])]
     .sort((a, b) => a.seconds - b.seconds);
@@ -938,12 +883,9 @@ function renderFilms() {
     }
 
     const thumbnail =
-      activeFilmSource === "youtube"
-        ? `<img class="film-thumbnail"
-                src="${escapeHtml(film.thumbnail)}"
-                alt=""
-                loading="lazy">`
-        : `<div class="facebook-stream-placeholder" aria-hidden="true">f</div>`;
+      `<div class="facebook-stream-placeholder" aria-hidden="true">${
+        activeFilmSource === "youtube" ? "▶" : "f"
+      }</div>`;
 
     const duration =
       film.durationSeconds
@@ -952,18 +894,16 @@ function renderFilms() {
 
     const meta =
       activeFilmSource === "youtube"
-        ? `<span>${escapeHtml(formatFilmDate(film.publishedAt))}</span>
-           <span>${escapeHtml(film.channelTitle)}</span>`
+        ? `<span>YouTube Archive</span>
+           <span>${formatSize(film.size)}</span>`
         : `<span>Facebook Live</span>
            <span>${formatSize(film.size)}</span>`;
 
     const originalName =
-      activeFilmSource === "facebook"
-        ? `<span class="facebook-original-name"
-                 title="${escapeHtml(film.originalName)}">
-             ${escapeHtml(film.originalName)}
-           </span>`
-        : "";
+      `<span class="facebook-original-name"
+               title="${escapeHtml(film.originalName)}">
+           ${escapeHtml(film.originalName)}
+         </span>`;
 
     html.push(`
       <button class="film-entry ${currentFilm?.id === film.id ? "active" : ""}"
@@ -996,69 +936,41 @@ function selectFilm(film) {
   filmCurrentTime.textContent = "0:00";
   filmNowTitle.textContent = film.title;
 
-  if (activeFilmSource === "facebook") {
-    filmNowMeta.textContent =
-      ["Facebook Live", formatSize(film.size), film.originalName]
-        .filter(Boolean)
-        .join(" · ");
+  const sourceLabel =
+    activeFilmSource === "youtube"
+      ? "YouTube Archive"
+      : "Facebook Live";
 
-    filmPlayerElement.classList.add("hidden");
-    facebookPlayer.classList.remove("hidden");
-    filmYouTubeLink.classList.add("hidden");
-    filmDownloadLink.classList.remove("hidden");
+  const pieces = [
+    sourceLabel,
+    formatSize(film.size),
+    film.originalName
+  ].filter(Boolean);
 
-    if (youtubePlayerReady && youtubePlayer?.pauseVideo) {
-      youtubePlayer.pauseVideo();
-    }
+  filmNowMeta.textContent = pieces.join(" · ");
 
-    facebookPlayer.src =
-      `/api/facebook-streams/play/${encodeURIComponent(film.dropboxId)}`;
+  const playEndpoint =
+    activeFilmSource === "youtube"
+      ? `/api/videos/play/${encodeURIComponent(film.dropboxId)}`
+      : `/api/facebook-streams/play/${encodeURIComponent(film.dropboxId)}`;
 
-    filmDownloadLink.href =
-      `/api/facebook-streams/download/${encodeURIComponent(film.dropboxId)}`;
+  const downloadEndpoint =
+    activeFilmSource === "youtube"
+      ? `/api/videos/download/${encodeURIComponent(film.dropboxId)}`
+      : `/api/facebook-streams/download/${encodeURIComponent(film.dropboxId)}`;
 
-    facebookPlayer.play().catch(() => {});
-    saveFilmTimestampButton.disabled = false;
-  } else {
-    const pieces = [
-      formatFilmDate(film.publishedAt),
-      formatFilmDuration(film.durationSeconds),
-      film.channelTitle
-    ].filter(Boolean);
+  dropboxFilmPlayer.src = playEndpoint;
+  filmDownloadLink.href = downloadEndpoint;
+  filmDownloadLink.classList.remove("hidden");
 
-    filmNowMeta.textContent = pieces.join(" · ");
-    facebookPlayer.pause();
-    facebookPlayer.removeAttribute("src");
-    facebookPlayer.load();
-    facebookPlayer.classList.add("hidden");
-    filmPlayerElement.classList.remove("hidden");
-    filmYouTubeLink.classList.remove("hidden");
-    filmDownloadLink.classList.add("hidden");
-
-    if (youtubePlayerReady && youtubePlayer?.loadVideoById) {
-      youtubePlayer.loadVideoById(film.id);
-    } else {
-      pendingFilmId = film.id;
-      createYouTubePlayer();
-    }
-
-    filmYouTubeLink.href =
-      `https://www.youtube.com/watch?v=${encodeURIComponent(film.id)}` +
-      `&list=PLA74wG8-e4XBIKCB6HkAg-s2nvVR1hFQ8`;
-
-    saveFilmTimestampButton.disabled = !youtubePlayerReady;
-  }
+  dropboxFilmPlayer.play().catch(() => {});
+  saveFilmTimestampButton.disabled = false;
 
   loadFilmComment();
   renderFilmTimestampNotes();
   renderFilms();
 
-  const activePlayer =
-    activeFilmSource === "facebook"
-      ? facebookPlayer
-      : filmPlayerElement;
-
-  activePlayer.scrollIntoView({
+  dropboxFilmPlayer.scrollIntoView({
     behavior: "smooth",
     block: "center"
   });
@@ -1076,7 +988,7 @@ async function loadYouTubeFilms(force = false) {
 
     if (!refreshResponse.ok) {
       throw new Error(
-        refreshData.error || "YouTube-arkivet kunde inte uppdateras."
+        refreshData.error || "YouTube-mappen kunde inte uppdateras."
       );
     }
   }
@@ -1086,7 +998,7 @@ async function loadYouTubeFilms(force = false) {
 
   if (!response.ok) {
     throw new Error(
-      data.error || "YouTube-arkivet kunde inte läsas."
+      data.error || "YouTube-mappen kunde inte läsas."
     );
   }
 
@@ -1774,21 +1686,12 @@ filmTimestampList.addEventListener("click", event => {
   if (jumpButton && currentFilm) {
     const seconds = Number(jumpButton.dataset.filmJump);
 
-    if (activeFilmSource === "facebook") {
-      facebookPlayer.currentTime = Math.max(0, seconds);
-      facebookPlayer.play().catch(() => {});
-      facebookPlayer.scrollIntoView({
-        behavior: "smooth",
-        block: "center"
-      });
-    } else if (youtubePlayerReady && youtubePlayer?.seekTo) {
-      youtubePlayer.seekTo(Math.max(0, seconds), true);
-      youtubePlayer.playVideo();
-      filmPlayerElement.scrollIntoView({
-        behavior: "smooth",
-        block: "center"
-      });
-    }
+    dropboxFilmPlayer.currentTime = Math.max(0, seconds);
+    dropboxFilmPlayer.play().catch(() => {});
+    dropboxFilmPlayer.scrollIntoView({
+      behavior: "smooth",
+      block: "center"
+    });
 
     return;
   }
@@ -1826,8 +1729,8 @@ facebookStreamsTab.addEventListener("click", () => {
   setFilmSource("facebook");
 });
 
-facebookPlayer.addEventListener("timeupdate", updateFilmCurrentTime);
-facebookPlayer.addEventListener("loadedmetadata", updateFilmCurrentTime);
+dropboxFilmPlayer.addEventListener("timeupdate", updateFilmCurrentTime);
+dropboxFilmPlayer.addEventListener("loadedmetadata", updateFilmCurrentTime);
 
 filmGrid.addEventListener("click", event => {
   const button = event.target.closest("[data-film-id]");
