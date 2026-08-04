@@ -2319,3 +2319,17 @@ button:disabled { opacity: .4; cursor: wait; }
     grid-template-columns: 1fr;
   }
 }
+
+
+.vault-stream-thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  filter: saturate(.85) contrast(1.04) brightness(.82);
+}
+
+.film-entry:hover .vault-stream-thumbnail,
+.film-entry.active .vault-stream-thumbnail {
+  filter: saturate(1) contrast(1.06) brightness(.94);
+}

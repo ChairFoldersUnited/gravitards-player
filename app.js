@@ -1093,9 +1093,12 @@ function renderFilms() {
     }
 
     const thumbnail =
-      `<div class="facebook-stream-placeholder" aria-hidden="true">${
-        activeFilmSource === "youtube" ? "▶" : activeFilmSource === "facebook" ? "f" : "◎"
-      }</div>`;
+      activeFilmSource === "youtube"
+        ? `<div class="facebook-stream-placeholder" aria-hidden="true">▶</div>`
+        : `<img class="film-thumbnail vault-stream-thumbnail"
+                src="vault-header.jpg"
+                alt=""
+                loading="lazy">`;
 
     const duration =
       film.durationSeconds
