@@ -159,6 +159,15 @@
         </div>
       </section>
 
+      <div class="entry-share-row">
+        <button id="shareAudioButton"
+                class="youtube-link share-entry-button"
+                type="button"
+                disabled>
+          Kopiera länk till låten ↗
+        </button>
+      </div>
+
       <section class="comments-card">
         <div class="comments-heading">
           <h2>Vault Comments</h2>
@@ -298,7 +307,13 @@
                download>
               Ladda ned ↓
             </a>
-          </div>
+          
+            <button id="shareFilmButton"
+                    class="youtube-link share-entry-button"
+                    type="button"
+                    disabled>
+              Kopiera länk ↗
+            </button></div>
         </header>
 
         <div class="youtube-frame">
@@ -431,5 +446,11 @@
   <audio id="audio" preload="metadata"></audio>
   <script src="https://www.youtube.com/iframe_api"></script>
   <script src="/app.js" defer></script>
+  <div id="shareToast"
+       class="share-toast hidden"
+       role="status"
+       aria-live="polite">
+    Länk kopierad
+  </div>
 </body>
 </html>

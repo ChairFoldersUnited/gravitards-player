@@ -2092,3 +2092,74 @@ button:disabled { opacity: .4; cursor: wait; }
     text-align: center;
   }
 }
+
+
+.entry-share-row {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 14px;
+}
+
+.share-entry-button {
+  cursor: pointer;
+}
+
+.share-entry-button:disabled {
+  cursor: not-allowed;
+  opacity: .42;
+}
+
+.timestamp-share {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--line);
+  background: #090908;
+  color: var(--brass);
+  cursor: pointer;
+  font-size: .75rem;
+}
+
+.timestamp-share:hover {
+  border-color: rgba(212,184,117,.48);
+  color: var(--brass-light);
+  background: rgba(182,148,85,.08);
+}
+
+.share-toast {
+  position: fixed;
+  z-index: 10000;
+  right: 22px;
+  bottom: 22px;
+  max-width: min(380px, calc(100vw - 30px));
+  padding: 12px 15px;
+  border: 1px solid rgba(212,184,117,.48);
+  background:
+    linear-gradient(180deg, rgba(29,25,18,.98), rgba(8,8,7,.98));
+  box-shadow: 0 18px 45px rgba(0,0,0,.55);
+  color: var(--brass-light);
+  font-family: Oswald, sans-serif;
+  font-size: .78rem;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 620px) {
+  .entry-share-row {
+    justify-content: stretch;
+  }
+
+  .entry-share-row .share-entry-button {
+    width: 100%;
+  }
+
+  .share-toast {
+    right: 15px;
+    bottom: 15px;
+    left: 15px;
+    max-width: none;
+    text-align: center;
+  }
+}

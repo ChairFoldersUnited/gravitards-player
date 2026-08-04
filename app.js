@@ -1,4 +1,5 @@
 const audio = document.querySelector("#audio");
+const shareAudioButton = document.querySelector("#shareAudioButton");
 const audioArchiveTab = document.querySelector("#audioArchiveTab");
 const filmArchiveTab = document.querySelector("#filmArchiveTab");
 const audioArchiveView = document.querySelector("#audioArchiveView");
@@ -6,12 +7,14 @@ const filmArchiveView = document.querySelector("#filmArchiveView");
 const audioArchiveCount = document.querySelector("#audioArchiveCount");
 const dropboxFilmPlayer = document.querySelector("#dropboxFilmPlayer");
 const filmDownloadLink = document.querySelector("#filmDownloadLink");
+const shareFilmButton = document.querySelector("#shareFilmButton");
 const youtubeFilmsTab = document.querySelector("#youtubeFilmsTab");
 const facebookStreamsTab = document.querySelector("#facebookStreamsTab");
 const youtubeFilmsCount = document.querySelector("#youtubeFilmsCount");
 const facebookStreamsCount = document.querySelector("#facebookStreamsCount");
 const filmTimelineCard = document.querySelector("#filmTimelineCard");
 const filmLibraryTitle = document.querySelector("#filmLibraryTitle");
+const shareToast = document.querySelector("#shareToast");
 const filmNowTitle = document.querySelector("#filmNowTitle");
 const filmNowMeta = document.querySelector("#filmNowMeta");
 const filmCount = document.querySelector("#filmCount");
@@ -82,6 +85,8 @@ let youtubeFilms = [];
 let facebookStreams = [];
 let visibleFilms = [];
 let currentFilm = null;
+let pendingSharedLocation = null;
+let shareToastTimer = null;
 let activeFilmSource = "youtube";
 let audioSharedComments = [];
 let filmSharedComments = [];
@@ -151,6 +156,165 @@ function formatTime(seconds, mode = 0) {
   }
 
   return `${minutes}:${secs}`;
+}
+
+
+function showShareToast(message = "Länk kopierad") {
+  shareToast.textContent = message;
+  shareToast.classList.remove("hidden");
+
+  window.clearTimeout(shareToastTimer);
+  shareToastTimer = window.setTimeout(() => {
+    shareToast.classList.add("hidden");
+  }, 2200);
+}
+
+async function copyTextToClipboard(value) {
+  try {
+    await navigator.clipboard.writeText(value);
+  } catch {
+    const textarea = document.createElement("textarea");
+    textarea.value = value;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand("copy");
+    textarea.remove();
+  }
+}
+
+function buildVaultShareUrl({ archive, source = "", entryId, seconds = null }) {
+  const url = new URL(window.location.href);
+  url.hash = "";
+
+  const params = new URLSearchParams({
+    archive,
+    id: entryId
+  });
+
+  if (source) params.set("source", source);
+
+  if (Number.isFinite(seconds) && seconds > 0) {
+    params.set("t", String(Math.floor(seconds)));
+  }
+
+  url.hash = params.toString();
+  return url.toString();
+}
+
+function parseVaultShareLocation() {
+  const rawHash = window.location.hash.replace(/^#/, "");
+  if (!rawHash) return null;
+
+  const params = new URLSearchParams(rawHash);
+  const archive = params.get("archive");
+  const id = params.get("id");
+
+  if (!["audio", "video"].includes(archive) || !id) return null;
+
+  const secondsValue = Number(params.get("t"));
+
+  return {
+    archive,
+    source: params.get("source") || "",
+    id,
+    seconds:
+      Number.isFinite(secondsValue) && secondsValue >= 0
+        ? Math.floor(secondsValue)
+        : null
+  };
+}
+
+function seekSharedAudio(seconds) {
+  if (!Number.isFinite(seconds) || seconds < 0) return;
+
+  const applySeek = () => {
+    audio.currentTime = Math.max(0, seconds);
+    audio.play().catch(() => {});
+  };
+
+  if (audio.readyState >= 1) {
+    applySeek();
+  } else {
+    audio.addEventListener("loadedmetadata", applySeek, { once: true });
+  }
+}
+
+function seekSharedFilm(seconds) {
+  if (!Number.isFinite(seconds) || seconds < 0) return;
+
+  const applySeek = () => {
+    dropboxFilmPlayer.currentTime = Math.max(0, seconds);
+    dropboxFilmPlayer.play().catch(() => {});
+  };
+
+  if (dropboxFilmPlayer.readyState >= 1) {
+    applySeek();
+  } else {
+    dropboxFilmPlayer.addEventListener(
+      "loadedmetadata",
+      applySeek,
+      { once: true }
+    );
+  }
+}
+
+function addTimestampShareButtons(container, archive) {
+  container
+    .querySelectorAll("[data-audio-jump], [data-film-jump]")
+    .forEach(button => {
+      const note = button.closest(".timestamp-note");
+      if (!note || note.querySelector(".timestamp-share")) return;
+
+      const seconds = Number(
+        button.dataset.audioJump ?? button.dataset.filmJump
+      );
+
+      const shareButton = document.createElement("button");
+      shareButton.className = "timestamp-share";
+      shareButton.type = "button";
+      shareButton.title = "Kopiera länk till denna tid";
+      shareButton.setAttribute("aria-label", "Kopiera tidslänk");
+      shareButton.textContent = "↗";
+
+      shareButton.addEventListener("click", async event => {
+        event.stopPropagation();
+
+        let url = "";
+
+        if (archive === "audio" && currentTrack) {
+          url = buildVaultShareUrl({
+            archive: "audio",
+            entryId: currentTrack.id,
+            seconds
+          });
+        }
+
+        if (archive === "video" && currentFilm) {
+          url = buildVaultShareUrl({
+            archive: "video",
+            source: activeFilmSource,
+            entryId: currentFilm.id,
+            seconds
+          });
+        }
+
+        if (!url) return;
+
+        await copyTextToClipboard(url);
+        showShareToast("Tidslänk kopierad");
+      });
+
+      const deleteButton = note.querySelector(".timestamp-delete");
+
+      if (deleteButton) {
+        note.insertBefore(shareButton, deleteButton);
+      } else {
+        note.appendChild(shareButton);
+      }
+    });
 }
 
 function formatSize(bytes) {
@@ -504,6 +668,7 @@ function renderTimestampNotes() {
               title="Ta bort">×</button>
     </div>
   `).join("");
+  addTimestampShareButtons(timestampList, "audio");
 }
 
 function saveCollapsedYears() {
@@ -830,6 +995,7 @@ function renderFilmTimestampNotes() {
               title="Ta bort">×</button>
     </div>
   `).join("");
+  addTimestampShareButtons(filmTimestampList, "video");
 }
 
 function renderFilms() {
@@ -933,6 +1099,7 @@ function selectFilm(film) {
   if (!film) return;
 
   currentFilm = film;
+  shareFilmButton.disabled = false;
   filmCurrentTime.textContent = "0:00";
   filmNowTitle.textContent = film.title;
 
@@ -1062,6 +1229,7 @@ async function loadFilms(force = false) {
     filmSortSelect.disabled = activeFilmSource === "facebook";
     renderFilmTimeline();
     renderFilms();
+    window.setTimeout(tryOpenSharedFilm, 0);
 
     if (!currentFilm || currentFilm.source !== activeFilmSource) {
       currentFilm = null;
@@ -1111,6 +1279,94 @@ function setFilmSource(source) {
   loadFilms();
 }
 
+
+function tryOpenSharedAudio() {
+  if (
+    !pendingSharedLocation ||
+    pendingSharedLocation.archive !== "audio" ||
+    !tracks.length
+  ) {
+    return false;
+  }
+
+  const track = tracks.find(
+    item => item.id === pendingSharedLocation.id
+  );
+
+  if (!track) {
+    showShareToast("Låten i länken hittades inte");
+    pendingSharedLocation = null;
+    return false;
+  }
+
+  setArchiveView("audio");
+  selectTrack(track);
+
+  if (pendingSharedLocation.seconds !== null) {
+    seekSharedAudio(pendingSharedLocation.seconds);
+  }
+
+  pendingSharedLocation = null;
+  return true;
+}
+
+async function tryOpenSharedFilm() {
+  if (
+    !pendingSharedLocation ||
+    pendingSharedLocation.archive !== "video"
+  ) {
+    return false;
+  }
+
+  const source =
+    pendingSharedLocation.source === "facebook"
+      ? "facebook"
+      : "youtube";
+
+  setArchiveView("film");
+
+  if (activeFilmSource !== source) {
+    activeFilmSource = source;
+
+    youtubeFilmsTab.classList.toggle(
+      "active",
+      source === "youtube"
+    );
+
+    facebookStreamsTab.classList.toggle(
+      "active",
+      source === "facebook"
+    );
+  }
+
+  const sourceFilms =
+    source === "facebook"
+      ? await loadFacebookStreams()
+      : await loadYouTubeFilms();
+
+  const film = sourceFilms.find(
+    item => item.id === pendingSharedLocation.id
+  );
+
+  if (!film) {
+    showShareToast("Videon i länken hittades inte");
+    pendingSharedLocation = null;
+    return false;
+  }
+
+  films = sourceFilms;
+  renderFilmTimeline();
+  renderFilms();
+  selectFilm(film);
+
+  if (pendingSharedLocation.seconds !== null) {
+    seekSharedFilm(pendingSharedLocation.seconds);
+  }
+
+  pendingSharedLocation = null;
+  return true;
+}
+
 function setArchiveView(view) {
   const showAudio = view === "audio";
 
@@ -1154,6 +1410,7 @@ async function loadTracks(force = false) {
     updateYearJump();
     renderTimeline();
     renderTracks();
+    window.setTimeout(tryOpenSharedAudio, 0);
 
     if (!tracks.length) {
       showMessage("Mappen innehåller inga ljudfiler. Kontrollera DROPBOX_FOLDER.");
@@ -1185,6 +1442,7 @@ async function playTrack(track) {
   if (!track) return;
 
   currentTrack = track;
+  shareAudioButton.disabled = false;
   downloadCurrentButton.disabled = false;
   addToRecent(track.id);
   nowTitle.textContent = track.displayTitle;
@@ -1743,14 +2001,73 @@ filmSearchInput.addEventListener("input", renderFilms);
 filmSortSelect.addEventListener("change", renderFilms);
 refreshFilmsButton.addEventListener("click", () => loadFilms(true));
 
+
+shareAudioButton.addEventListener("click", async () => {
+  if (!currentTrack) return;
+
+  const seconds =
+    Number.isFinite(audio.currentTime) && audio.currentTime > 0
+      ? Math.floor(audio.currentTime)
+      : null;
+
+  const url = buildVaultShareUrl({
+    archive: "audio",
+    entryId: currentTrack.id,
+    seconds
+  });
+
+  await copyTextToClipboard(url);
+  showShareToast(
+    seconds ? "Länk med aktuell tid kopierad" : "Länk kopierad"
+  );
+});
+
+shareFilmButton.addEventListener("click", async () => {
+  if (!currentFilm) return;
+
+  const seconds = getCurrentFilmSeconds();
+
+  const url = buildVaultShareUrl({
+    archive: "video",
+    source: activeFilmSource,
+    entryId: currentFilm.id,
+    seconds: seconds > 0 ? seconds : null
+  });
+
+  await copyTextToClipboard(url);
+  showShareToast(
+    seconds > 0
+      ? "Länk med aktuell tid kopierad"
+      : "Länk kopierad"
+  );
+});
+
+window.addEventListener("hashchange", () => {
+  pendingSharedLocation = parseVaultShareLocation();
+
+  if (!pendingSharedLocation) return;
+
+  if (pendingSharedLocation.archive === "audio") {
+    tryOpenSharedAudio();
+  } else {
+    tryOpenSharedFilm();
+  }
+});
+
 audioArchiveTab.addEventListener("click", () => setArchiveView("audio"));
 filmArchiveTab.addEventListener("click", () => setArchiveView("film"));
+
+pendingSharedLocation = parseVaultShareLocation();
 
 const savedFilmSource =
   localStorage.getItem("gravitards-film-source") || "youtube";
 
 activeFilmSource =
-  savedFilmSource === "facebook" ? "facebook" : "youtube";
+  pendingSharedLocation?.archive === "video"
+    ? (pendingSharedLocation.source === "facebook"
+        ? "facebook"
+        : "youtube")
+    : (savedFilmSource === "facebook" ? "facebook" : "youtube");
 
 youtubeFilmsTab.classList.toggle(
   "active",
@@ -1765,7 +2082,13 @@ facebookStreamsTab.classList.toggle(
 const savedArchiveView =
   localStorage.getItem("gravitards-archive-view") || "audio";
 
-setArchiveView(savedArchiveView === "film" ? "film" : "audio");
+setArchiveView(
+  pendingSharedLocation?.archive === "video"
+    ? "film"
+    : pendingSharedLocation?.archive === "audio"
+      ? "audio"
+      : (savedArchiveView === "film" ? "film" : "audio")
+);
 
 commentAuthorInput.value = savedCommentAuthor;
 filmCommentAuthorInput.value = savedCommentAuthor;
