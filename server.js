@@ -413,6 +413,7 @@ async function fetchSharedVideoFolder(sharedLink, cache, source, fallbackLabel) 
             : displayTitleFromVideoFilename(entry.name, fallback),
         originalName: entry.name,
         size: entry.size,
+        contentHash: entry.content_hash || "",
         source,
         position: index,
         publishedAt:
@@ -614,6 +615,297 @@ app.post("/api/comments", async (req, res) => {
     res.status(status).json({
       error: error.message
     });
+  }
+});
+
+
+function groupExactDuplicateVideos(videos) {
+  const groupsByHash = new Map();
+
+  for (const video of videos) {
+    if (!video.contentHash) continue;
+
+    if (!groupsByHash.has(video.contentHash)) {
+      groupsByHash.set(video.contentHash, []);
+    }
+
+    groupsByHash.get(video.contentHash).push(video);
+  }
+
+  return [...groupsByHash.entries()]
+    .filter(([, files]) => files.length > 1)
+    .map(([contentHash, files], index) => ({
+      group: index + 1,
+      contentHash,
+      fileCount: files.length,
+      duplicateCopies: files.length - 1,
+      wastedBytes:
+        files.slice(1).reduce(
+          (sum, file) => sum + Number(file.size || 0),
+          0
+        ),
+      files: files.map(file => ({
+        id: file.id,
+        dropboxId: file.dropboxId,
+        title: file.title,
+        originalName: file.originalName,
+        size: file.size,
+        source: file.source
+      }))
+    }))
+    .sort((a, b) => b.wastedBytes - a.wastedBytes);
+}
+
+function formatBytesForReport(bytes) {
+  const value = Number(bytes || 0);
+
+  if (!Number.isFinite(value) || value <= 0) {
+    return "0 B";
+  }
+
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  const unitIndex = Math.min(
+    Math.floor(Math.log(value) / Math.log(1024)),
+    units.length - 1
+  );
+
+  const amount = value / Math.pow(1024, unitIndex);
+
+  return `${amount.toFixed(
+    amount >= 100 || unitIndex === 0 ? 0 : 2
+  )} ${units[unitIndex]}`;
+}
+
+async function buildDuplicateVideoReport() {
+  const [youtubeVideos, facebookStreams] = await Promise.all([
+    fetchYouTubeDropboxVideos(),
+    fetchFacebookStreams()
+  ]);
+
+  const allVideos = [
+    ...youtubeVideos,
+    ...facebookStreams
+  ];
+
+  const groups = groupExactDuplicateVideos(allVideos);
+
+  const duplicateCopies = groups.reduce(
+    (sum, group) => sum + group.duplicateCopies,
+    0
+  );
+
+  const wastedBytes = groups.reduce(
+    (sum, group) => sum + group.wastedBytes,
+    0
+  );
+
+  return {
+    checkedAt: new Date().toISOString(),
+    checkedFiles: allVideos.length,
+    exactDuplicateGroups: groups.length,
+    duplicateCopies,
+    wastedBytes,
+    wastedSpace: formatBytesForReport(wastedBytes),
+    note:
+      "Rapporten hittar endast bit-för-bit-identiska filer med samma Dropbox content_hash.",
+    groups
+  };
+}
+
+app.get("/api/duplicate-videos", async (_req, res) => {
+  try {
+    const report = await buildDuplicateVideoReport();
+    res.json(report);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      error: error.message
+    });
+  }
+});
+
+app.get("/duplicate-videos", async (_req, res) => {
+  try {
+    const report = await buildDuplicateVideoReport();
+
+    const groupMarkup = report.groups.length
+      ? report.groups.map(group => `
+          <section class="duplicate-group">
+            <h2>Dubblettgrupp ${group.group}</h2>
+            <p class="hash">Hash: ${group.contentHash}</p>
+            <p>
+              ${group.fileCount} identiska filer ·
+              möjlig besparing ${formatBytesForReport(group.wastedBytes)}
+            </p>
+
+            <div class="files">
+              ${group.files.map((file, fileIndex) => `
+                <article>
+                  <strong>
+                    ${fileIndex === 0 ? "Behåll exempelvis:" : "Dubblett:"}
+                  </strong>
+                  <span>${String(file.originalName || "").replace(/[&<>"']/g, character => ({
+                    "&": "&amp;",
+                    "<": "&lt;",
+                    ">": "&gt;",
+                    '"': "&quot;",
+                    "'": "&#039;"
+                  })[character])}</span>
+                  <small>
+                    ${file.source === "youtube" ? "YouTube Videos" : "Facebook Streams"}
+                    · ${formatBytesForReport(file.size)}
+                  </small>
+                </article>
+              `).join("")}
+            </div>
+          </section>
+        `).join("")
+      : `
+          <section class="empty">
+            <h2>Inga exakta dubbletter hittades</h2>
+            <p>
+              Alla kontrollerade videor hade olika Dropbox content_hash.
+            </p>
+          </section>
+        `;
+
+    res.type("html").send(`<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Vault Duplicate Report</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      background: #080807;
+      color: #d8d1c5;
+    }
+
+    main {
+      width: min(1050px, calc(100% - 30px));
+      margin: 30px auto 70px;
+    }
+
+    header,
+    .duplicate-group,
+    .empty {
+      margin-bottom: 16px;
+      padding: 20px;
+      border: 1px solid #4b4437;
+      background: #12110f;
+    }
+
+    h1,
+    h2 {
+      margin-top: 0;
+      color: #d7b970;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .summary div {
+      padding: 13px;
+      border: 1px solid #312d25;
+      background: #090908;
+    }
+
+    .summary strong,
+    .summary span {
+      display: block;
+    }
+
+    .summary strong {
+      margin-bottom: 5px;
+      color: #eee4cf;
+      font-size: 1.2rem;
+    }
+
+    .summary span,
+    small,
+    .hash {
+      color: #8f887d;
+    }
+
+    .hash {
+      overflow-wrap: anywhere;
+      font-family: monospace;
+      font-size: .75rem;
+    }
+
+    .files {
+      display: grid;
+      gap: 8px;
+    }
+
+    article {
+      display: grid;
+      gap: 5px;
+      padding: 12px;
+      border: 1px solid #302c24;
+      background: #090908;
+    }
+
+    article strong {
+      color: #c9aa63;
+    }
+
+    @media (max-width: 720px) {
+      .summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>The Gravitards Vault – Duplicate Report</h1>
+      <p>
+        Endast exakta dubbletter visas. Rapporten raderar eller ändrar inga filer.
+      </p>
+
+      <div class="summary">
+        <div>
+          <strong>${report.checkedFiles}</strong>
+          <span>kontrollerade filer</span>
+        </div>
+        <div>
+          <strong>${report.exactDuplicateGroups}</strong>
+          <span>dubblettgrupper</span>
+        </div>
+        <div>
+          <strong>${report.duplicateCopies}</strong>
+          <span>extra kopior</span>
+        </div>
+        <div>
+          <strong>${report.wastedSpace}</strong>
+          <span>möjlig besparing</span>
+        </div>
+      </div>
+    </header>
+
+    ${groupMarkup}
+  </main>
+</body>
+</html>`);
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).type("html").send(`
+      <h1>Dubblettkontrollen misslyckades</h1>
+      <pre>${String(error.message || error)}</pre>
+    `);
   }
 });
 
