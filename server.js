@@ -34,6 +34,9 @@ const YOUTUBE_PLAYLIST_ID =
 
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY || "";
 
+const SUPABASE_URL = String(process.env.SUPABASE_URL || "").replace(/\/+$/, "");
+const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY || "";
+
 app.disable("x-powered-by");
 app.use(express.json());
 
@@ -468,6 +471,156 @@ async function fetchYouTubeVideos() {
   return videos;
 }
 
+
+function hasSupabaseConfiguration() {
+  return Boolean(SUPABASE_URL && SUPABASE_SECRET_KEY);
+}
+
+async function supabaseRequest(pathname, options = {}) {
+  if (!hasSupabaseConfiguration()) {
+    throw new Error(
+      "Supabase är inte konfigurerat. Lägg till SUPABASE_URL och " +
+      "SUPABASE_SECRET_KEY i Render Environment Variables."
+    );
+  }
+
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/${pathname}`, {
+    ...options,
+    headers: {
+      apikey: SUPABASE_SECRET_KEY,
+      Authorization: `Bearer ${SUPABASE_SECRET_KEY}`,
+      "Content-Type": "application/json",
+      ...(options.headers || {})
+    }
+  });
+
+  if (!response.ok) {
+    const details = await response.text();
+    throw new Error(`Supabase-fel ${response.status}: ${details}`);
+  }
+
+  if (response.status === 204) {
+    return null;
+  }
+
+  const text = await response.text();
+  return text ? JSON.parse(text) : null;
+}
+
+function validateCommentInput(value, field, maxLength) {
+  const normalized = String(value || "").trim();
+
+  if (!normalized) {
+    throw new Error(`${field} måste fyllas i.`);
+  }
+
+  if (normalized.length > maxLength) {
+    throw new Error(`${field} får innehålla högst ${maxLength} tecken.`);
+  }
+
+  return normalized;
+}
+
+app.get("/api/comments", async (req, res) => {
+  try {
+    const entryType = validateCommentInput(
+      req.query.type,
+      "Kommentarstyp",
+      10
+    );
+
+    const entryId = validateCommentInput(
+      req.query.id,
+      "Entry-ID",
+      500
+    );
+
+    if (!["audio", "video"].includes(entryType)) {
+      return res.status(400).json({
+        error: "Kommentarstypen måste vara audio eller video."
+      });
+    }
+
+    const query = new URLSearchParams({
+      select: "id,entry_type,entry_id,author,comment,created_at",
+      entry_type: `eq.${entryType}`,
+      entry_id: `eq.${entryId}`,
+      order: "created_at.asc"
+    });
+
+    const comments = await supabaseRequest(
+      `vault_comments?${query.toString()}`
+    );
+
+    res.json({
+      count: comments?.length || 0,
+      comments: comments || []
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/comments", async (req, res) => {
+  try {
+    const entryType = validateCommentInput(
+      req.body?.entry_type,
+      "Kommentarstyp",
+      10
+    );
+
+    const entryId = validateCommentInput(
+      req.body?.entry_id,
+      "Entry-ID",
+      500
+    );
+
+    const author = validateCommentInput(
+      req.body?.author,
+      "Namn",
+      80
+    );
+
+    const comment = validateCommentInput(
+      req.body?.comment,
+      "Kommentar",
+      2000
+    );
+
+    if (!["audio", "video"].includes(entryType)) {
+      return res.status(400).json({
+        error: "Kommentarstypen måste vara audio eller video."
+      });
+    }
+
+    const inserted = await supabaseRequest("vault_comments", {
+      method: "POST",
+      headers: {
+        Prefer: "return=representation"
+      },
+      body: JSON.stringify({
+        entry_type: entryType,
+        entry_id: entryId,
+        author,
+        comment
+      })
+    });
+
+    res.status(201).json({
+      comment: inserted?.[0] || null
+    });
+  } catch (error) {
+    console.error(error);
+
+    const status = /måste|högst|Kommentarstyp/.test(error.message)
+      ? 400
+      : 500;
+
+    res.status(status).json({ error: error.message });
+  }
+});
+
 app.get("/api/status", async (_req, res) => {
   let dropboxReady = false;
   let dropboxAuthMode = "none";
@@ -488,6 +641,7 @@ app.get("/api/status", async (_req, res) => {
     dropboxConfigured: dropboxReady,
     dropboxAuthMode,
     youtubeConfigured: Boolean(YOUTUBE_API_KEY),
+    supabaseConfigured: hasSupabaseConfiguration(),
     folder: DROPBOX_FOLDER || "/"
   });
 });

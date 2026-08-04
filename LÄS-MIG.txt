@@ -1,16 +1,39 @@
-THE GRAVITARDS VAULT V5.3 – AUTOMATISKA VIDEOTIDSSTÄMPLAR
+THE GRAVITARDS VAULT V6 – SHARED COMMENTS
 
-Ersätt:
+Ersätt dessa filer i GitHub:
+- server.js
 - index.html
 - style.css
 - app.js
 
-Server.js behöver inte ändras.
+Render ska redan innehålla:
+- SUPABASE_URL
+- SUPABASE_SECRET_KEY
+- DROPBOX_APP_KEY
+- DROPBOX_APP_SECRET
+- DROPBOX_REFRESH_TOKEN
+- YOUTUBE_API_KEY
+
+Databasen ska innehålla tabellen:
+public.vault_comments
 
 NYTT
-- Ingen manuell tidsangivelse krävs.
-- Aktuell videoposition visas automatiskt.
-- “Spara vid aktuell tid” hämtar positionen direkt från YouTube-spelaren.
-- Klick på en tidsanteckning hoppar direkt dit utan omladdning.
+- Ljudkommentarer sparas centralt i Supabase.
+- Videokommentarer sparas centralt i Supabase.
+- Alla besökare ser samma kommentarer.
+- Flera kommentarer kan finnas på samma inspelning eller video.
+- Namn, datum och klockslag visas.
+- Kommentarslistan uppdateras direkt efter att någon skickar.
+- Supabase Secret Key används endast i server.js på Render och exponeras
+  aldrig i webbläsaren.
 
-Data sparas fortfarande lokalt i webbläsaren.
+VIKTIGT
+Den här första gemensamma versionen tillåter inte borttagning av kommentarer.
+Det är avsiktligt: utan inloggning eller adminlösenord vore det osäkert att låta
+vem som helst radera andras kommentarer.
+
+Kontroll efter deploy:
+https://gravitards-player.onrender.com/api/status
+
+Status ska innehålla:
+"supabaseConfigured": true

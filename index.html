@@ -161,15 +161,41 @@
 
       <section class="comments-card">
         <div class="comments-heading">
-          <h2>Vault Comment</h2>
+          <h2>Vault Comments</h2>
           <span id="commentStatus">Ingen inspelning vald</span>
         </div>
-        <textarea id="commentInput" rows="5" maxlength="2000" placeholder="Skriv en kommentar om denna Vault Entry…"></textarea>
-        <div class="comments-actions">
-          <button id="saveCommentButton" class="gold-button" type="button" disabled>Spara kommentar</button>
-          <button id="deleteCommentButton" class="text-button danger-button" type="button" disabled>Ta bort</button>
+
+        <div id="audioCommentList" class="shared-comment-list">
+          <p class="shared-comments-empty">Välj en inspelning för att läsa kommentarer.</p>
         </div>
-        <p class="comments-note">Kommentaren sparas lokalt i den här webbläsaren.</p>
+
+        <div class="shared-comment-form">
+          <label class="comment-author-field">
+            <span>Namn</span>
+            <input id="commentAuthorInput"
+                   type="text"
+                   maxlength="80"
+                   placeholder="Ditt namn">
+          </label>
+
+          <textarea id="commentInput"
+                    rows="4"
+                    maxlength="2000"
+                    placeholder="Skriv en kommentar om denna Vault Entry…"></textarea>
+
+          <div class="comments-actions">
+            <button id="saveCommentButton"
+                    class="gold-button"
+                    type="button"
+                    disabled>
+              Skicka kommentar
+            </button>
+          </div>
+        </div>
+
+        <p class="comments-note">
+          Kommentarer sparas i The Gravitards Vault och kan ses av alla.
+        </p>
       </section>
 
       <section class="timestamp-card">
@@ -262,32 +288,40 @@
       <section class="film-annotation-grid">
         <section class="comments-card film-comments-card">
           <div class="comments-heading">
-            <h2>Film Comment</h2>
+            <h2>Film Comments</h2>
             <span id="filmCommentStatus">Ingen video vald</span>
           </div>
 
-          <textarea id="filmCommentInput"
-                    rows="5"
-                    maxlength="2000"
-                    placeholder="Skriv en kommentar om videon…"></textarea>
+          <div id="filmCommentList" class="shared-comment-list">
+            <p class="shared-comments-empty">Välj en video för att läsa kommentarer.</p>
+          </div>
 
-          <div class="comments-actions">
-            <button id="saveFilmCommentButton"
-                    class="gold-button"
-                    type="button"
-                    disabled>
-              Spara kommentar
-            </button>
-            <button id="deleteFilmCommentButton"
-                    class="text-button danger-button"
-                    type="button"
-                    disabled>
-              Ta bort
-            </button>
+          <div class="shared-comment-form">
+            <label class="comment-author-field">
+              <span>Namn</span>
+              <input id="filmCommentAuthorInput"
+                     type="text"
+                     maxlength="80"
+                     placeholder="Ditt namn">
+            </label>
+
+            <textarea id="filmCommentInput"
+                      rows="4"
+                      maxlength="2000"
+                      placeholder="Skriv en kommentar om videon…"></textarea>
+
+            <div class="comments-actions">
+              <button id="saveFilmCommentButton"
+                      class="gold-button"
+                      type="button"
+                      disabled>
+                Skicka kommentar
+              </button>
+            </div>
           </div>
 
           <p class="comments-note">
-            Kommentaren sparas lokalt i den här webbläsaren.
+            Kommentarer sparas i The Gravitards Vault och kan ses av alla.
           </p>
         </section>
 

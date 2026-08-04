@@ -17,9 +17,10 @@ const refreshFilmsButton = document.querySelector("#refreshFilmsButton");
 const filmTimeline = document.querySelector("#filmTimeline");
 const clearFilmYearButton = document.querySelector("#clearFilmYearButton");
 const filmCommentInput = document.querySelector("#filmCommentInput");
+const filmCommentAuthorInput = document.querySelector("#filmCommentAuthorInput");
+const filmCommentList = document.querySelector("#filmCommentList");
 const filmCommentStatus = document.querySelector("#filmCommentStatus");
 const saveFilmCommentButton = document.querySelector("#saveFilmCommentButton");
-const deleteFilmCommentButton = document.querySelector("#deleteFilmCommentButton");
 const filmCurrentTime = document.querySelector("#filmCurrentTime");
 const filmTimestampInput = document.querySelector("#filmTimestampInput");
 const saveFilmTimestampButton = document.querySelector("#saveFilmTimestampButton");
@@ -64,26 +65,25 @@ const yearJumpSelect = document.querySelector("#yearJumpSelect");
 const favoritesFilterButton = document.querySelector("#favoritesFilterButton");
 const recentFilterButton = document.querySelector("#recentFilterButton");
 const commentInput = document.querySelector("#commentInput");
+const commentAuthorInput = document.querySelector("#commentAuthorInput");
+const audioCommentList = document.querySelector("#audioCommentList");
 const commentStatus = document.querySelector("#commentStatus");
 const saveCommentButton = document.querySelector("#saveCommentButton");
-const deleteCommentButton = document.querySelector("#deleteCommentButton");
 
 let tracks = [];
 let films = [];
 let visibleFilms = [];
 let currentFilm = null;
+let audioSharedComments = [];
+let filmSharedComments = [];
 let filmYearFilter = null;
 let youtubePlayer = null;
 let youtubePlayerReady = false;
 let pendingFilmId = null;
 let filmClockTimer = null;
 
-const FILM_COMMENTS_STORAGE_KEY = "gravitards-film-comments";
 const FILM_TIMESTAMPS_STORAGE_KEY = "gravitards-film-timestamps";
 
-const filmComments = JSON.parse(
-  localStorage.getItem(FILM_COMMENTS_STORAGE_KEY) || "{}"
-);
 
 const filmTimestampNotes = JSON.parse(
   localStorage.getItem(FILM_TIMESTAMPS_STORAGE_KEY) || "{}"
@@ -100,14 +100,14 @@ let timeDisplayMode = 0;
 let showRemainingTime = true;
 
 const FAVORITES_STORAGE_KEY = "gravitards-favorites";
-const COMMENTS_STORAGE_KEY = "gravitards-comments";
+const COMMENT_AUTHOR_STORAGE_KEY = "gravitards-comment-author";
 const RECENT_STORAGE_KEY = "gravitards-recent";
 const TIMESTAMPS_STORAGE_KEY = "gravitards-timestamps";
 
 const favoriteIds = new Set(
   JSON.parse(localStorage.getItem(FAVORITES_STORAGE_KEY) || "[]")
 );
-const comments = JSON.parse(localStorage.getItem(COMMENTS_STORAGE_KEY) || "{}");
+let savedCommentAuthor = localStorage.getItem(COMMENT_AUTHOR_STORAGE_KEY) || "";
 let recentIds = JSON.parse(localStorage.getItem(RECENT_STORAGE_KEY) || "[]");
 const timestampNotes = JSON.parse(
   localStorage.getItem(TIMESTAMPS_STORAGE_KEY) || "{}"
@@ -252,12 +252,90 @@ function saveFavorites() {
   localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify([...favoriteIds]));
 }
 
-function saveComments() {
-  localStorage.setItem(COMMENTS_STORAGE_KEY, JSON.stringify(comments));
+
+function savePreferredAuthor(author) {
+  savedCommentAuthor = String(author || "").trim();
+  localStorage.setItem(COMMENT_AUTHOR_STORAGE_KEY, savedCommentAuthor);
 }
 
 function saveRecent() {
   localStorage.setItem(RECENT_STORAGE_KEY, JSON.stringify(recentIds));
+}
+
+
+function formatSharedCommentDate(value) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return "";
+
+  return new Intl.DateTimeFormat("sv-SE", {
+    dateStyle: "medium",
+    timeStyle: "short"
+  }).format(date);
+}
+
+function renderSharedCommentList(element, comments, emptyText) {
+  element.classList.remove("shared-comment-loading");
+
+  if (!comments.length) {
+    element.innerHTML =
+      `<p class="shared-comments-empty">${escapeHtml(emptyText)}</p>`;
+    return;
+  }
+
+  element.innerHTML = comments.map(comment => `
+    <article class="shared-comment-item">
+      <div class="shared-comment-meta">
+        <strong class="shared-comment-author">${escapeHtml(comment.author)}</strong>
+        <time class="shared-comment-date"
+              datetime="${escapeHtml(comment.created_at || "")}">
+          ${escapeHtml(formatSharedCommentDate(comment.created_at))}
+        </time>
+      </div>
+      <p class="shared-comment-text">${escapeHtml(comment.comment)}</p>
+    </article>
+  `).join("");
+
+  element.scrollTop = element.scrollHeight;
+}
+
+async function fetchSharedComments(entryType, entryId) {
+  const params = new URLSearchParams({
+    type: entryType,
+    id: entryId
+  });
+
+  const response = await fetch(`/api/comments?${params.toString()}`);
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || "Kommentarerna kunde inte hämtas.");
+  }
+
+  return data.comments || [];
+}
+
+async function postSharedComment(entryType, entryId, author, comment) {
+  const response = await fetch("/api/comments", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      entry_type: entryType,
+      entry_id: entryId,
+      author,
+      comment
+    })
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || "Kommentaren kunde inte sparas.");
+  }
+
+  return data.comment;
 }
 
 function updateFilterButtons() {
@@ -267,22 +345,58 @@ function updateFilterButtons() {
     `${activeFilter === "favorites" ? "★" : "☆"} Favoriter (${favoriteIds.size})`;
 }
 
-function loadCommentForCurrentTrack() {
+async function loadCommentForCurrentTrack() {
   if (!currentTrack) {
     commentInput.value = "";
+    commentAuthorInput.value = savedCommentAuthor;
     commentInput.disabled = true;
+    commentAuthorInput.disabled = true;
     saveCommentButton.disabled = true;
-    deleteCommentButton.disabled = true;
     commentStatus.textContent = "Ingen inspelning vald";
+    audioSharedComments = [];
+    renderSharedCommentList(
+      audioCommentList,
+      [],
+      "Välj en inspelning för att läsa kommentarer."
+    );
     return;
   }
 
-  const value = comments[currentTrack.id] || "";
+  const requestedId = currentTrack.id;
+
   commentInput.disabled = false;
+  commentAuthorInput.disabled = false;
   saveCommentButton.disabled = false;
-  deleteCommentButton.disabled = !value;
-  commentInput.value = value;
-  commentStatus.textContent = currentTrack.displayTitle;
+  commentAuthorInput.value = savedCommentAuthor;
+  commentStatus.textContent = "Läser kommentarer…";
+  audioCommentList.classList.add("shared-comment-loading");
+
+  try {
+    const loaded = await fetchSharedComments("audio", requestedId);
+
+    if (currentTrack?.id !== requestedId) return;
+
+    audioSharedComments = loaded;
+    renderSharedCommentList(
+      audioCommentList,
+      audioSharedComments,
+      "Det finns inga kommentarer ännu."
+    );
+
+    commentStatus.textContent =
+      `${audioSharedComments.length} ` +
+      `${audioSharedComments.length === 1 ? "kommentar" : "kommentarer"}`;
+  } catch (error) {
+    if (currentTrack?.id !== requestedId) return;
+
+    audioSharedComments = [];
+    renderSharedCommentList(
+      audioCommentList,
+      [],
+      error.message
+    );
+    commentStatus.textContent = "Kunde inte läsa kommentarer";
+  }
 }
 
 function addToRecent(trackId) {
@@ -573,13 +687,6 @@ function sortFilms(list) {
 }
 
 
-function saveFilmComments() {
-  localStorage.setItem(
-    FILM_COMMENTS_STORAGE_KEY,
-    JSON.stringify(filmComments)
-  );
-}
-
 function saveFilmTimestampNotes() {
   localStorage.setItem(
     FILM_TIMESTAMPS_STORAGE_KEY,
@@ -659,22 +766,58 @@ function renderFilmTimeline() {
   clearFilmYearButton.classList.toggle("hidden", !filmYearFilter);
 }
 
-function loadFilmComment() {
+async function loadFilmComment() {
   if (!currentFilm) {
     filmCommentInput.value = "";
+    filmCommentAuthorInput.value = savedCommentAuthor;
     filmCommentInput.disabled = true;
+    filmCommentAuthorInput.disabled = true;
     saveFilmCommentButton.disabled = true;
-    deleteFilmCommentButton.disabled = true;
     filmCommentStatus.textContent = "Ingen video vald";
+    filmSharedComments = [];
+    renderSharedCommentList(
+      filmCommentList,
+      [],
+      "Välj en video för att läsa kommentarer."
+    );
     return;
   }
 
-  const value = filmComments[currentFilm.id] || "";
+  const requestedId = currentFilm.id;
+
   filmCommentInput.disabled = false;
+  filmCommentAuthorInput.disabled = false;
   saveFilmCommentButton.disabled = false;
-  deleteFilmCommentButton.disabled = !value;
-  filmCommentInput.value = value;
-  filmCommentStatus.textContent = currentFilm.title;
+  filmCommentAuthorInput.value = savedCommentAuthor;
+  filmCommentStatus.textContent = "Läser kommentarer…";
+  filmCommentList.classList.add("shared-comment-loading");
+
+  try {
+    const loaded = await fetchSharedComments("video", requestedId);
+
+    if (currentFilm?.id !== requestedId) return;
+
+    filmSharedComments = loaded;
+    renderSharedCommentList(
+      filmCommentList,
+      filmSharedComments,
+      "Det finns inga kommentarer ännu."
+    );
+
+    filmCommentStatus.textContent =
+      `${filmSharedComments.length} ` +
+      `${filmSharedComments.length === 1 ? "kommentar" : "kommentarer"}`;
+  } catch (error) {
+    if (currentFilm?.id !== requestedId) return;
+
+    filmSharedComments = [];
+    renderSharedCommentList(
+      filmCommentList,
+      [],
+      error.message
+    );
+    filmCommentStatus.textContent = "Kunde inte läsa kommentarer";
+  }
 }
 
 function renderFilmTimestampNotes() {
@@ -1155,37 +1298,42 @@ recentFilterButton.addEventListener("click", () => {
   renderTracks();
 });
 
-saveCommentButton.addEventListener("click", () => {
+saveCommentButton.addEventListener("click", async () => {
   if (!currentTrack) return;
 
-  const value = commentInput.value.trim();
+  const comment = commentInput.value.trim();
+  const author = commentAuthorInput.value.trim();
 
-  if (value) {
-    comments[currentTrack.id] = value;
-  } else {
-    delete comments[currentTrack.id];
+  if (!author) {
+    commentAuthorInput.focus();
+    commentStatus.textContent = "Skriv ditt namn";
+    return;
   }
 
-  saveComments();
-  loadCommentForCurrentTrack();
-  renderTimestampNotes();
-  timestampComposer.classList.add("hidden");
-  renderTracks();
-  commentStatus.textContent = value ? "Sparad" : currentTrack.displayTitle;
+  if (!comment) {
+    commentInput.focus();
+    commentStatus.textContent = "Skriv en kommentar";
+    return;
+  }
 
-  window.setTimeout(() => {
-    if (currentTrack) commentStatus.textContent = currentTrack.displayTitle;
-  }, 1200);
-});
+  const requestedId = currentTrack.id;
+  savePreferredAuthor(author);
+  saveCommentButton.disabled = true;
+  saveCommentButton.textContent = "Skickar…";
 
-deleteCommentButton.addEventListener("click", () => {
-  if (!currentTrack) return;
-  delete comments[currentTrack.id];
-  saveComments();
-  loadCommentForCurrentTrack();
-  renderTimestampNotes();
-  timestampComposer.classList.add("hidden");
-  renderTracks();
+  try {
+    await postSharedComment("audio", requestedId, author, comment);
+
+    if (currentTrack?.id !== requestedId) return;
+
+    commentInput.value = "";
+    await loadCommentForCurrentTrack();
+  } catch (error) {
+    commentStatus.textContent = error.message;
+  } finally {
+    saveCommentButton.disabled = !currentTrack;
+    saveCommentButton.textContent = "Skicka kommentar";
+  }
 });
 
 commentInput.addEventListener("keydown", event => {
@@ -1363,34 +1511,42 @@ clearFilmYearButton.addEventListener("click", () => {
   renderFilms();
 });
 
-saveFilmCommentButton.addEventListener("click", () => {
+saveFilmCommentButton.addEventListener("click", async () => {
   if (!currentFilm) return;
 
-  const value = filmCommentInput.value.trim();
+  const comment = filmCommentInput.value.trim();
+  const author = filmCommentAuthorInput.value.trim();
 
-  if (value) {
-    filmComments[currentFilm.id] = value;
-  } else {
-    delete filmComments[currentFilm.id];
+  if (!author) {
+    filmCommentAuthorInput.focus();
+    filmCommentStatus.textContent = "Skriv ditt namn";
+    return;
   }
 
-  saveFilmComments();
-  loadFilmComment();
-  renderFilms();
-  filmCommentStatus.textContent = value ? "Sparad" : currentFilm.title;
+  if (!comment) {
+    filmCommentInput.focus();
+    filmCommentStatus.textContent = "Skriv en kommentar";
+    return;
+  }
 
-  window.setTimeout(() => {
-    if (currentFilm) filmCommentStatus.textContent = currentFilm.title;
-  }, 1200);
-});
+  const requestedId = currentFilm.id;
+  savePreferredAuthor(author);
+  saveFilmCommentButton.disabled = true;
+  saveFilmCommentButton.textContent = "Skickar…";
 
-deleteFilmCommentButton.addEventListener("click", () => {
-  if (!currentFilm) return;
+  try {
+    await postSharedComment("video", requestedId, author, comment);
 
-  delete filmComments[currentFilm.id];
-  saveFilmComments();
-  loadFilmComment();
-  renderFilms();
+    if (currentFilm?.id !== requestedId) return;
+
+    filmCommentInput.value = "";
+    await loadFilmComment();
+  } catch (error) {
+    filmCommentStatus.textContent = error.message;
+  } finally {
+    saveFilmCommentButton.disabled = !currentFilm;
+    saveFilmCommentButton.textContent = "Skicka kommentar";
+  }
 });
 
 saveFilmTimestampButton.addEventListener("click", () => {
@@ -1480,6 +1636,8 @@ filmArchiveTab.addEventListener("click", () => setArchiveView("film"));
 const savedArchiveView = localStorage.getItem("gravitards-archive-view") || "audio";
 setArchiveView(savedArchiveView === "film" ? "film" : "audio");
 
+commentAuthorInput.value = savedCommentAuthor;
+filmCommentAuthorInput.value = savedCommentAuthor;
 loadFilmComment();
 renderFilmTimestampNotes();
 updateFilterButtons();
