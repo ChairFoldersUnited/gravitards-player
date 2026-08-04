@@ -34,8 +34,20 @@ const YOUTUBE_PLAYLIST_ID =
 
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY || "";
 
-const SUPABASE_URL = String(process.env.SUPABASE_URL || "").replace(/\/+$/, "");
-const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY || "";
+function cleanEnvironmentValue(value) {
+  return String(value || "")
+    .trim()
+    .replace(/^["']|["']$/g, "")
+    .replace(/[\r\n]/g, "");
+}
+
+const SUPABASE_URL = cleanEnvironmentValue(
+  process.env.SUPABASE_URL
+).replace(/\/+$/, "");
+
+const SUPABASE_SECRET_KEY = cleanEnvironmentValue(
+  process.env.SUPABASE_SECRET_KEY
+);
 
 app.disable("x-powered-by");
 app.use(express.json());
