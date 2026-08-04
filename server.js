@@ -426,7 +426,7 @@ async function fetchSharedVideoFolder(sharedLink, cache, source, fallbackLabel) 
         id: `${source}:${entry.id}`,
         dropboxId: entry.id,
         title:
-          source === "facebook"
+          source === "facebook" || source === "instagram"
             ? fallback
             : displayTitleFromVideoFilename(entry.name, fallback),
         originalName: entry.name,
