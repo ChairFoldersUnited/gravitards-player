@@ -15,8 +15,10 @@ const filmPreviousButton = document.querySelector("#filmPreviousButton");
 const filmNextButton = document.querySelector("#filmNextButton");
 const youtubeFilmsTab = document.querySelector("#youtubeFilmsTab");
 const facebookStreamsTab = document.querySelector("#facebookStreamsTab");
+const instagramStreamsTab = document.querySelector("#instagramStreamsTab");
 const youtubeFilmsCount = document.querySelector("#youtubeFilmsCount");
 const facebookStreamsCount = document.querySelector("#facebookStreamsCount");
+const instagramStreamsCount = document.querySelector("#instagramStreamsCount");
 const filmTimelineCard = document.querySelector("#filmTimelineCard");
 const filmLibraryTitle = document.querySelector("#filmLibraryTitle");
 const shareToast = document.querySelector("#shareToast");
@@ -88,10 +90,12 @@ let tracks = [];
 let films = [];
 let youtubeFilms = [];
 let facebookStreams = [];
+let instagramStreams = [];
 let visibleFilms = [];
 let currentFilm = null;
 let pendingSharedLocation = null;
 let shareToastTimer = null;
+let mediaSwitchInProgress = false;
 let activeFilmSource = "youtube";
 let audioSharedComments = [];
 let filmSharedComments = [];
@@ -163,6 +167,41 @@ function formatTime(seconds, mode = 0) {
   return `${minutes}:${secs}`;
 }
 
+
+
+function pauseVideoForAudio() {
+  if (
+    mediaSwitchInProgress ||
+    !dropboxFilmPlayer ||
+    dropboxFilmPlayer.paused
+  ) {
+    return;
+  }
+
+  mediaSwitchInProgress = true;
+  dropboxFilmPlayer.pause();
+
+  window.setTimeout(() => {
+    mediaSwitchInProgress = false;
+  }, 0);
+}
+
+function pauseAudioForVideo() {
+  if (
+    mediaSwitchInProgress ||
+    !audio ||
+    audio.paused
+  ) {
+    return;
+  }
+
+  mediaSwitchInProgress = true;
+  audio.pause();
+
+  window.setTimeout(() => {
+    mediaSwitchInProgress = false;
+  }, 0);
+}
 
 function showShareToast(message = "Länk kopierad") {
   shareToast.textContent = message;
@@ -1055,7 +1094,7 @@ function renderFilms() {
 
     const thumbnail =
       `<div class="facebook-stream-placeholder" aria-hidden="true">${
-        activeFilmSource === "youtube" ? "▶" : "f"
+        activeFilmSource === "youtube" ? "▶" : activeFilmSource === "facebook" ? "f" : "◎"
       }</div>`;
 
     const duration =
@@ -1067,8 +1106,11 @@ function renderFilms() {
       activeFilmSource === "youtube"
         ? `<span>YouTube Archive</span>
            <span>${formatSize(film.size)}</span>`
-        : `<span>Facebook Live</span>
-           <span>${formatSize(film.size)}</span>`;
+        : activeFilmSource === "facebook"
+          ? `<span>Facebook Live</span>
+             <span>${formatSize(film.size)}</span>`
+          : `<span>Instagram</span>
+             <span>${formatSize(film.size)}</span>`;
 
     const originalName =
       `<span class="facebook-original-name"
@@ -1143,7 +1185,9 @@ function selectFilm(film) {
   const sourceLabel =
     activeFilmSource === "youtube"
       ? "YouTube Archive"
-      : "Facebook Live";
+      : activeFilmSource === "facebook"
+        ? "Facebook Live"
+        : "Instagram";
 
   const pieces = [
     sourceLabel,
@@ -1156,12 +1200,16 @@ function selectFilm(film) {
   const playEndpoint =
     activeFilmSource === "youtube"
       ? `/api/videos/play/${encodeURIComponent(film.dropboxId)}`
-      : `/api/facebook-streams/play/${encodeURIComponent(film.dropboxId)}`;
+      : activeFilmSource === "facebook"
+        ? `/api/facebook-streams/play/${encodeURIComponent(film.dropboxId)}`
+        : `/api/instagram-streams/play/${encodeURIComponent(film.dropboxId)}`;
 
   const downloadEndpoint =
     activeFilmSource === "youtube"
       ? `/api/videos/download/${encodeURIComponent(film.dropboxId)}`
-      : `/api/facebook-streams/download/${encodeURIComponent(film.dropboxId)}`;
+      : activeFilmSource === "facebook"
+        ? `/api/facebook-streams/download/${encodeURIComponent(film.dropboxId)}`
+        : `/api/instagram-streams/download/${encodeURIComponent(film.dropboxId)}`;
 
   dropboxFilmPlayer.src = playEndpoint;
   filmDownloadLink.href = downloadEndpoint;
@@ -1270,6 +1318,41 @@ async function loadFacebookStreams(force = false) {
   return facebookStreams;
 }
 
+
+async function loadInstagramStreams(force = false) {
+  if (instagramStreams.length && !force) return instagramStreams;
+
+  if (force) {
+    const refreshResponse = await fetch(
+      "/api/instagram-streams/refresh",
+      { method: "POST" }
+    );
+    const refreshData = await refreshResponse.json();
+    if (!refreshResponse.ok) {
+      throw new Error(
+        refreshData.error || "Instagram Streams kunde inte uppdateras."
+      );
+    }
+  }
+
+  const response = await fetch("/api/instagram-streams");
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(
+      data.error || "Instagram Streams kunde inte läsas."
+    );
+  }
+
+  instagramStreams = data.streams || [];
+  instagramStreamsCount.textContent =
+    `${instagramStreams.length} ${
+      instagramStreams.length === 1 ? "stream" : "streams"
+    }`;
+
+  return instagramStreams;
+}
+
 async function loadFilms(force = false) {
   filmMessage.classList.add("hidden");
   refreshFilmsButton.disabled = true;
@@ -1279,12 +1362,16 @@ async function loadFilms(force = false) {
     films =
       activeFilmSource === "facebook"
         ? await loadFacebookStreams(force)
-        : await loadYouTubeFilms(force);
+        : activeFilmSource === "instagram"
+          ? await loadInstagramStreams(force)
+          : await loadYouTubeFilms(force);
 
     filmLibraryTitle.textContent =
       activeFilmSource === "facebook"
         ? "Alla Facebook Streams"
-        : "Alla YouTube-videor";
+        : activeFilmSource === "instagram"
+          ? "Alla Instagram Streams"
+          : "Alla YouTube-videor";
 
     filmSortSelect.disabled = activeFilmSource === "facebook";
     renderFilmTimeline();
@@ -1305,7 +1392,7 @@ async function loadFilms(force = false) {
     }
 
     filmArchiveTab.querySelector("small").textContent =
-      `${youtubeFilms.length + facebookStreams.length} filmer`;
+      `${youtubeFilms.length + facebookStreams.length + instagramStreams.length} filmer`;
   } catch (error) {
     filmMessage.textContent = error.message;
     filmMessage.classList.remove("hidden");
@@ -1317,7 +1404,7 @@ async function loadFilms(force = false) {
 }
 
 function setFilmSource(source) {
-  activeFilmSource = source === "facebook" ? "facebook" : "youtube";
+  activeFilmSource = source === "facebook" ? "facebook" : source === "instagram" ? "instagram" : "youtube";
   currentFilm = null;
   filmYearFilter = null;
 
@@ -1329,6 +1416,11 @@ function setFilmSource(source) {
   facebookStreamsTab.classList.toggle(
     "active",
     activeFilmSource === "facebook"
+  );
+
+  instagramStreamsTab.classList.toggle(
+    "active",
+    activeFilmSource === "instagram"
   );
 
   localStorage.setItem(
@@ -1381,7 +1473,9 @@ async function tryOpenSharedFilm() {
   const source =
     pendingSharedLocation.source === "facebook"
       ? "facebook"
-      : "youtube";
+      : pendingSharedLocation.source === "instagram"
+        ? "instagram"
+        : "youtube";
 
   setArchiveView("film");
 
@@ -1402,7 +1496,9 @@ async function tryOpenSharedFilm() {
   const sourceFilms =
     source === "facebook"
       ? await loadFacebookStreams()
-      : await loadYouTubeFilms();
+      : source === "instagram"
+        ? await loadInstagramStreams()
+        : await loadYouTubeFilms();
 
   const film = sourceFilms.find(
     item => item.id === pendingSharedLocation.id
@@ -2065,6 +2161,13 @@ facebookStreamsTab.addEventListener("click", () => {
   setFilmSource("facebook");
 });
 
+instagramStreamsTab.addEventListener("click", () => {
+  setFilmSource("instagram");
+});
+
+audio.addEventListener("play", pauseVideoForAudio);
+dropboxFilmPlayer.addEventListener("play", pauseAudioForVideo);
+
 dropboxFilmPlayer.addEventListener("timeupdate", updateFilmCurrentTime);
 dropboxFilmPlayer.addEventListener("loadedmetadata", updateFilmCurrentTime);
 
@@ -2154,10 +2257,20 @@ const savedFilmSource =
 
 activeFilmSource =
   pendingSharedLocation?.archive === "video"
-    ? (pendingSharedLocation.source === "facebook"
-        ? "facebook"
-        : "youtube")
-    : (savedFilmSource === "facebook" ? "facebook" : "youtube");
+    ? (
+        pendingSharedLocation.source === "facebook"
+          ? "facebook"
+          : pendingSharedLocation.source === "instagram"
+            ? "instagram"
+            : "youtube"
+      )
+    : (
+        savedFilmSource === "facebook"
+          ? "facebook"
+          : savedFilmSource === "instagram"
+            ? "instagram"
+            : "youtube"
+      );
 
 youtubeFilmsTab.classList.toggle(
   "active",
@@ -2167,6 +2280,11 @@ youtubeFilmsTab.classList.toggle(
 facebookStreamsTab.classList.toggle(
   "active",
   activeFilmSource === "facebook"
+);
+
+instagramStreamsTab.classList.toggle(
+  "active",
+  activeFilmSource === "instagram"
 );
 
 const savedArchiveView =

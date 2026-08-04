@@ -36,6 +36,10 @@ const FACEBOOK_STREAMS_SHARED_LINK =
   process.env.FACEBOOK_STREAMS_SHARED_LINK ||
   "https://www.dropbox.com/scl/fo/lsx0wg0f2tiexxzpwu2o0/AGonZOKM_QsjIXpiYiqYrA4?rlkey=9k8nk34sp2tmrcur9l4pju5qa&st=6hjw6h1d&dl=0";
 
+const INSTAGRAM_STREAMS_SHARED_LINK =
+  process.env.INSTAGRAM_STREAMS_SHARED_LINK ||
+  "https://www.dropbox.com/scl/fo/wzh3akhkoa926nwl06cri/AEbx_fDY9lsIe6QT5g4Mhu4?rlkey=jft6ywrfwv16wftas9u5rfhdl&st=jjwf2f76&dl=0";
+
 function cleanEnvironmentValue(value) {
   return String(value || "")
     .trim()
@@ -65,6 +69,11 @@ let youtubeVideosCache = {
 };
 
 let facebookStreamsCache = {
+  expiresAt: 0,
+  streams: []
+};
+
+let instagramStreamsCache = {
   expiresAt: 0,
   streams: []
 };
@@ -253,6 +262,15 @@ async function fetchFacebookStreams() {
     facebookStreamsCache,
     "facebook",
     "Facebook Stream"
+  );
+}
+
+async function fetchInstagramStreams() {
+  return fetchSharedVideoFolder(
+    INSTAGRAM_STREAMS_SHARED_LINK,
+    instagramStreamsCache,
+    "instagram",
+    "Instagram Stream"
   );
 }
 
@@ -677,14 +695,17 @@ function formatBytesForReport(bytes) {
 }
 
 async function buildDuplicateVideoReport() {
-  const [youtubeVideos, facebookStreams] = await Promise.all([
-    fetchYouTubeDropboxVideos(),
-    fetchFacebookStreams()
-  ]);
+  const [youtubeVideos, facebookStreams, instagramStreams] =
+    await Promise.all([
+      fetchYouTubeDropboxVideos(),
+      fetchFacebookStreams(),
+      fetchInstagramStreams()
+    ]);
 
   const allVideos = [
     ...youtubeVideos,
-    ...facebookStreams
+    ...facebookStreams,
+    ...instagramStreams
   ];
 
   const groups = groupExactDuplicateVideos(allVideos);
@@ -752,7 +773,7 @@ app.get("/duplicate-videos", async (_req, res) => {
                     "'": "&#039;"
                   })[character])}</span>
                   <small>
-                    ${file.source === "youtube" ? "YouTube Videos" : "Facebook Streams"}
+                    ${file.source === "youtube" ? "YouTube Videos" : file.source === "facebook" ? "Facebook Streams" : "Instagram Streams"}
                     · ${formatBytesForReport(file.size)}
                   </small>
                 </article>
@@ -1153,6 +1174,74 @@ app.get("/api/facebook-streams/download/:id", async (req, res) => {
     } else {
       res.destroy(error);
     }
+  }
+});
+
+
+app.get("/api/instagram-streams", async (_req, res) => {
+  try {
+    const streams = await fetchInstagramStreams();
+    res.json({ count: streams.length, streams });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/instagram-streams/refresh", async (_req, res) => {
+  instagramStreamsCache.expiresAt = 0;
+  try {
+    const streams = await fetchInstagramStreams();
+    res.json({ ok: true, count: streams.length });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/api/instagram-streams/play/:id", async (req, res) => {
+  try {
+    const streams = await fetchInstagramStreams();
+    const stream = streams.find(item => item.dropboxId === req.params.id);
+    if (!stream) return res.status(404).send("Instagram-streamen hittades inte.");
+
+    const data = await dropboxRpc("files/get_temporary_link", {
+      path: stream.dropboxId
+    });
+    res.set("Cache-Control", "no-store");
+    return res.redirect(302, data.link);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).send(error.message);
+  }
+});
+
+app.get("/api/instagram-streams/download/:id", async (req, res) => {
+  try {
+    const streams = await fetchInstagramStreams();
+    const stream = streams.find(item => item.dropboxId === req.params.id);
+    if (!stream) return res.status(404).send("Instagram-streamen hittades inte.");
+
+    const response = await dropboxDownload(stream.dropboxId);
+    if (!response.ok || !response.body) {
+      const details = await response.text();
+      throw new Error(`Dropbox-nedladdning misslyckades (${response.status}): ${details}`);
+    }
+
+    const filename = safeDownloadFilename(stream.originalName);
+    res.set({
+      "Content-Type": response.headers.get("content-type") || "application/octet-stream",
+      "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`,
+      "Cache-Control": "private, no-store"
+    });
+
+    const contentLength = response.headers.get("content-length");
+    if (contentLength) res.set("Content-Length", contentLength);
+    Readable.fromWeb(response.body).pipe(res);
+  } catch (error) {
+    console.error(error);
+    if (!res.headersSent) res.status(500).send(error.message);
+    else res.destroy(error);
   }
 });
 
