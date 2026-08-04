@@ -1960,3 +1960,135 @@ button:disabled { opacity: .4; cursor: wait; }
     gap: 3px;
   }
 }
+
+
+.film-source-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin-top: 19px;
+  border: 1px solid var(--line-strong);
+  background: var(--line);
+  box-shadow: var(--shadow);
+}
+
+.film-source-tab {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-height: 72px;
+  padding: 15px 20px;
+  border: 0;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.018), transparent 38%),
+    #0d0d0c;
+  color: #837d73;
+  cursor: pointer;
+  text-align: left;
+}
+
+.film-source-tab:hover {
+  color: var(--bone);
+  background:
+    linear-gradient(145deg, rgba(182,148,85,.08), transparent 44%),
+    #12110f;
+}
+
+.film-source-tab.active {
+  color: var(--brass-light);
+  box-shadow: inset 0 -2px var(--brass-light);
+  background:
+    linear-gradient(145deg, rgba(182,148,85,.14), transparent 50%),
+    #15130f;
+}
+
+.film-source-tab > span {
+  display: grid;
+  place-items: center;
+  width: 37px;
+  height: 37px;
+  flex: 0 0 auto;
+  border: 1px solid var(--line-strong);
+  background: #080807;
+  color: var(--brass-light);
+  font-family: Cinzel, serif;
+  font-weight: 800;
+}
+
+.film-source-tab strong,
+.film-source-tab small {
+  display: block;
+}
+
+.film-source-tab strong {
+  font-family: Cinzel, serif;
+  font-size: .78rem;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+
+.film-source-tab small {
+  margin-top: 4px;
+  color: #746f67;
+  font-family: Oswald, sans-serif;
+  font-size: .66rem;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.film-player-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.facebook-player {
+  width: 100%;
+  height: 100%;
+  background: #000;
+  object-fit: contain;
+}
+
+.facebook-stream-placeholder {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  min-height: 160px;
+  background:
+    radial-gradient(circle, rgba(182,148,85,.08), transparent 45%),
+    #080807;
+  color: var(--brass-light);
+  font-family: Cinzel, serif;
+  font-size: 2.5rem;
+}
+
+.facebook-original-name {
+  display: block;
+  overflow: hidden;
+  margin-top: 6px;
+  color: #6f6a62;
+  font-family: Oswald, sans-serif;
+  font-size: .66rem;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 620px) {
+  .film-source-tabs {
+    grid-template-columns: 1fr;
+  }
+
+  .film-player-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .film-player-actions .youtube-link {
+    flex: 1;
+    text-align: center;
+  }
+}

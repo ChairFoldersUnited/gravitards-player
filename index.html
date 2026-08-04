@@ -249,7 +249,27 @@
       </div>
     </section>
 
-    <section class="film-timeline-card">
+    <section class="film-source-tabs" aria-label="Välj videokälla">
+      <button id="youtubeFilmsTab"
+              class="film-source-tab active"
+              type="button"
+              data-film-source="youtube">
+        <span>▶</span>
+        <strong>YouTube Videos</strong>
+        <small id="youtubeFilmsCount">Läser in…</small>
+      </button>
+
+      <button id="facebookStreamsTab"
+              class="film-source-tab"
+              type="button"
+              data-film-source="facebook">
+        <span>f</span>
+        <strong>Facebook Streams</strong>
+        <small id="facebookStreamsCount">Läser in…</small>
+      </button>
+    </section>
+
+    <section id="filmTimelineCard" class="film-timeline-card">
       <div class="film-timeline-heading">
         <div>
           <p class="section-kicker">FILM TIMELINE</p>
@@ -271,17 +291,32 @@
             <p id="filmNowMeta" class="film-now-meta">Hela spellistan visas nedan.</p>
           </div>
 
-          <a id="filmYouTubeLink"
-             class="youtube-link"
-             href="https://www.youtube.com/playlist?list=PLA74wG8-e4XBIKCB6HkAg-s2nvVR1hFQ8"
-             target="_blank"
-             rel="noopener noreferrer">
-            Öppna på YouTube ↗
-          </a>
+          <div class="film-player-actions">
+            <a id="filmYouTubeLink"
+               class="youtube-link"
+               href="https://www.youtube.com/playlist?list=PLA74wG8-e4XBIKCB6HkAg-s2nvVR1hFQ8"
+               target="_blank"
+               rel="noopener noreferrer">
+              Öppna på YouTube ↗
+            </a>
+
+            <a id="filmDownloadLink"
+               class="youtube-link hidden"
+               href="#"
+               download>
+              Ladda ned ↓
+            </a>
+          </div>
         </header>
 
         <div class="youtube-frame">
-          <div id="filmPlayer" aria-label="The Gravitards Vault – videospelare"></div>
+          <div id="filmPlayer" aria-label="The Gravitards Vault – YouTube-spelare"></div>
+          <video id="facebookPlayer"
+                 class="facebook-player hidden"
+                 controls
+                 preload="metadata"
+                 playsinline>
+          </video>
         </div>
       </section>
 
@@ -364,7 +399,7 @@
         <header class="film-library-header">
           <div>
             <p class="section-kicker">FILM INDEX</p>
-            <h2>Alla videor</h2>
+            <h2 id="filmLibraryTitle">Alla YouTube-videor</h2>
             <p id="filmCount" class="film-count">Läser in Film Archive…</p>
           </div>
 

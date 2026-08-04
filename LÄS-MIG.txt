@@ -1,39 +1,35 @@
-THE GRAVITARDS VAULT V6 – SHARED COMMENTS
+THE GRAVITARDS VAULT V6.3 – FACEBOOK STREAMS
 
-Ersätt dessa filer i GitHub:
+Ersätt i GitHub:
 - server.js
 - index.html
 - style.css
 - app.js
 
-Render ska redan innehålla:
-- SUPABASE_URL
-- SUPABASE_SECRET_KEY
-- DROPBOX_APP_KEY
-- DROPBOX_APP_SECRET
-- DROPBOX_REFRESH_TOKEN
-- YOUTUBE_API_KEY
-
-Databasen ska innehålla tabellen:
-public.vault_comments
-
 NYTT
-- Ljudkommentarer sparas centralt i Supabase.
-- Videokommentarer sparas centralt i Supabase.
-- Alla besökare ser samma kommentarer.
-- Flera kommentarer kan finnas på samma inspelning eller video.
-- Namn, datum och klockslag visas.
-- Kommentarslistan uppdateras direkt efter att någon skickar.
-- Supabase Secret Key används endast i server.js på Render och exponeras
-  aldrig i webbläsaren.
+- Film Archive har två underkategorier:
+  1. YouTube Videos
+  2. Facebook Streams
+- Facebook-streamarna hämtas från den delade Dropbox-mappen:
+  https://www.dropbox.com/scl/fo/lsx0wg0f2tiexxzpwu2o0/AGonZOKM_QsjIXpiYiqYrA4?rlkey=9k8nk34sp2tmrcur9l4pju5qa&st=6hjw6h1d&dl=0
+- Ingen datum- eller årsindelning används för Facebook Streams.
+- Visningsnamn skapas automatiskt:
+  Facebook Stream 01, Facebook Stream 02 osv.
+- Det ursprungliga filnamnet visas diskret under titeln.
+- Direkt uppspelning i HTML5-videospelare.
+- Nedladdningsknapp.
+- Gemensamma Supabase-kommentarer.
+- Befintliga klickbara tidsanteckningar fungerar även för Facebook Streams.
 
-VIKTIGT
-Den här första gemensamma versionen tillåter inte borttagning av kommentarer.
-Det är avsiktligt: utan inloggning eller adminlösenord vore det osäkert att låta
-vem som helst radera andras kommentarer.
+INGA NYA RENDER-VARIABLER KRÄVS
+Den delade Dropbox-länken finns som standard i server.js.
 
-Kontroll efter deploy:
-https://gravitards-player.onrender.com/api/status
+Valfritt kan du senare lägga till:
+FACEBOOK_STREAMS_SHARED_LINK
 
-Status ska innehålla:
-"supabaseConfigured": true
+Då kan mappen bytas utan att server.js behöver ändras.
+
+OBS
+Dropbox-appen måste kunna läsa den delade länken. Om API:t ger ett
+shared_link_access_denied-fel, kontrollera att länken fortfarande är aktiv
+och att Dropbox-appen tillhör samma Dropbox-konto.

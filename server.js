@@ -34,6 +34,10 @@ const YOUTUBE_PLAYLIST_ID =
 
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY || "";
 
+const FACEBOOK_STREAMS_SHARED_LINK =
+  process.env.FACEBOOK_STREAMS_SHARED_LINK ||
+  "https://www.dropbox.com/scl/fo/lsx0wg0f2tiexxzpwu2o0/AGonZOKM_QsjIXpiYiqYrA4?rlkey=9k8nk34sp2tmrcur9l4pju5qa&st=6hjw6h1d&dl=0";
+
 function cleanEnvironmentValue(value) {
   return String(value || "")
     .trim()
@@ -60,6 +64,11 @@ let libraryCache = {
 let youtubeCache = {
   expiresAt: 0,
   videos: []
+};
+
+let facebookStreamsCache = {
+  expiresAt: 0,
+  streams: []
 };
 
 let dropboxTokenCache = {
@@ -230,6 +239,67 @@ async function dropboxDownload(pathValue) {
       }
     }
   );
+}
+
+
+function isVideoFile(entry) {
+  return (
+    entry[".tag"] === "file" &&
+    /\.(mp4|m4v|mov|webm|mkv|avi)$/i.test(entry.name)
+  );
+}
+
+async function fetchFacebookStreams() {
+  if (Date.now() < facebookStreamsCache.expiresAt) {
+    return facebookStreamsCache.streams;
+  }
+
+  let result = await dropboxRpc("files/list_folder", {
+    path: "",
+    recursive: false,
+    include_deleted: false,
+    include_non_downloadable_files: false,
+    limit: 2000,
+    shared_link: {
+      url: FACEBOOK_STREAMS_SHARED_LINK
+    }
+  });
+
+  const entries = [...(result.entries || [])];
+
+  while (result.has_more) {
+    result = await dropboxRpc("files/list_folder/continue", {
+      cursor: result.cursor
+    });
+
+    entries.push(...(result.entries || []));
+  }
+
+  const videoEntries = entries
+    .filter(isVideoFile)
+    .sort((a, b) =>
+      a.name.localeCompare(b.name, "sv", {
+        numeric: true,
+        sensitivity: "base"
+      })
+    );
+
+  const streams = videoEntries.map((entry, index) => ({
+    id: `facebook:${entry.id}`,
+    dropboxId: entry.id,
+    title: `Facebook Stream ${String(index + 1).padStart(2, "0")}`,
+    originalName: entry.name,
+    size: entry.size,
+    source: "facebook",
+    position: index
+  }));
+
+  facebookStreamsCache = {
+    expiresAt: Date.now() + 10 * 60 * 1000,
+    streams
+  };
+
+  return streams;
 }
 
 function isAudioFile(entry) {
@@ -767,6 +837,103 @@ app.get("/api/download/:id", async (req, res) => {
     const contentLength =
       response.headers.get("content-length");
 
+    if (contentLength) {
+      res.set("Content-Length", contentLength);
+    }
+
+    Readable.fromWeb(response.body).pipe(res);
+  } catch (error) {
+    console.error(error);
+
+    if (!res.headersSent) {
+      res.status(500).send(error.message);
+    } else {
+      res.destroy(error);
+    }
+  }
+});
+
+
+app.get("/api/facebook-streams", async (_req, res) => {
+  try {
+    const streams = await fetchFacebookStreams();
+
+    res.json({
+      count: streams.length,
+      streams
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/facebook-streams/refresh", async (_req, res) => {
+  facebookStreamsCache.expiresAt = 0;
+
+  try {
+    const streams = await fetchFacebookStreams();
+    res.json({ ok: true, count: streams.length });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/api/facebook-streams/play/:id", async (req, res) => {
+  try {
+    const streams = await fetchFacebookStreams();
+    const stream = streams.find(
+      item => item.dropboxId === req.params.id
+    );
+
+    if (!stream) {
+      return res.status(404).send("Facebook-streamen hittades inte.");
+    }
+
+    const data = await dropboxRpc("files/get_temporary_link", {
+      path: stream.dropboxId
+    });
+
+    res.set("Cache-Control", "no-store");
+    return res.redirect(302, data.link);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).send(error.message);
+  }
+});
+
+app.get("/api/facebook-streams/download/:id", async (req, res) => {
+  try {
+    const streams = await fetchFacebookStreams();
+    const stream = streams.find(
+      item => item.dropboxId === req.params.id
+    );
+
+    if (!stream) {
+      return res.status(404).send("Facebook-streamen hittades inte.");
+    }
+
+    const response = await dropboxDownload(stream.dropboxId);
+
+    if (!response.ok || !response.body) {
+      const details = await response.text();
+      throw new Error(
+        `Dropbox-nedladdning misslyckades (${response.status}): ${details}`
+      );
+    }
+
+    const filename = safeDownloadFilename(stream.originalName);
+
+    res.set({
+      "Content-Type":
+        response.headers.get("content-type") || "application/octet-stream",
+      "Content-Disposition":
+        `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`,
+      "Cache-Control": "private, no-store"
+    });
+
+    const contentLength = response.headers.get("content-length");
     if (contentLength) {
       res.set("Content-Length", contentLength);
     }
