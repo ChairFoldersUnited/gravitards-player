@@ -159,7 +159,13 @@
         </div>
       </section>
 
-      <div class="entry-control-row" aria-label="Kontroller för aktuell låt">
+      <section class="media-control-panel audio-media-control-panel" aria-label="Kontroller för aktuell låt">
+        <div class="media-control-panel__heading">
+          <span>AUDIO CONTROLS</span>
+          <small>Bläddra inom den aktuella listan</small>
+        </div>
+
+        <div class="entry-control-row">
         <button id="audioPreviousEntryButton"
                 class="entry-control-button"
                 type="button"
@@ -187,7 +193,8 @@
                 disabled>
           Ladda ned ↓
         </button>
-      </div>
+        </div>
+      </section>
 
       <section class="comments-card">
         <div class="comments-heading">
@@ -320,8 +327,24 @@
             <h2 id="filmNowTitle">Välj en video</h2>
             <p id="filmNowMeta" class="film-now-meta">Hela spellistan visas nedan.</p>
           </div>
+</header>
 
-          <div class="film-player-actions entry-control-row" aria-label="Kontroller för aktuell video">
+        <div class="youtube-frame">
+          <video id="dropboxFilmPlayer"
+                 class="facebook-player"
+                 controls
+                 preload="metadata"
+                 playsinline>
+          </video>
+        </div>
+
+        <section class="media-control-panel" aria-label="Kontroller för aktuell video">
+          <div class="media-control-panel__heading">
+            <span>FILM CONTROLS</span>
+            <small>Bläddra inom den aktuella videokategorin</small>
+          </div>
+
+          <div class="entry-control-row film-entry-control-row">
             <button id="filmPreviousButton"
                     class="entry-control-button"
                     type="button"
@@ -351,16 +374,7 @@
               Ladda ned ↓
             </a>
           </div>
-        </header>
-
-        <div class="youtube-frame">
-          <video id="dropboxFilmPlayer"
-                 class="facebook-player"
-                 controls
-                 preload="metadata"
-                 playsinline>
-          </video>
-        </div>
+        </section>
       </section>
 
       <section class="film-annotation-grid">

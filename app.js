@@ -1098,15 +1098,45 @@ function renderFilms() {
   }
 
   filmGrid.innerHTML = html.join("");
+  updateFilmNavigationControls();
+}
+
+
+function updateAudioNavigationControls() {
+  const queue = visibleTracks.length ? visibleTracks : tracks;
+  const hasSelection = Boolean(currentTrack);
+  const canNavigate = hasSelection && queue.length > 0;
+
+  audioPreviousEntryButton.disabled = !canNavigate;
+  audioNextEntryButton.disabled = !canNavigate;
+  shareAudioButton.disabled = !hasSelection;
+  audioDownloadEntryButton.disabled = !hasSelection;
+}
+
+function updateFilmNavigationControls() {
+  const queue = visibleFilms.length ? visibleFilms : films;
+  const hasSelection = Boolean(currentFilm);
+  const canNavigate = hasSelection && queue.length > 0;
+
+  filmPreviousButton.disabled = !canNavigate;
+  filmNextButton.disabled = !canNavigate;
+  shareFilmButton.disabled = !hasSelection;
+
+  filmDownloadLink.classList.toggle(
+    "disabled-link",
+    !hasSelection
+  );
+
+  filmDownloadLink.setAttribute(
+    "aria-disabled",
+    hasSelection ? "false" : "true"
+  );
 }
 
 function selectFilm(film) {
   if (!film) return;
 
   currentFilm = film;
-  shareFilmButton.disabled = false;
-  filmPreviousButton.disabled = false;
-  filmNextButton.disabled = false;
   filmCurrentTime.textContent = "0:00";
   filmNowTitle.textContent = film.title;
 
@@ -1135,8 +1165,8 @@ function selectFilm(film) {
 
   dropboxFilmPlayer.src = playEndpoint;
   filmDownloadLink.href = downloadEndpoint;
-  filmDownloadLink.classList.remove("hidden", "disabled-link");
-  filmDownloadLink.setAttribute("aria-disabled", "false");
+  filmDownloadLink.classList.remove("hidden");
+  updateFilmNavigationControls();
 
   dropboxFilmPlayer.play().catch(() => {});
   saveFilmTimestampButton.disabled = false;
@@ -1472,11 +1502,8 @@ async function playTrack(track) {
   if (!track) return;
 
   currentTrack = track;
-  shareAudioButton.disabled = false;
-  audioPreviousEntryButton.disabled = false;
-  audioNextEntryButton.disabled = false;
-  audioDownloadEntryButton.disabled = false;
   downloadCurrentButton.disabled = false;
+  updateAudioNavigationControls();
   addToRecent(track.id);
   nowTitle.textContent = track.displayTitle;
   nowMeta.textContent = `${track.year} · ${cleanFolder(track.folder)}`;
@@ -2155,6 +2182,8 @@ setArchiveView(
 
 commentAuthorInput.value = savedCommentAuthor;
 filmCommentAuthorInput.value = savedCommentAuthor;
+updateAudioNavigationControls();
+updateFilmNavigationControls();
 loadFilmComment();
 renderFilmTimestampNotes();
 updateFilterButtons();
