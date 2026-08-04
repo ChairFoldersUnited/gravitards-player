@@ -286,35 +286,60 @@
       </div>
     </section>
 
-    <section class="film-source-tabs" aria-label="Välj videokälla">
-      <button id="youtubeFilmsTab"
-              class="film-source-tab active"
-              type="button"
-              data-film-source="youtube">
-        <span>▶</span>
-        <strong>YouTube Videos</strong>
-        <small id="youtubeFilmsCount">Läser in…</small>
-      </button>
+    <section class="film-portal" aria-labelledby="filmPortalTitle">
+      <div class="film-portal-heading">
+        <p class="eyebrow">THE FILM ARCHIVE</p>
+        <h2 id="filmPortalTitle">Choose a collection</h2>
+        <p id="filmPortalSubtitle">
+          Enter one of the three moving-image vaults.
+        </p>
+      </div>
 
-      <button id="facebookStreamsTab"
-              class="film-source-tab"
-              type="button"
-              data-film-source="facebook">
-        <span>f</span>
-        <strong>Facebook Streams</strong>
-        <small id="facebookStreamsCount">Läser in…</small>
-      </button>
+      <div class="film-collection-grid">
+        <button id="youtubeFilmsTab"
+                class="film-collection-card"
+                type="button"
+                data-film-source="youtube"
+                aria-pressed="false">
+          <img src="youtube-cover.jpg"
+               alt="The Gravitards Vault – YouTube Videos">
+          <span class="film-collection-overlay">
+            <strong>YouTube Videos</strong>
+            <small id="youtubeFilmsCount">Läser in…</small>
+          </span>
+        </button>
 
-      <button id="instagramStreamsTab"
-              class="film-source-tab"
-              type="button"
-              data-film-source="instagram">
-        <span>◎</span>
-        <strong>Instagram Streams</strong>
-        <small id="instagramStreamsCount">Läser in…</small>
-      </button>
+        <button id="facebookStreamsTab"
+                class="film-collection-card"
+                type="button"
+                data-film-source="facebook"
+                aria-pressed="false">
+          <img src="facebook-cover.jpg"
+               alt="The Gravitards Vault – Facebook Streams">
+          <span class="film-collection-overlay">
+            <strong>Facebook Streams</strong>
+            <small id="facebookStreamsCount">Läser in…</small>
+          </span>
+        </button>
+
+        <button id="instagramStreamsTab"
+                class="film-collection-card"
+                type="button"
+                data-film-source="instagram"
+                aria-pressed="false">
+          <img src="instagram-cover.jpg"
+               alt="The Gravitards Vault – Instagram Streams">
+          <span class="film-collection-overlay">
+            <strong>Instagram Streams</strong>
+            <small id="instagramStreamsCount">Läser in…</small>
+          </span>
+        </button>
+      </div>
     </section>
 
+    <div id="filmArchiveContent"
+         class="film-archive-content hidden"
+         aria-live="polite">
     <section id="filmTimelineCard" class="film-timeline-card">
       <div class="film-timeline-heading">
         <div>
@@ -501,6 +526,7 @@
         <section id="filmGrid" class="film-grid" aria-label="Videor"></section>
       </section>
     </section>
+    </div>
   </main>
 
   <audio id="audio" preload="metadata"></audio>

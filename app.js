@@ -21,6 +21,10 @@ const facebookStreamsCount = document.querySelector("#facebookStreamsCount");
 const instagramStreamsCount = document.querySelector("#instagramStreamsCount");
 const filmTimelineCard = document.querySelector("#filmTimelineCard");
 const filmLibraryTitle = document.querySelector("#filmLibraryTitle");
+const filmArchiveContent = document.querySelector("#filmArchiveContent");
+const filmPortalTitle = document.querySelector("#filmPortalTitle");
+const filmPortalSubtitle = document.querySelector("#filmPortalSubtitle");
+const filmCollectionGrid = document.querySelector(".film-collection-grid");
 const shareToast = document.querySelector("#shareToast");
 const filmNowTitle = document.querySelector("#filmNowTitle");
 const filmNowMeta = document.querySelector("#filmNowMeta");
@@ -96,7 +100,7 @@ let currentFilm = null;
 let pendingSharedLocation = null;
 let shareToastTimer = null;
 let mediaSwitchInProgress = false;
-let activeFilmSource = "youtube";
+let activeFilmSource = "";
 let audioSharedComments = [];
 let filmSharedComments = [];
 let filmYearFilter = null;
@@ -1412,8 +1416,56 @@ async function loadFilms(force = false) {
   }
 }
 
+
+function filmSourceLabel(source) {
+  if (source === "facebook") return "Facebook Streams";
+  if (source === "instagram") return "Instagram Streams";
+  return "YouTube Videos";
+}
+
+function updateFilmPortalState() {
+  const cards = [
+    youtubeFilmsTab,
+    facebookStreamsTab,
+    instagramStreamsTab
+  ];
+
+  for (const card of cards) {
+    const active = card.dataset.filmSource === activeFilmSource;
+    card.classList.toggle("active", active);
+    card.setAttribute("aria-pressed", active ? "true" : "false");
+  }
+
+  filmCollectionGrid.classList.toggle(
+    "has-selection",
+    Boolean(activeFilmSource)
+  );
+
+  if (!activeFilmSource) {
+    filmPortalTitle.textContent = "Choose a collection";
+    filmPortalSubtitle.textContent =
+      "Enter one of the three moving-image vaults.";
+    filmArchiveContent.classList.add("hidden");
+    return;
+  }
+
+  filmPortalTitle.textContent = filmSourceLabel(activeFilmSource);
+  filmPortalSubtitle.textContent =
+    `Currently exploring ${filmSourceLabel(activeFilmSource)}.`;
+
+  filmArchiveContent.classList.remove("hidden");
+}
+
 function setFilmSource(source) {
-  activeFilmSource = source === "facebook" ? "facebook" : source === "instagram" ? "instagram" : "youtube";
+  activeFilmSource =
+    source === "facebook"
+      ? "facebook"
+      : source === "instagram"
+        ? "instagram"
+        : "youtube";
+
+  updateFilmPortalState();
+  filmArchiveContent.classList.add("is-switching");
   currentFilm = null;
   filmYearFilter = null;
 
@@ -1437,7 +1489,11 @@ function setFilmSource(source) {
     activeFilmSource
   );
 
-  loadFilms();
+  loadFilms().finally(() => {
+    window.setTimeout(() => {
+      filmArchiveContent.classList.remove("is-switching");
+    }, 120);
+  });
 }
 
 
@@ -1500,6 +1556,13 @@ async function tryOpenSharedFilm() {
       "active",
       source === "facebook"
     );
+
+    instagramStreamsTab.classList.toggle(
+      "active",
+      source === "instagram"
+    );
+
+    updateFilmPortalState();
   }
 
   const sourceFilms =
@@ -2262,7 +2325,7 @@ filmArchiveTab.addEventListener("click", () => setArchiveView("film"));
 pendingSharedLocation = parseVaultShareLocation();
 
 const savedFilmSource =
-  localStorage.getItem("gravitards-film-source") || "youtube";
+  localStorage.getItem("gravitards-film-source") || "";
 
 activeFilmSource =
   pendingSharedLocation?.archive === "video"
@@ -2273,28 +2336,9 @@ activeFilmSource =
             ? "instagram"
             : "youtube"
       )
-    : (
-        savedFilmSource === "facebook"
-          ? "facebook"
-          : savedFilmSource === "instagram"
-            ? "instagram"
-            : "youtube"
-      );
+    : "";
 
-youtubeFilmsTab.classList.toggle(
-  "active",
-  activeFilmSource === "youtube"
-);
-
-facebookStreamsTab.classList.toggle(
-  "active",
-  activeFilmSource === "facebook"
-);
-
-instagramStreamsTab.classList.toggle(
-  "active",
-  activeFilmSource === "instagram"
-);
+updateFilmPortalState();
 
 const savedArchiveView =
   localStorage.getItem("gravitards-archive-view") || "audio";
