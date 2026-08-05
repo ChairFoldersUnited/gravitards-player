@@ -1600,7 +1600,7 @@ function setFilmSource(source) {
 }
 
 
-function tryOpenSharedAudio() {
+async function tryOpenSharedAudio() {
   if (
     !pendingSharedLocation ||
     pendingSharedLocation.archive !== "audio" ||
@@ -1637,15 +1637,19 @@ function tryOpenSharedAudio() {
     return false;
   }
 
+  const targetSeconds = pendingSharedLocation.seconds;
+
   activeAudioSource = "vault";
   setArchiveView("audio");
-  selectTrack(track);
-
-  if (pendingSharedLocation.seconds !== null) {
-    seekSharedAudio(pendingSharedLocation.seconds);
-  }
 
   pendingSharedLocation = null;
+
+  await playTrack(track);
+
+  if (targetSeconds !== null) {
+    seekSharedAudio(targetSeconds);
+  }
+
   return true;
 }
 
@@ -1764,7 +1768,7 @@ async function loadTracks(force = false) {
     updateYearJump();
     renderTimeline();
     renderTracks();
-    window.setTimeout(tryOpenSharedAudio, 0);
+    window.setTimeout(() => { void tryOpenSharedAudio(); }, 0);
 
     if (!tracks.length) {
       showMessage("The folder contains no audio files. Check DROPBOX_FOLDER.");
@@ -2383,7 +2387,7 @@ window.addEventListener("hashchange", () => {
   if (!pendingSharedLocation) return;
 
   if (pendingSharedLocation.archive === "audio") {
-    tryOpenSharedAudio();
+    void tryOpenSharedAudio();
   } else {
     tryOpenSharedFilm();
   }
