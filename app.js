@@ -1,5 +1,8 @@
 const audio = document.querySelector("#audio");
 const shareAudioButton = document.querySelector("#shareAudioButton");
+const audioPreviousEntryButton = document.querySelector("#audioPreviousEntryButton");
+const audioNextEntryButton = document.querySelector("#audioNextEntryButton");
+const audioDownloadEntryButton = document.querySelector("#audioDownloadEntryButton");
 const audioArchiveTab = document.querySelector("#audioArchiveTab");
 const soundCloudIframe = document.querySelector("#soundCloudPlayer");
 const filmArchiveTab = document.querySelector("#filmArchiveTab");
@@ -1178,7 +1181,10 @@ function updateAudioNavigationControls() {
   const hasSelection = Boolean(currentTrack);
   const canNavigate = hasSelection && queue.length > 0;
 
+  audioPreviousEntryButton.disabled = !canNavigate;
+  audioNextEntryButton.disabled = !canNavigate;
   shareAudioButton.disabled = !hasSelection;
+  audioDownloadEntryButton.disabled = !hasSelection;
 }
 
 function updateFilmNavigationControls() {
@@ -2005,6 +2011,24 @@ prevButton.addEventListener("click", () => {
 });
 
 nextButton.addEventListener("click", () => step(1));
+
+audioPreviousEntryButton.addEventListener("click", () => {
+  step(-1);
+});
+
+audioNextEntryButton.addEventListener("click", () => {
+  step(1);
+});
+
+audioDownloadEntryButton.addEventListener("click", () => {
+  if (!currentTrack) return;
+
+  const link = document.createElement("a");
+  link.href = `/api/download/${encodeURIComponent(currentTrack.id)}`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+});
 
 shuffleButton.addEventListener("click", () => {
   shuffled = !shuffled;

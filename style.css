@@ -2821,35 +2821,41 @@ body {
 }
 
 
-/* V9.1.4 – cleaner player sidebar */
-#audioArchiveView .sidebar .comments-card {
-  order: 2;
-  margin-top: 0;
+/* V9.1.5 – timestamp comments only */
+#audioArchiveView .comments-card {
+  display: none !important;
 }
 
-#audioArchiveView .sidebar .now-card {
+#audioArchiveView .now-card {
   order: 1;
 }
 
-#audioArchiveView .sidebar .timestamp-card,
-#audioArchiveView .sidebar .info-card,
-#audioArchiveView .sidebar .soundcloud-sidebar-card,
-#audioArchiveView .sidebar .connect-card {
+#audioArchiveView .timestamp-card {
+  order: 2;
+  width: 100%;
+  max-width: 100%;
+  margin-top: 0;
+}
+
+#audioArchiveView .soundcloud-sidebar-card,
+#audioArchiveView .connect-card,
+#audioArchiveView .info-card {
   order: 3;
 }
 
-/* Keep the comments compact directly under the player. */
-#audioArchiveView .sidebar .comments-card {
-  max-height: none;
-}
-
-#audioArchiveView .sidebar .comments-list {
-  max-height: 260px;
+#audioArchiveView .timestamp-list {
+  max-height: 300px;
   overflow-y: auto;
 }
 
+/* Make the timestamp form feel like the selected track's comment area. */
+#audioArchiveView .timestamp-card h2,
+#audioArchiveView .timestamp-card h3 {
+  color: var(--brass-light);
+}
+
 @media (max-width: 1120px) {
-  #audioArchiveView .sidebar .comments-card {
+  #audioArchiveView .timestamp-card {
     grid-column: 1 / -1;
   }
 }

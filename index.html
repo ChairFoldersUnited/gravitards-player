@@ -161,43 +161,30 @@
         </div>
       </section>
 
-<section class="comments-card">
-        <div class="comments-heading">
-          <h2>Vault Comments</h2>
-          <span id="commentStatus">No recording selected</span>
+<section class="timestamp-card">
+        <div class="timestamp-heading">
+          <div>
+            <h2>Timestamp Notes</h2>
+            <p>Klicka på en tid för att hoppa dit.</p>
+          </div>
+          <button id="addTimestampButton" class="gold-button compact-button" type="button" disabled>＋ Anteckning</button>
         </div>
 
-        <div id="audioCommentList" class="shared-comment-list">
-          <p class="shared-comments-empty">Välj en inspelning för att läsa kommentarer.</p>
-        </div>
-
-        <div class="shared-comment-form">
-          <label class="comment-author-field">
-            <span>Namn</span>
-            <input id="commentAuthorInput"
-                   type="text"
-                   maxlength="80"
-                   placeholder="Your name">
-          </label>
-
-          <textarea id="commentInput"
-                    rows="4"
-                    maxlength="2000"
-                    placeholder="Skriv en kommentar om denna Vault Entry…"></textarea>
-
+        <div id="timestampComposer" class="timestamp-composer hidden">
+          <div class="timestamp-time-row">
+            <strong id="timestampComposerTime">0:00</strong>
+            <span>Aktuell position</span>
+          </div>
+          <textarea id="timestampInput" rows="3" maxlength="500" placeholder="Vad händer här?"></textarea>
           <div class="comments-actions">
-            <button id="saveCommentButton"
-                    class="gold-button"
-                    type="button"
-                    disabled>
-              Post comment
-            </button>
+            <button id="saveTimestampButton" class="gold-button" type="button">Spara anteckning</button>
+            <button id="cancelTimestampButton" class="text-button" type="button">Avbryt</button>
           </div>
         </div>
 
-        <p class="comments-note">
-          Comments are stored in The Gravitards Vault and are visible to everyone.
-        </p>
+        <div id="timestampList" class="timestamp-list">
+          <p class="empty-timestamps">Välj en inspelning för att se anteckningar.</p>
+        </div>
       </section>
 
       <section class="soundcloud-sidebar-card">
@@ -248,32 +235,83 @@
         </div>
       </section>
 
-
-      <section class="timestamp-card">
-        <div class="timestamp-heading">
-          <div>
-            <h2>Timestamp Notes</h2>
-            <p>Klicka på en tid för att hoppa dit.</p>
-          </div>
-          <button id="addTimestampButton" class="gold-button compact-button" type="button" disabled>＋ Anteckning</button>
+      <section class="media-control-panel audio-media-control-panel" aria-label="Controls for current track">
+        <div class="media-control-panel__heading">
+          <span>AUDIO CONTROLS</span>
+          <small>Browse within the current list</small>
         </div>
 
-        <div id="timestampComposer" class="timestamp-composer hidden">
-          <div class="timestamp-time-row">
-            <strong id="timestampComposerTime">0:00</strong>
-            <span>Aktuell position</span>
-          </div>
-          <textarea id="timestampInput" rows="3" maxlength="500" placeholder="Vad händer här?"></textarea>
-          <div class="comments-actions">
-            <button id="saveTimestampButton" class="gold-button" type="button">Spara anteckning</button>
-            <button id="cancelTimestampButton" class="text-button" type="button">Avbryt</button>
-          </div>
-        </div>
+        <div class="entry-control-row">
+        <button id="audioPreviousEntryButton"
+                class="entry-control-button"
+                type="button"
+                disabled>
+          ◀ Previous
+        </button>
 
-        <div id="timestampList" class="timestamp-list">
-          <p class="empty-timestamps">Välj en inspelning för att se anteckningar.</p>
+        <button id="audioNextEntryButton"
+                class="entry-control-button"
+                type="button"
+                disabled>
+          Next ▶
+        </button>
+
+        <button id="shareAudioButton"
+                class="entry-control-button"
+                type="button"
+                disabled>
+          Copy link ↗
+        </button>
+
+        <button id="audioDownloadEntryButton"
+                class="entry-control-button"
+                type="button"
+                disabled>
+          Download ↓
+        </button>
         </div>
       </section>
+
+      <section class="comments-card">
+        <div class="comments-heading">
+          <h2>Vault Comments</h2>
+          <span id="commentStatus">No recording selected</span>
+        </div>
+
+        <div id="audioCommentList" class="shared-comment-list">
+          <p class="shared-comments-empty">Välj en inspelning för att läsa kommentarer.</p>
+        </div>
+
+        <div class="shared-comment-form">
+          <label class="comment-author-field">
+            <span>Namn</span>
+            <input id="commentAuthorInput"
+                   type="text"
+                   maxlength="80"
+                   placeholder="Your name">
+          </label>
+
+          <textarea id="commentInput"
+                    rows="4"
+                    maxlength="2000"
+                    placeholder="Skriv en kommentar om denna Vault Entry…"></textarea>
+
+          <div class="comments-actions">
+            <button id="saveCommentButton"
+                    class="gold-button"
+                    type="button"
+                    disabled>
+              Post comment
+            </button>
+          </div>
+        </div>
+
+        <p class="comments-note">
+          Comments are stored in The Gravitards Vault and are visible to everyone.
+        </p>
+      </section>
+
+      
 
       <section class="info-card">
         <h2>About the Vault</h2>
