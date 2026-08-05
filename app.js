@@ -2566,9 +2566,57 @@ refreshFilmsButton.addEventListener("click", async () => {
 });
 
 
+function positionShareMenu(button, menu) {
+  if (window.matchMedia("(max-width: 700px)").matches) {
+    menu.style.removeProperty("position");
+    menu.style.removeProperty("top");
+    menu.style.removeProperty("right");
+    menu.style.removeProperty("bottom");
+    menu.style.removeProperty("left");
+    return;
+  }
+
+  const buttonRect = button.getBoundingClientRect();
+  const menuWidth = Math.min(310, window.innerWidth - 24);
+  const estimatedHeight = 156;
+  const margin = 12;
+
+  const left = Math.min(
+    Math.max(margin, buttonRect.right - menuWidth),
+    window.innerWidth - menuWidth - margin
+  );
+
+  const roomAbove = buttonRect.top - margin;
+  const roomBelow = window.innerHeight - buttonRect.bottom - margin;
+
+  const top =
+    roomAbove >= estimatedHeight || roomAbove >= roomBelow
+      ? Math.max(margin, buttonRect.top - estimatedHeight - 8)
+      : Math.min(
+          window.innerHeight - estimatedHeight - margin,
+          buttonRect.bottom + 8
+        );
+
+  menu.style.position = "fixed";
+  menu.style.left = `${left}px`;
+  menu.style.top = `${top}px`;
+  menu.style.right = "auto";
+  menu.style.bottom = "auto";
+}
+
 function setShareMenuOpen(button, menu, open) {
   button.setAttribute("aria-expanded", open ? "true" : "false");
   menu.classList.toggle("hidden", !open);
+
+  if (open) {
+    positionShareMenu(button, menu);
+  } else {
+    menu.style.removeProperty("position");
+    menu.style.removeProperty("top");
+    menu.style.removeProperty("right");
+    menu.style.removeProperty("bottom");
+    menu.style.removeProperty("left");
+  }
 }
 
 function closeAllShareMenus() {
@@ -2685,6 +2733,28 @@ document.addEventListener("click", event => {
 document.addEventListener("keydown", event => {
   if (event.key === "Escape") {
     closeAllShareMenus();
+  }
+});
+
+window.addEventListener("resize", () => {
+  if (
+    audioShareMenu &&
+    !audioShareMenu.classList.contains("hidden")
+  ) {
+    positionShareMenu(
+      audioShareMenuButton,
+      audioShareMenu
+    );
+  }
+
+  if (
+    filmShareMenu &&
+    !filmShareMenu.classList.contains("hidden")
+  ) {
+    positionShareMenu(
+      filmShareMenuButton,
+      filmShareMenu
+    );
   }
 });
 

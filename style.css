@@ -3545,3 +3545,50 @@ body:has(#filmArchiveView:not(.hidden)) {
     left: auto;
   }
 }
+
+
+/* V11.1.1 – keep Share menus inside the viewport */
+.vault-share-menu {
+  max-height: min(320px, calc(100vh - 24px));
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+@media (min-width: 701px) {
+  .vault-share-menu,
+  .film-share-menu-wrap .vault-share-menu {
+    margin: 0;
+  }
+}
+
+/* Mobile bottom sheet; Download remains a separate control. */
+@media (max-width: 700px) {
+  .bottom-player-actions .vault-share-menu,
+  .film-share-menu-wrap .vault-share-menu {
+    position: fixed !important;
+    z-index: 1800;
+    top: auto !important;
+    right: 10px !important;
+    bottom: calc(var(--bottom-player-height) + 10px) !important;
+    left: 10px !important;
+    width: auto !important;
+    max-height: min(300px, calc(100vh - var(--bottom-player-height) - 30px));
+    border-color: rgba(212,184,117,.56);
+    box-shadow:
+      0 -12px 40px rgba(0,0,0,.72),
+      0 0 0 9999px rgba(0,0,0,.28);
+  }
+
+  .vault-share-menu button {
+    min-height: 64px;
+    padding: 13px 15px;
+  }
+
+  .vault-share-menu strong {
+    font-size: .8rem;
+  }
+
+  .vault-share-menu small {
+    font-size: .7rem;
+  }
+}
