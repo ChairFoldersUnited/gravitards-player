@@ -161,6 +161,45 @@
         </div>
       </section>
 
+<section class="comments-card">
+        <div class="comments-heading">
+          <h2>Vault Comments</h2>
+          <span id="commentStatus">No recording selected</span>
+        </div>
+
+        <div id="audioCommentList" class="shared-comment-list">
+          <p class="shared-comments-empty">Välj en inspelning för att läsa kommentarer.</p>
+        </div>
+
+        <div class="shared-comment-form">
+          <label class="comment-author-field">
+            <span>Namn</span>
+            <input id="commentAuthorInput"
+                   type="text"
+                   maxlength="80"
+                   placeholder="Your name">
+          </label>
+
+          <textarea id="commentInput"
+                    rows="4"
+                    maxlength="2000"
+                    placeholder="Skriv en kommentar om denna Vault Entry…"></textarea>
+
+          <div class="comments-actions">
+            <button id="saveCommentButton"
+                    class="gold-button"
+                    type="button"
+                    disabled>
+              Post comment
+            </button>
+          </div>
+        </div>
+
+        <p class="comments-note">
+          Comments are stored in The Gravitards Vault and are visible to everyone.
+        </p>
+      </section>
+
       <section class="soundcloud-sidebar-card">
         <header class="card-heading soundcloud-sidebar-heading">
           <div>
@@ -209,81 +248,6 @@
         </div>
       </section>
 
-      <section class="media-control-panel audio-media-control-panel" aria-label="Controls for current track">
-        <div class="media-control-panel__heading">
-          <span>AUDIO CONTROLS</span>
-          <small>Browse within the current list</small>
-        </div>
-
-        <div class="entry-control-row">
-        <button id="audioPreviousEntryButton"
-                class="entry-control-button"
-                type="button"
-                disabled>
-          ◀ Previous
-        </button>
-
-        <button id="audioNextEntryButton"
-                class="entry-control-button"
-                type="button"
-                disabled>
-          Next ▶
-        </button>
-
-        <button id="shareAudioButton"
-                class="entry-control-button"
-                type="button"
-                disabled>
-          Copy link ↗
-        </button>
-
-        <button id="audioDownloadEntryButton"
-                class="entry-control-button"
-                type="button"
-                disabled>
-          Download ↓
-        </button>
-        </div>
-      </section>
-
-      <section class="comments-card">
-        <div class="comments-heading">
-          <h2>Vault Comments</h2>
-          <span id="commentStatus">No recording selected</span>
-        </div>
-
-        <div id="audioCommentList" class="shared-comment-list">
-          <p class="shared-comments-empty">Välj en inspelning för att läsa kommentarer.</p>
-        </div>
-
-        <div class="shared-comment-form">
-          <label class="comment-author-field">
-            <span>Namn</span>
-            <input id="commentAuthorInput"
-                   type="text"
-                   maxlength="80"
-                   placeholder="Your name">
-          </label>
-
-          <textarea id="commentInput"
-                    rows="4"
-                    maxlength="2000"
-                    placeholder="Skriv en kommentar om denna Vault Entry…"></textarea>
-
-          <div class="comments-actions">
-            <button id="saveCommentButton"
-                    class="gold-button"
-                    type="button"
-                    disabled>
-              Post comment
-            </button>
-          </div>
-        </div>
-
-        <p class="comments-note">
-          Comments are stored in The Gravitards Vault and are visible to everyone.
-        </p>
-      </section>
 
       <section class="timestamp-card">
         <div class="timestamp-heading">

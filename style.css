@@ -2819,3 +2819,37 @@ body {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+
+/* V9.1.4 – cleaner player sidebar */
+#audioArchiveView .sidebar .comments-card {
+  order: 2;
+  margin-top: 0;
+}
+
+#audioArchiveView .sidebar .now-card {
+  order: 1;
+}
+
+#audioArchiveView .sidebar .timestamp-card,
+#audioArchiveView .sidebar .info-card,
+#audioArchiveView .sidebar .soundcloud-sidebar-card,
+#audioArchiveView .sidebar .connect-card {
+  order: 3;
+}
+
+/* Keep the comments compact directly under the player. */
+#audioArchiveView .sidebar .comments-card {
+  max-height: none;
+}
+
+#audioArchiveView .sidebar .comments-list {
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+@media (max-width: 1120px) {
+  #audioArchiveView .sidebar .comments-card {
+    grid-column: 1 / -1;
+  }
+}
