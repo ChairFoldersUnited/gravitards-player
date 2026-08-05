@@ -102,6 +102,27 @@ const timestampComposerTime = document.querySelector("#timestampComposerTime");
 const timestampInput = document.querySelector("#timestampInput");
 const timestampAuthorInput =
   document.querySelector("#timestampAuthorInput");
+const mobileCommentComposer =
+  document.querySelector("#mobileCommentComposer");
+const mobileComposerBackButton =
+  document.querySelector("#mobileComposerBackButton");
+const mobileComposerCancel =
+  document.querySelector("#mobileComposerCancel");
+const mobileComposerSubmit =
+  document.querySelector("#mobileComposerSubmit");
+const mobileComposerAuthor =
+  document.querySelector("#mobileComposerAuthor");
+const mobileComposerText =
+  document.querySelector("#mobileComposerText");
+const mobileComposerMode =
+  document.querySelector("#mobileComposerMode");
+const mobileComposerTitle =
+  document.querySelector("#mobileComposerTitle");
+const mobileComposerContext =
+  document.querySelector("#mobileComposerContext");
+const mobileComposerTextLabel =
+  document.querySelector("#mobileComposerTextLabel");
+
 const saveTimestampButton = document.querySelector("#saveTimestampButton");
 const cancelTimestampButton = document.querySelector("#cancelTimestampButton");
 const timestampList = document.querySelector("#timestampList");
@@ -140,6 +161,9 @@ const expandedAudioTimestampThreads = new Set();
 const expandedFilmTimestampThreads = new Set();
 const openAudioTimestampReplyForms = new Set();
 const openFilmTimestampReplyForms = new Set();
+
+let mobileComposerAction = null;
+let mobileComposerTrigger = null;
 
 const vaultVoterId = (() => {
   const storageKey = "gravitards-voter-id";
@@ -2644,6 +2668,26 @@ addTimestampButton.addEventListener("click", event => {
     Math.floor(audio.currentTime || 0)
   );
 
+  if (isMobileComposerLayout()) {
+    openMobileCommentComposer({
+      mode: "Timestamp note",
+      title: "Add note",
+      context: `${
+        currentTrack.displayTitle ||
+        currentTrack.title ||
+        "Audio recording"
+      } · ${formatTime(pendingTimestampSeconds)}`,
+      textLabel: "Note",
+      placeholder: "What happens here?",
+      author: timestampAuthorInput.value,
+      trigger: event.currentTarget,
+      action: async ({ author, text }) => {
+        await saveAudioTimestampNote(author, text);
+      }
+    });
+    return;
+  }
+
   timestampComposerTime.textContent =
     formatTime(pendingTimestampSeconds);
 
@@ -2667,15 +2711,42 @@ cancelTimestampButton.addEventListener("click", () => {
   timestampInput.value = "";
 });
 
+async function saveAudioTimestampNote(author, text) {
+  if (!currentTrack) return;
+
+  const saved = await createCentralTimestampComment({
+    entry_type: "audio",
+    entry_id: currentTrack.id,
+    entry_title:
+      currentTrack.displayTitle ||
+      currentTrack.title ||
+      currentTrack.name ||
+      "Audio recording",
+    source: "dropbox",
+    author,
+    comment: text,
+    seconds: pendingTimestampSeconds
+  });
+
+  timestampNotes[currentTrack.id] ||= [];
+  timestampNotes[currentTrack.id].push(saved);
+
+  saveTimestampNotes();
+  timestampComposer.classList.add("hidden");
+  timestampInput.value = "";
+
+  renderTimestampNotes();
+  renderTracks();
+  renderLatestActivity();
+  showShareToast("Timestamp note posted");
+}
+
 saveTimestampButton.addEventListener("click", async event => {
   event.preventDefault();
   event.stopPropagation();
 
-  if (!currentTrack) return;
-
+  const author = timestampAuthorInput.value.trim();
   const text = timestampInput.value.trim();
-  const author =
-    timestampAuthorInput.value.trim();
 
   if (!author) {
     timestampAuthorInput.focus();
@@ -2687,39 +2758,15 @@ saveTimestampButton.addEventListener("click", async event => {
     return;
   }
 
-  localStorage.setItem(
-    "gravitards-timestamp-author",
-    author
-  );
-
-  filmTimestampAuthorInput.value = author;
   saveTimestampButton.disabled = true;
 
   try {
-    const saved = await createCentralTimestampComment({
-      entry_type: "audio",
-      entry_id: currentTrack.id,
-      entry_title:
-        currentTrack.displayTitle ||
-        currentTrack.title ||
-        currentTrack.name ||
-        "Audio recording",
-      source: "dropbox",
-      author,
-      comment: text,
-      seconds: pendingTimestampSeconds
-    });
-
-    timestampNotes[currentTrack.id] ||= [];
-    timestampNotes[currentTrack.id].push(saved);
-
-    saveTimestampNotes();
-    timestampComposer.classList.add("hidden");
-    timestampInput.value = "";
-
-    renderTimestampNotes();
-    renderTracks();
-    renderLatestActivity();
+    localStorage.setItem(
+      "gravitards-timestamp-author",
+      author
+    );
+    filmTimestampAuthorInput.value = author;
+    await saveAudioTimestampNote(author, text);
   } catch (error) {
     showShareToast(error.message);
   } finally {
@@ -2733,6 +2780,96 @@ timestampInput.addEventListener("keydown", event => {
   }
 });
 
+
+
+function isMobileComposerLayout() {
+  return window.matchMedia("(max-width: 700px)").matches;
+}
+
+function closeMobileCommentComposer() {
+  mobileCommentComposer.classList.add("hidden");
+  document.body.classList.remove("mobile-composer-open");
+  mobileComposerAction = null;
+
+  const trigger = mobileComposerTrigger;
+  mobileComposerTrigger = null;
+
+  if (trigger?.isConnected) {
+    trigger.focus({ preventScroll: true });
+  }
+}
+
+function openMobileCommentComposer({
+  mode,
+  title,
+  context,
+  textLabel,
+  placeholder,
+  author,
+  action,
+  trigger
+}) {
+  mobileComposerMode.textContent = mode;
+  mobileComposerTitle.textContent = title;
+  mobileComposerContext.textContent = context || "";
+  mobileComposerTextLabel.textContent = textLabel;
+  mobileComposerText.placeholder = placeholder;
+  mobileComposerAuthor.value =
+    author ||
+    localStorage.getItem("gravitards-timestamp-author") ||
+    "";
+  mobileComposerText.value = "";
+
+  mobileComposerAction = action;
+  mobileComposerTrigger = trigger || document.activeElement;
+
+  mobileCommentComposer.classList.remove("hidden");
+  document.body.classList.add("mobile-composer-open");
+
+  window.setTimeout(() => {
+    const field = mobileComposerAuthor.value
+      ? mobileComposerText
+      : mobileComposerAuthor;
+
+    field.focus({ preventScroll: true });
+  }, 120);
+}
+
+async function submitMobileCommentComposer() {
+  if (!mobileComposerAction) return;
+
+  const author = mobileComposerAuthor.value.trim();
+  const text = mobileComposerText.value.trim();
+
+  if (!author) {
+    mobileComposerAuthor.focus();
+    return;
+  }
+
+  if (!text) {
+    mobileComposerText.focus();
+    return;
+  }
+
+  mobileComposerSubmit.disabled = true;
+
+  try {
+    localStorage.setItem(
+      "gravitards-timestamp-author",
+      author
+    );
+
+    timestampAuthorInput.value = author;
+    filmTimestampAuthorInput.value = author;
+
+    await mobileComposerAction({ author, text });
+    closeMobileCommentComposer();
+  } catch (error) {
+    showShareToast(error.message);
+  } finally {
+    mobileComposerSubmit.disabled = false;
+  }
+}
 
 async function handleTimestampDiscussionAction(
   event,
@@ -2772,6 +2909,60 @@ async function handleTimestampDiscussionAction(
       : openFilmTimestampReplyForms;
 
   if (event.target.closest("[data-timestamp-reply-toggle]")) {
+    if (isMobileComposerLayout()) {
+      const title =
+        discussion.dataset.timestampEntryTitle ||
+        "Timestamp discussion";
+
+      const secondsButton =
+        discussion.querySelector(".timestamp-jump");
+
+      openMobileCommentComposer({
+        mode: "Reply to timestamp",
+        title: "Reply",
+        context: `${title} · ${secondsButton?.textContent.trim() || ""}`,
+        textLabel: "Reply",
+        placeholder: "Write a reply…",
+        author:
+          timestampAuthorInput.value ||
+          filmTimestampAuthorInput.value,
+        trigger: event.target.closest(
+          "[data-timestamp-reply-toggle]"
+        ),
+        action: async ({ author, text }) => {
+          const saved = await createActivityReply({
+            entry_type:
+              discussion.dataset.timestampEntryType,
+            entry_id:
+              discussion.dataset.timestampEntryId,
+            entry_title:
+              discussion.dataset.timestampEntryTitle,
+            source:
+              discussion.dataset.timestampSource,
+            author,
+            comment: text,
+            seconds: null,
+            parent_id: Number(noteId)
+          });
+
+          activityReplies[noteId] ||= [];
+          activityReplies[noteId].push(saved);
+          expandedSet.add(noteId);
+
+          if (listType === "audio") {
+            renderTimestampNotes();
+          } else {
+            renderFilmTimestampNotes();
+          }
+
+          renderLatestActivity();
+          showShareToast("Reply posted");
+        }
+      });
+
+      return true;
+    }
+
     formSet.add(noteId);
 
     if (listType === "audio") {
@@ -3020,6 +3211,45 @@ filmTimestampAuthorInput.addEventListener("input", () => {
     filmTimestampAuthorInput.value;
 });
 
+mobileComposerSubmit.addEventListener(
+  "click",
+  () => {
+    void submitMobileCommentComposer();
+  }
+);
+
+mobileComposerCancel.addEventListener(
+  "click",
+  closeMobileCommentComposer
+);
+
+mobileComposerBackButton.addEventListener(
+  "click",
+  closeMobileCommentComposer
+);
+
+mobileCommentComposer.addEventListener(
+  "click",
+  event => {
+    if (event.target.closest("[data-mobile-composer-close]")) {
+      closeMobileCommentComposer();
+    }
+  }
+);
+
+mobileComposerText.addEventListener(
+  "keydown",
+  event => {
+    if (
+      event.key === "Enter" &&
+      (event.ctrlKey || event.metaKey)
+    ) {
+      event.preventDefault();
+      void submitMobileCommentComposer();
+    }
+  }
+);
+
 audio.addEventListener("play", () => {
   playButton.textContent = "❚❚";
   renderTracks();
@@ -3181,15 +3411,45 @@ saveFilmCommentButton.addEventListener("click", async () => {
   }
 });
 
+async function saveVideoTimestampNote(author, text) {
+  if (!currentFilm) return;
+
+  const seconds = Math.max(
+    0,
+    Math.floor(getCurrentFilmSeconds())
+  );
+
+  const saved = await createCentralTimestampComment({
+    entry_type: "video",
+    entry_id: currentFilm.id,
+    entry_title:
+      currentFilm.title ||
+      currentFilm.originalName ||
+      "Video",
+    source: activeFilmSource,
+    author,
+    comment: text,
+    seconds
+  });
+
+  filmTimestampNotes[currentFilm.id] ||= [];
+  filmTimestampNotes[currentFilm.id].push(saved);
+
+  saveFilmTimestampNotes();
+  filmTimestampInput.value = "";
+
+  renderFilmTimestampNotes();
+  renderFilms();
+  renderLatestActivity();
+  showShareToast("Timestamp note posted");
+}
+
 saveFilmTimestampButton.addEventListener("click", async event => {
   event.preventDefault();
   event.stopPropagation();
 
-  if (!currentFilm) return;
-
+  const author = filmTimestampAuthorInput.value.trim();
   const text = filmTimestampInput.value.trim();
-  const author =
-    filmTimestampAuthorInput.value.trim();
 
   if (!author) {
     filmTimestampAuthorInput.focus();
@@ -3201,42 +3461,15 @@ saveFilmTimestampButton.addEventListener("click", async event => {
     return;
   }
 
-  const seconds = Math.max(
-    0,
-    Math.floor(getCurrentFilmSeconds())
-  );
-
-  localStorage.setItem(
-    "gravitards-timestamp-author",
-    author
-  );
-
-  timestampAuthorInput.value = author;
   saveFilmTimestampButton.disabled = true;
 
   try {
-    const saved = await createCentralTimestampComment({
-      entry_type: "video",
-      entry_id: currentFilm.id,
-      entry_title:
-        currentFilm.title ||
-        currentFilm.originalName ||
-        "Video",
-      source: activeFilmSource,
-      author,
-      comment: text,
-      seconds
-    });
-
-    filmTimestampNotes[currentFilm.id] ||= [];
-    filmTimestampNotes[currentFilm.id].push(saved);
-
-    saveFilmTimestampNotes();
-    filmTimestampInput.value = "";
-
-    renderFilmTimestampNotes();
-    renderFilms();
-    renderLatestActivity();
+    localStorage.setItem(
+      "gravitards-timestamp-author",
+      author
+    );
+    timestampAuthorInput.value = author;
+    await saveVideoTimestampNote(author, text);
   } catch (error) {
     showShareToast(error.message);
   } finally {
@@ -3533,6 +3766,7 @@ document.addEventListener("click", event => {
 document.addEventListener("keydown", event => {
   if (event.key === "Escape") {
     closeAllShareMenus();
+    closeMobileCommentComposer();
   }
 });
 
