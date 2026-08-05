@@ -3191,11 +3191,6 @@ body:has(#filmArchiveView:not(.hidden)) {
 }
 
 
-/* V10 – remove the obsolete archive quick-actions row */
-#audioArchiveView .quick-actions {
-  display: none !important;
-}
-
 /* Robust copy confirmation above the fixed player */
 .share-toast {
   position: fixed;

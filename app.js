@@ -55,10 +55,10 @@ const nextButton = document.querySelector("#nextButton");
 const shuffleButton = document.querySelector("#shuffleButton");
 const repeatButton = document.querySelector("#repeatButton");
 const downloadCurrentButton = document.querySelector("#downloadCurrentButton");
-const shuffleAllButton = document.querySelector("#shuffleAllButton");
+const shuffleAllButton = null;
 const refreshButton = document.querySelector("#refreshButton");
-const expandAllButton = document.querySelector("#expandAllButton");
-const collapseAllButton = document.querySelector("#collapseAllButton");
+const expandAllButton = null;
+const collapseAllButton = null;
 const seekBar = document.querySelector("#seekBar");
 const seekWrap = document.querySelector("#seekWrap");
 const seekTooltip = document.querySelector("#seekTooltip");
@@ -82,8 +82,8 @@ const saveTimestampButton = document.querySelector("#saveTimestampButton");
 const cancelTimestampButton = document.querySelector("#cancelTimestampButton");
 const timestampList = document.querySelector("#timestampList");
 const yearJumpSelect = document.querySelector("#yearJumpSelect");
-const favoritesFilterButton = document.querySelector("#favoritesFilterButton");
-const recentFilterButton = document.querySelector("#recentFilterButton");
+const favoritesFilterButton = null;
+const recentFilterButton = null;
 const commentInput = document.querySelector("#commentInput");
 const commentAuthorInput = document.querySelector("#commentAuthorInput");
 const audioCommentList = document.querySelector("#audioCommentList");
@@ -650,12 +650,7 @@ async function postSharedComment(entryType, entryId, author, comment) {
   return data.comment;
 }
 
-function updateFilterButtons() {
-  favoritesFilterButton.classList.toggle("active", activeFilter === "favorites");
-  recentFilterButton.classList.toggle("active", activeFilter === "recent");
-  favoritesFilterButton.textContent =
-    `${activeFilter === "favorites" ? "★" : "☆"} Favoritees (${favoriteIds.size})`;
-}
+function updateFilterButtons() {}
 
 async function loadCommentForCurrentTrack() {
   if (!currentTrack) {
@@ -1873,19 +1868,6 @@ sortSelect.addEventListener("change", () => {
   renderTracks();
 });
 
-expandAllButton.addEventListener("click", () => {
-  collapsedYears.clear();
-  saveCollapsedYears();
-  renderTracks();
-});
-
-collapseAllButton.addEventListener("click", () => {
-  visibleTracks.forEach(track => collapsedYears.add(String(track.year)));
-  saveCollapsedYears();
-  renderTracks();
-});
-
-
 yearJumpSelect.addEventListener("change", () => {
   const year = yearJumpSelect.value;
   if (!year) return;
@@ -1912,20 +1894,30 @@ vaultTimeline.addEventListener("click", event => {
   const button = event.target.closest("[data-timeline-year]");
   if (!button) return;
 
+  const selectedYear = button.dataset.timelineYear;
+
   timelineYearFilter =
-    timelineYearFilter === button.dataset.timelineYear
+    timelineYearFilter === selectedYear
       ? null
-      : button.dataset.timelineYear;
+      : selectedYear;
+
+  // A year button should always show the complete year.
+  activeFilter = "all";
+  searchInput.value = "";
 
   renderTimeline();
   renderTracks();
 
   if (timelineYearFilter) {
     requestAnimationFrame(() => {
-      document.querySelector(".year-group")?.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
-      });
+      document
+        .querySelector(
+          `.year-group[data-year="${CSS.escape(timelineYearFilter)}"]`
+        )
+        ?.scrollIntoView({
+          behavior: "smooth",
+          block: "start"
+        });
     });
   }
 });
@@ -2001,16 +1993,6 @@ timestampList.addEventListener("click", event => {
   renderTracks();
 });
 
-favoritesFilterButton.addEventListener("click", () => {
-  activeFilter = activeFilter === "favorites" ? "all" : "favorites";
-  renderTracks();
-});
-
-recentFilterButton.addEventListener("click", () => {
-  activeFilter = activeFilter === "recent" ? "all" : "recent";
-  renderTracks();
-});
-
 saveCommentButton.addEventListener("click", async () => {
   if (!currentTrack) return;
 
@@ -2053,15 +2035,6 @@ commentInput.addEventListener("keydown", event => {
   if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
     saveCommentButton.click();
   }
-});
-
-shuffleAllButton.addEventListener("click", () => {
-  if (!tracks.length) return;
-  shuffled = true;
-  shuffledQueue = [];
-  shuffleButton.classList.add("on");
-  const queue = buildQueue();
-  playTrack(queue[0]);
 });
 
 downloadCurrentButton.addEventListener("click", () => {
