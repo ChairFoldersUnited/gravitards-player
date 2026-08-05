@@ -113,9 +113,21 @@
         <div id="timestampComposer" class="timestamp-composer hidden">
           <div class="timestamp-time-row">
             <strong id="timestampComposerTime">0:00</strong>
-            <span>Aktuell position</span>
+            <span>Current position</span>
           </div>
-          <textarea id="timestampInput" rows="3" maxlength="500" placeholder="Vad händer här?"></textarea>
+          <label class="timestamp-field">
+            <span>Name</span>
+            <input id="timestampAuthorInput"
+                   type="text"
+                   maxlength="80"
+                   autocomplete="name"
+                   placeholder="Your name">
+          </label>
+
+          <textarea id="timestampInput"
+                    rows="3"
+                    maxlength="500"
+                    placeholder="What happens here?"></textarea>
           <div class="comments-actions">
             <button id="saveTimestampButton" class="gold-button" type="button">Save note</button>
             <button id="cancelTimestampButton" class="text-button" type="button">Cancel</button>
@@ -444,14 +456,23 @@
 
           <div class="film-timestamp-composer">
             <div class="film-current-position">
-              <span>Aktuell videoposition</span>
+              <span>Current video position</span>
               <strong id="filmCurrentTime">0:00</strong>
             </div>
+
+            <label class="timestamp-field">
+              <span>Name</span>
+              <input id="filmTimestampAuthorInput"
+                     type="text"
+                     maxlength="80"
+                     autocomplete="name"
+                     placeholder="Your name">
+            </label>
 
             <textarea id="filmTimestampInput"
                       rows="3"
                       maxlength="500"
-                      placeholder="Skriv vad som händer vid den aktuella positionen…"></textarea>
+                      placeholder="What happens at this position?"></textarea>
 
             <div class="comments-actions">
               <button id="saveFilmTimestampButton"
@@ -464,7 +485,7 @@
           </div>
 
           <div id="filmTimestampList" class="timestamp-list">
-            <p class="empty-timestamps">Select a video för att se anteckningar.</p>
+            <p class="empty-timestamps">Select a video to view timestamp notes.</p>
           </div>
         </section>
       </section>
@@ -489,11 +510,11 @@
             <label class="sort-box film-sort-box">
               <span>Sort</span>
               <select id="filmSortSelect">
-                <option value="playlist">Spellistans ordning</option>
+                <option value="playlist">Playlist order</option>
                 <option value="newest">Newest first</option>
                 <option value="oldest">Oldest first</option>
-                <option value="title">Titel A–Ö</option>
-                <option value="duration">Längsta först</option>
+                <option value="title">Title A–Z</option>
+                <option value="duration">Longest first</option>
               </select>
             </label>
 

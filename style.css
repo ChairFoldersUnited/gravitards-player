@@ -3592,3 +3592,73 @@ body:has(#filmArchiveView:not(.hidden)) {
     font-size: .7rem;
   }
 }
+
+
+/* V12 – unified, mobile-friendly timestamp comments */
+.timestamp-field {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.timestamp-field > span {
+  color: #8f887d;
+  font-family: Oswald, sans-serif;
+  font-size: .68rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.timestamp-field input,
+.timestamp-composer textarea,
+.film-timestamp-composer textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  font-size: 16px;
+}
+
+.timestamp-note-author {
+  display: block;
+  margin-top: 5px;
+  color: #817a70;
+  font-family: Oswald, sans-serif;
+  font-size: .66rem;
+  letter-spacing: .05em;
+}
+
+#addTimestampButton,
+#saveTimestampButton,
+#cancelTimestampButton,
+#saveFilmTimestampButton {
+  min-height: 46px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 700px) {
+  .timestamp-card,
+  .film-timestamp-card,
+  .timestamp-composer,
+  .film-timestamp-composer {
+    overflow: visible;
+  }
+
+  .timestamp-composer {
+    scroll-margin-bottom:
+      calc(var(--bottom-player-height) + 24px);
+  }
+
+  .timestamp-composer .comments-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  #saveTimestampButton,
+  #cancelTimestampButton,
+  #saveFilmTimestampButton {
+    width: 100%;
+  }
+}

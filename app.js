@@ -63,6 +63,8 @@ const filmCommentStatus = document.querySelector("#filmCommentStatus");
 const saveFilmCommentButton = document.querySelector("#saveFilmCommentButton");
 const filmCurrentTime = document.querySelector("#filmCurrentTime");
 const filmTimestampInput = document.querySelector("#filmTimestampInput");
+const filmTimestampAuthorInput =
+  document.querySelector("#filmTimestampAuthorInput");
 const saveFilmTimestampButton = document.querySelector("#saveFilmTimestampButton");
 const filmTimestampList = document.querySelector("#filmTimestampList");
 const yearGroups = document.querySelector("#yearGroups");
@@ -98,6 +100,8 @@ const addTimestampButton = document.querySelector("#addTimestampButton");
 const timestampComposer = document.querySelector("#timestampComposer");
 const timestampComposerTime = document.querySelector("#timestampComposerTime");
 const timestampInput = document.querySelector("#timestampInput");
+const timestampAuthorInput =
+  document.querySelector("#timestampAuthorInput");
 const saveTimestampButton = document.querySelector("#saveTimestampButton");
 const cancelTimestampButton = document.querySelector("#cancelTimestampButton");
 const timestampList = document.querySelector("#timestampList");
@@ -129,11 +133,17 @@ let filmSharedComments = [];
 let filmYearFilter = null;
 let filmClockTimer = null;
 let activeActivityFilter = "all";
+const savedTimestampAuthor =
+  localStorage.getItem("gravitards-timestamp-author") || "";
+
+timestampAuthorInput.value = savedTimestampAuthor;
+filmTimestampAuthorInput.value = savedTimestampAuthor;
+
 
 const FILM_TIMESTAMPS_STORAGE_KEY = "gravitards-film-timestamps";
 
 
-const filmTimestampNotes = JSON.parse(
+let filmTimestampNotes = JSON.parse(
   localStorage.getItem(FILM_TIMESTAMPS_STORAGE_KEY) || "{}"
 );
 let visibleTracks = [];
@@ -157,7 +167,7 @@ const favoriteIds = new Set(
 );
 let savedCommentAuthor = localStorage.getItem(COMMENT_AUTHOR_STORAGE_KEY) || "";
 let recentIds = JSON.parse(localStorage.getItem(RECENT_STORAGE_KEY) || "[]");
-const timestampNotes = JSON.parse(
+let timestampNotes = JSON.parse(
   localStorage.getItem(TIMESTAMPS_STORAGE_KEY) || "{}"
 );
 
@@ -792,7 +802,12 @@ function renderTimestampNotes() {
               data-jump-seconds="${note.seconds}">
         ${formatTime(note.seconds)}
       </button>
-      <div class="timestamp-text">${escapeHtml(note.text)}</div>
+      <div class="timestamp-text">
+        ${escapeHtml(note.text)}
+        <span class="timestamp-note-author">
+          ${escapeHtml(note.author || "Anonymous")}
+        </span>
+      </div>
       <button class="timestamp-delete"
               type="button"
               data-delete-timestamp="${index}"
@@ -1109,7 +1124,12 @@ function renderFilmTimestampNotes() {
               data-film-jump="${note.seconds}">
         ${formatFilmDuration(note.seconds)}
       </button>
-      <div class="timestamp-text">${escapeHtml(note.text)}</div>
+      <div class="timestamp-text">
+        ${escapeHtml(note.text)}
+        <span class="timestamp-note-author">
+          ${escapeHtml(note.author || "Anonymous")}
+        </span>
+      </div>
       <button class="timestamp-delete"
               type="button"
               data-film-timestamp-delete="${index}"
@@ -1712,6 +1732,135 @@ async function tryOpenSharedFilm() {
 }
 
 
+
+function normalizeVaultTimestampComment(row) {
+  return {
+    id: row.id,
+    seconds: Math.max(0, Number(row.seconds || 0)),
+    text: row.comment || row.text || "",
+    author: row.author || "Anonymous",
+    createdAt: row.created_at || row.createdAt || "",
+    entryTitle: row.entry_title || row.entryTitle || "",
+    source: row.source || ""
+  };
+}
+
+function groupVaultTimestampComments(rows) {
+  const audio = {};
+  const video = {};
+
+  for (const row of rows || []) {
+    if (
+      row.seconds === null ||
+      row.seconds === undefined
+    ) {
+      continue;
+    }
+
+    const target =
+      row.entry_type === "video"
+        ? video
+        : audio;
+
+    target[row.entry_id] ||= [];
+    target[row.entry_id].push(
+      normalizeVaultTimestampComment(row)
+    );
+  }
+
+  return { audio, video };
+}
+
+async function loadCentralTimestampComments() {
+  const response = await fetch(
+    "/api/comments?latest=1&limit=1000",
+    { cache: "no-store" }
+  );
+
+  const rawText = await response.text();
+  let data = {};
+
+  try {
+    data = rawText ? JSON.parse(rawText) : {};
+  } catch {
+    throw new Error(
+      rawText || "Could not load timestamp notes."
+    );
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      data.error || "Could not load timestamp notes."
+    );
+  }
+
+  const grouped = groupVaultTimestampComments(
+    data.comments || []
+  );
+
+  timestampNotes = grouped.audio;
+  filmTimestampNotes = grouped.video;
+
+  saveTimestampNotes();
+  saveFilmTimestampNotes();
+
+  renderTimestampNotes();
+  renderFilmTimestampNotes();
+  renderTracks();
+  renderFilms();
+  renderLatestActivity();
+}
+
+async function createCentralTimestampComment(payload) {
+  const response = await fetch(
+    "/api/comments",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    }
+  );
+
+  const rawText = await response.text();
+  let data = {};
+
+  try {
+    data = rawText ? JSON.parse(rawText) : {};
+  } catch {
+    throw new Error(
+      rawText || "Could not save timestamp note."
+    );
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      data.error || "Could not save timestamp note."
+    );
+  }
+
+  return normalizeVaultTimestampComment(
+    data.comment || {}
+  );
+}
+
+async function deleteCentralTimestampComment(id) {
+  if (!id) return;
+
+  const response = await fetch(
+    `/api/comments/${encodeURIComponent(id)}`,
+    { method: "DELETE" }
+  );
+
+  if (!response.ok) {
+    const rawText = await response.text();
+    throw new Error(
+      rawText || "Could not delete timestamp note."
+    );
+  }
+}
+
 function formatActivityDate(value) {
   if (!value) return "Unknown date";
 
@@ -1746,9 +1895,14 @@ function getLatestActivityEntries() {
         type: "audio",
         id: trackId,
         source: "dropbox",
-        title: track?.displayTitle || track?.title || "Audio recording",
+        title:
+          track?.displayTitle ||
+          track?.title ||
+          note.entryTitle ||
+          "Audio recording",
         seconds: Number(note.seconds || 0),
         text: note.text || "",
+        author: note.author || "Anonymous",
         createdAt: note.createdAt || ""
       });
     }
@@ -1768,9 +1922,13 @@ function getLatestActivityEntries() {
         type: "video",
         id: filmId,
         source: film?.source || getFilmSourceFromId(filmId),
-        title: film?.title || "Video",
+        title:
+          film?.title ||
+          note.entryTitle ||
+          "Video",
         seconds: Number(note.seconds || 0),
         text: note.text || "",
+        author: note.author || "Anonymous",
         createdAt: note.createdAt || ""
       });
     }
@@ -1837,6 +1995,7 @@ function renderLatestActivity() {
             <span class="activity-timestamp">
               ${formatTime(entry.seconds)}
             </span>
+            <span>${escapeHtml(entry.author || "Anonymous")}</span>
             <span>${escapeHtml(formatActivityDate(entry.createdAt))}</span>
           </span>
         </span>
@@ -2123,14 +2282,33 @@ clearTimelineFilterButton.addEventListener("click", () => {
   renderTracks();
 });
 
-addTimestampButton.addEventListener("click", () => {
+addTimestampButton.addEventListener("click", event => {
+  event.preventDefault();
+  event.stopPropagation();
+
   if (!currentTrack) return;
 
-  pendingTimestampSeconds = Math.max(0, Math.floor(audio.currentTime || 0));
-  timestampComposerTime.textContent = formatTime(pendingTimestampSeconds);
+  pendingTimestampSeconds = Math.max(
+    0,
+    Math.floor(audio.currentTime || 0)
+  );
+
+  timestampComposerTime.textContent =
+    formatTime(pendingTimestampSeconds);
+
   timestampInput.value = "";
   timestampComposer.classList.remove("hidden");
-  timestampInput.focus();
+
+  window.setTimeout(() => {
+    timestampComposer.scrollIntoView({
+      behavior: "smooth",
+      block: "center"
+    });
+
+    timestampAuthorInput.focus({
+      preventScroll: true
+    });
+  }, 80);
 });
 
 cancelTimestampButton.addEventListener("click", () => {
@@ -2138,28 +2316,64 @@ cancelTimestampButton.addEventListener("click", () => {
   timestampInput.value = "";
 });
 
-saveTimestampButton.addEventListener("click", () => {
+saveTimestampButton.addEventListener("click", async event => {
+  event.preventDefault();
+  event.stopPropagation();
+
   if (!currentTrack) return;
 
   const text = timestampInput.value.trim();
+  const author =
+    timestampAuthorInput.value.trim();
+
+  if (!author) {
+    timestampAuthorInput.focus();
+    return;
+  }
+
   if (!text) {
     timestampInput.focus();
     return;
   }
 
-  timestampNotes[currentTrack.id] ||= [];
-  timestampNotes[currentTrack.id].push({
-    seconds: pendingTimestampSeconds,
-    text,
-    createdAt: new Date().toISOString()
-  });
+  localStorage.setItem(
+    "gravitards-timestamp-author",
+    author
+  );
 
-  saveTimestampNotes();
-  timestampComposer.classList.add("hidden");
-  timestampInput.value = "";
-  renderTimestampNotes();
-  renderTracks();
-  renderLatestActivity();
+  filmTimestampAuthorInput.value = author;
+  saveTimestampButton.disabled = true;
+
+  try {
+    const saved = await createCentralTimestampComment({
+      entry_type: "audio",
+      entry_id: currentTrack.id,
+      entry_title:
+        currentTrack.displayTitle ||
+        currentTrack.title ||
+        currentTrack.name ||
+        "Audio recording",
+      source: "dropbox",
+      author,
+      comment: text,
+      seconds: pendingTimestampSeconds
+    });
+
+    timestampNotes[currentTrack.id] ||= [];
+    timestampNotes[currentTrack.id].push(saved);
+
+    saveTimestampNotes();
+    timestampComposer.classList.add("hidden");
+    timestampInput.value = "";
+
+    renderTimestampNotes();
+    renderTracks();
+    renderLatestActivity();
+  } catch (error) {
+    showShareToast(error.message);
+  } finally {
+    saveTimestampButton.disabled = false;
+  }
 });
 
 timestampInput.addEventListener("keydown", event => {
@@ -2168,7 +2382,7 @@ timestampInput.addEventListener("keydown", event => {
   }
 });
 
-timestampList.addEventListener("click", event => {
+timestampList.addEventListener("click", async event => {
   const jumpButton = event.target.closest("[data-jump-seconds]");
   if (jumpButton) {
     audio.currentTime = Number(jumpButton.dataset.jumpSeconds);
@@ -2180,13 +2394,25 @@ timestampList.addEventListener("click", event => {
   if (!deleteButton || !currentTrack) return;
 
   const notes = timestampNotes[currentTrack.id] || [];
-  notes.splice(Number(deleteButton.dataset.deleteTimestamp), 1);
+  const noteIndex =
+    Number(deleteButton.dataset.deleteTimestamp);
+  const note = notes[noteIndex];
 
-  if (!notes.length) delete timestampNotes[currentTrack.id];
+  try {
+    await deleteCentralTimestampComment(note?.id);
+    notes.splice(noteIndex, 1);
 
-  saveTimestampNotes();
-  renderTimestampNotes();
-  renderTracks();
+    if (!notes.length) {
+      delete timestampNotes[currentTrack.id];
+    }
+
+    saveTimestampNotes();
+    renderTimestampNotes();
+    renderTracks();
+    renderLatestActivity();
+  } catch (error) {
+    showShareToast(error.message);
+  }
 });
 
 saveCommentButton.addEventListener("click", async () => {
@@ -2270,6 +2496,16 @@ repeatButton.addEventListener("click", () => {
 
 refreshButton.addEventListener("click", () => loadTracks(true));
 
+
+timestampAuthorInput.addEventListener("input", () => {
+  filmTimestampAuthorInput.value =
+    timestampAuthorInput.value;
+});
+
+filmTimestampAuthorInput.addEventListener("input", () => {
+  timestampAuthorInput.value =
+    filmTimestampAuthorInput.value;
+});
 
 audio.addEventListener("play", () => {
   playButton.textContent = "❚❚";
@@ -2432,35 +2668,70 @@ saveFilmCommentButton.addEventListener("click", async () => {
   }
 });
 
-saveFilmTimestampButton.addEventListener("click", () => {
-  if (!currentFilm) {
-    return;
-  }
+saveFilmTimestampButton.addEventListener("click", async event => {
+  event.preventDefault();
+  event.stopPropagation();
+
+  if (!currentFilm) return;
 
   const text = filmTimestampInput.value.trim();
+  const author =
+    filmTimestampAuthorInput.value.trim();
+
+  if (!author) {
+    filmTimestampAuthorInput.focus();
+    return;
+  }
 
   if (!text) {
     filmTimestampInput.focus();
     return;
   }
 
-  const seconds = getCurrentFilmSeconds();
+  const seconds = Math.max(
+    0,
+    Math.floor(getCurrentFilmSeconds())
+  );
 
-  filmTimestampNotes[currentFilm.id] ||= [];
-  filmTimestampNotes[currentFilm.id].push({
-    seconds,
-    text,
-    createdAt: new Date().toISOString()
-  });
+  localStorage.setItem(
+    "gravitards-timestamp-author",
+    author
+  );
 
-  saveFilmTimestampNotes();
-  filmTimestampInput.value = "";
-  renderFilmTimestampNotes();
-  renderFilms();
-  renderLatestActivity();
+  timestampAuthorInput.value = author;
+  saveFilmTimestampButton.disabled = true;
+
+  try {
+    const saved = await createCentralTimestampComment({
+      entry_type: "video",
+      entry_id: currentFilm.id,
+      entry_title:
+        currentFilm.title ||
+        currentFilm.originalName ||
+        "Video",
+      source: activeFilmSource,
+      author,
+      comment: text,
+      seconds
+    });
+
+    filmTimestampNotes[currentFilm.id] ||= [];
+    filmTimestampNotes[currentFilm.id].push(saved);
+
+    saveFilmTimestampNotes();
+    filmTimestampInput.value = "";
+
+    renderFilmTimestampNotes();
+    renderFilms();
+    renderLatestActivity();
+  } catch (error) {
+    showShareToast(error.message);
+  } finally {
+    saveFilmTimestampButton.disabled = false;
+  }
 });
 
-filmTimestampList.addEventListener("click", event => {
+filmTimestampList.addEventListener("click", async event => {
   const jumpButton = event.target.closest("[data-film-jump]");
 
   if (jumpButton && currentFilm) {
@@ -2480,13 +2751,25 @@ filmTimestampList.addEventListener("click", event => {
   if (!deleteButton || !currentFilm) return;
 
   const notes = filmTimestampNotes[currentFilm.id] || [];
-  notes.splice(Number(deleteButton.dataset.filmTimestampDelete), 1);
+  const noteIndex =
+    Number(deleteButton.dataset.filmTimestampDelete);
+  const note = notes[noteIndex];
 
-  if (!notes.length) delete filmTimestampNotes[currentFilm.id];
+  try {
+    await deleteCentralTimestampComment(note?.id);
+    notes.splice(noteIndex, 1);
 
-  saveFilmTimestampNotes();
-  renderFilmTimestampNotes();
-  renderFilms();
+    if (!notes.length) {
+      delete filmTimestampNotes[currentFilm.id];
+    }
+
+    saveFilmTimestampNotes();
+    renderFilmTimestampNotes();
+    renderFilms();
+    renderLatestActivity();
+  } catch (error) {
+    showShareToast(error.message);
+  }
 });
 
 filmCommentInput.addEventListener("keydown", event => {
@@ -2812,6 +3095,13 @@ activeFilmSource =
 updateFilmPortalState();
 
 preloadFilmCounts();
+void loadCentralTimestampComments().catch(error => {
+  console.error(
+    "Could not load central timestamp comments:",
+    error
+  );
+});
+
 
 activeAudioSource = "vault";
 initializeSoundCloudWidget();

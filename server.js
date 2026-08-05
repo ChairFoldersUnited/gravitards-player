@@ -521,32 +521,57 @@ function validateCommentInput(value, field, maxLength) {
 
 app.get("/api/comments", async (req, res) => {
   try {
-    const entryType = validateCommentInput(
-      req.query.type,
-      "Kommentarstyp",
-      10
+    const latest = String(req.query.latest || "") === "1";
+    const timestamps = String(req.query.timestamps || "") === "1";
+    const requestedLimit = Number(req.query.limit || 500);
+    const limit = Math.min(
+      1000,
+      Math.max(
+        1,
+        Number.isFinite(requestedLimit)
+          ? Math.floor(requestedLimit)
+          : 500
+      )
     );
-
-    const entryId = validateCommentInput(
-      req.query.id,
-      "Entry-ID",
-      500
-    );
-
-    if (!["audio", "video"].includes(entryType)) {
-      return res.status(400).json({
-        error:
-          "Kommentarstypen måste vara audio eller video."
-      });
-    }
 
     const query = new URLSearchParams({
       select:
-        "id,entry_type,entry_id,author,comment,created_at",
-      entry_type: `eq.${entryType}`,
-      entry_id: `eq.${entryId}`,
-      order: "created_at.asc"
+        "id,entry_type,entry_id,entry_title,source,author,comment,seconds,created_at",
+      order: latest ? "created_at.desc" : "created_at.asc",
+      limit: String(limit)
     });
+
+    if (latest) {
+      query.set("seconds", "not.is.null");
+    } else {
+      const entryType = validateCommentInput(
+        req.query.type,
+        "Comment type",
+        10
+      );
+
+      const entryId = validateCommentInput(
+        req.query.id,
+        "Entry ID",
+        500
+      );
+
+      if (!["audio", "video"].includes(entryType)) {
+        return res.status(400).json({
+          error: "Comment type must be audio or video."
+        });
+      }
+
+      query.set("entry_type", `eq.${entryType}`);
+      query.set("entry_id", `eq.${entryId}`);
+
+      // Existing comment panels only show ordinary comments.
+      // Timestamp panels explicitly request timestamps=1.
+      query.set(
+        "seconds",
+        timestamps ? "not.is.null" : "is.null"
+      );
+    }
 
     const comments = await supabaseRequest(
       `vault_comments?${query.toString()}`
@@ -560,7 +585,7 @@ app.get("/api/comments", async (req, res) => {
     console.error(error);
 
     const status =
-      /måste|högst|Kommentarstyp/.test(error.message)
+      /must|Comment type|Entry ID/.test(error.message)
         ? 400
         : 500;
 
@@ -574,34 +599,58 @@ app.post("/api/comments", async (req, res) => {
   try {
     const entryType = validateCommentInput(
       req.body?.entry_type,
-      "Kommentarstyp",
+      "Comment type",
       10
     );
 
     const entryId = validateCommentInput(
       req.body?.entry_id,
-      "Entry-ID",
+      "Entry ID",
       500
     );
 
     const author = validateCommentInput(
       req.body?.author,
-      "Namn",
+      "Name",
       80
     );
 
     const comment = validateCommentInput(
       req.body?.comment,
-      "Kommentar",
+      "Comment",
       2000
     );
 
     if (!["audio", "video"].includes(entryType)) {
       return res.status(400).json({
-        error:
-          "Kommentarstypen måste vara audio eller video."
+        error: "Comment type must be audio or video."
       });
     }
+
+    const rawSeconds = req.body?.seconds;
+    const seconds =
+      rawSeconds === null ||
+      rawSeconds === undefined ||
+      rawSeconds === ""
+        ? null
+        : Math.max(0, Math.floor(Number(rawSeconds)));
+
+    if (
+      seconds !== null &&
+      !Number.isFinite(seconds)
+    ) {
+      return res.status(400).json({
+        error: "Timestamp must be a valid number."
+      });
+    }
+
+    const entryTitle = String(
+      req.body?.entry_title || ""
+    ).trim().slice(0, 500);
+
+    const source = String(
+      req.body?.source || ""
+    ).trim().slice(0, 80);
 
     const inserted = await supabaseRequest(
       "vault_comments",
@@ -613,8 +662,11 @@ app.post("/api/comments", async (req, res) => {
         body: JSON.stringify({
           entry_type: entryType,
           entry_id: entryId,
+          entry_title: entryTitle || null,
+          source,
           author,
-          comment
+          comment,
+          seconds
         })
       }
     );
@@ -626,11 +678,40 @@ app.post("/api/comments", async (req, res) => {
     console.error(error);
 
     const status =
-      /måste|högst|Kommentarstyp/.test(error.message)
+      /must|Comment type|Entry ID|Timestamp/.test(
+        error.message
+      )
         ? 400
         : 500;
 
     res.status(status).json({
+      error: error.message
+    });
+  }
+});
+
+app.delete("/api/comments/:id", async (req, res) => {
+  try {
+    const commentId = validateCommentInput(
+      req.params.id,
+      "Comment ID",
+      100
+    );
+
+    await supabaseRequest(
+      `vault_comments?id=eq.${encodeURIComponent(commentId)}`,
+      {
+        method: "DELETE",
+        headers: {
+          Prefer: "return=minimal"
+        }
+      }
+    );
+
+    res.status(204).end();
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
       error: error.message
     });
   }
