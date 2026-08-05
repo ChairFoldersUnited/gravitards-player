@@ -237,7 +237,11 @@ async function copyCurrentTrackLink() {
   const params = new URLSearchParams();
   params.set("archive", "audio");
   params.set("source", "dropbox");
-  params.set("id", String(currentTrack.id));
+  params.set(
+    "id",
+    String(currentTrack.id || currentTrack.dropboxId || "")
+      .replace(/^(?:id:)+/i, "")
+  );
 
   const seconds =
     Number.isFinite(audio.currentTime) && audio.currentTime > 0
@@ -446,7 +450,7 @@ function addTimestampShareButtons(container, archive) {
         if (!url) return;
 
         await copyTextToClipboard(url);
-        showShareToast("Timestamp link copied");
+        showShareToast("Link with current time copied");
       });
 
       const deleteButton = note.querySelector(".timestamp-delete");
@@ -1605,13 +1609,31 @@ function tryOpenSharedAudio() {
     return false;
   }
 
-  const track = tracks.find(
-    item => item.id === pendingSharedLocation.id
+  const normalizeSharedId = value =>
+    decodeURIComponent(String(value || ""))
+      .replace(/^(?:id:)+/i, "")
+      .trim();
+
+  const wantedId = normalizeSharedId(
+    pendingSharedLocation.id
   );
+
+  const track = tracks.find(item => {
+    const candidates = [
+      item.id,
+      item.dropboxId,
+      item.pathLower,
+      item.pathDisplay
+    ];
+
+    return candidates.some(
+      candidate =>
+        normalizeSharedId(candidate) === wantedId
+    );
+  });
 
   if (!track) {
     showShareToast("The track in this link could not be found");
-    pendingSharedLocation = null;
     return false;
   }
 
