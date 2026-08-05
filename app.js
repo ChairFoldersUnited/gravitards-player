@@ -5,6 +5,7 @@ const audioNextEntryButton = document.querySelector("#audioNextEntryButton");
 const audioDownloadEntryButton = document.querySelector("#audioDownloadEntryButton");
 const audioArchiveTab = document.querySelector("#audioArchiveTab");
 const filmArchiveTab = document.querySelector("#filmArchiveTab");
+const filmArchiveCount = document.querySelector("#filmArchiveCount");
 const audioArchiveView = document.querySelector("#audioArchiveView");
 const filmArchiveView = document.querySelector("#filmArchiveView");
 const audioArchiveCount = document.querySelector("#audioArchiveCount");
@@ -1264,6 +1265,33 @@ function stepFilm(direction) {
   selectFilm(queue[nextIndex]);
 }
 
+
+function updateFilmArchiveCount() {
+  const total =
+    youtubeFilms.length +
+    facebookStreams.length +
+    instagramStreams.length;
+
+  if (filmArchiveCount) {
+    filmArchiveCount.textContent =
+      `${total} ${total === 1 ? "FILM" : "FILMER"}`;
+  }
+}
+
+async function preloadFilmCounts(force = false) {
+  try {
+    await Promise.all([
+      loadYouTubeFilms(force),
+      loadFacebookStreams(force),
+      loadInstagramStreams(force)
+    ]);
+
+    updateFilmArchiveCount();
+  } catch (error) {
+    console.error("Kunde inte läsa filmräknarna:", error);
+  }
+}
+
 async function loadYouTubeFilms(force = false) {
   if (youtubeFilms.length && !force) return youtubeFilms;
 
@@ -1291,6 +1319,7 @@ async function loadYouTubeFilms(force = false) {
   }
 
   youtubeFilms = data.videos || [];
+  updateFilmArchiveCount();
   youtubeFilmsCount.textContent =
     `${youtubeFilms.length} ${youtubeFilms.length === 1 ? "video" : "videor"}`;
 
@@ -1325,6 +1354,7 @@ async function loadFacebookStreams(force = false) {
   }
 
   facebookStreams = data.streams || [];
+  updateFilmArchiveCount();
   facebookStreamsCount.textContent =
     `${facebookStreams.length} ${facebookStreams.length === 1 ? "stream" : "streams"}`;
 
@@ -1358,6 +1388,7 @@ async function loadInstagramStreams(force = false) {
   }
 
   instagramStreams = data.streams || [];
+  updateFilmArchiveCount();
   instagramStreamsCount.textContent =
     `${instagramStreams.length} ${
       instagramStreams.length === 1 ? "stream" : "streams"
@@ -1404,8 +1435,7 @@ async function loadFilms(force = false) {
       }
     }
 
-    filmArchiveTab.querySelector("small").textContent =
-      `${youtubeFilms.length + facebookStreams.length + instagramStreams.length} filmer`;
+    updateFilmArchiveCount();
   } catch (error) {
     filmMessage.textContent = error.message;
     filmMessage.classList.remove("hidden");
@@ -2264,7 +2294,13 @@ filmGrid.addEventListener("click", event => {
 
 filmSearchInput.addEventListener("input", renderFilms);
 filmSortSelect.addEventListener("change", renderFilms);
-refreshFilmsButton.addEventListener("click", () => loadFilms(true));
+refreshFilmsButton.addEventListener("click", async () => {
+  await preloadFilmCounts(true);
+
+  if (activeFilmSource) {
+    await loadFilms();
+  }
+});
 
 
 shareAudioButton.addEventListener("click", async () => {
@@ -2339,6 +2375,8 @@ activeFilmSource =
     : "";
 
 updateFilmPortalState();
+
+preloadFilmCounts();
 
 const savedArchiveView =
   localStorage.getItem("gravitards-archive-view") || "audio";
