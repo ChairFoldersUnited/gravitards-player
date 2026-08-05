@@ -3214,3 +3214,31 @@ body:has(#filmArchiveView:not(.hidden)) {
 .share-toast.hidden {
   display: none !important;
 }
+
+
+/* V10.2 – search-only Vault header */
+.library-tools {
+  display: flex;
+  justify-content: flex-end;
+  grid-template-columns: none;
+}
+
+.library-tools .search-box {
+  width: min(420px, 100%);
+  min-width: 260px;
+}
+
+.library-tools .search-box input {
+  width: 100%;
+}
+
+@media (max-width: 760px) {
+  .library-tools {
+    justify-content: stretch;
+  }
+
+  .library-tools .search-box {
+    width: 100%;
+    min-width: 0;
+  }
+}

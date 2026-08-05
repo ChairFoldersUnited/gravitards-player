@@ -72,23 +72,6 @@
             <span aria-hidden="true">⌕</span>
             <input id="searchInput" type="search" placeholder="Search recordings…" autocomplete="off">
           </label>
-
-          <label class="sort-box">
-            <span>Sort</span>
-            <select id="sortSelect">
-              <option value="year-desc">Newest year first</option>
-              <option value="year-asc">Oldest year first</option>
-              <option value="title-asc">Titel A–Ö</option>
-              <option value="modified-desc">Recently modified</option>
-            </select>
-          </label>
-
-          <label class="sort-box jump-box">
-            <span>Jump to</span>
-            <select id="yearJumpSelect">
-              <option value="">Choose year</option>
-            </select>
-          </label>
         </div>
       </header>
 
@@ -97,7 +80,7 @@
           <span>VAULT TIMELINE</span>
           <button id="clearTimelineFilterButton" class="text-button hidden" type="button">Show all years</button>
         </div>
-        <div id="vaultTimeline" class="vault-timeline" aria-label="Årtidslinje"></div>
+        <div id="vaultTimeline" class="vault-timeline" aria-label="Year timeline"></div>
       </section>
 <section id="message" class="message hidden" role="status"></section>
       <section id="yearGroups" class="year-groups" aria-label="Recordings grouped by year"></section>

@@ -47,7 +47,7 @@ const saveFilmTimestampButton = document.querySelector("#saveFilmTimestampButton
 const filmTimestampList = document.querySelector("#filmTimestampList");
 const yearGroups = document.querySelector("#yearGroups");
 const searchInput = document.querySelector("#searchInput");
-const sortSelect = document.querySelector("#sortSelect");
+const sortSelect = null;
 const message = document.querySelector("#message");
 const playButton = document.querySelector("#playButton");
 const prevButton = document.querySelector("#prevButton");
@@ -81,7 +81,7 @@ const timestampInput = document.querySelector("#timestampInput");
 const saveTimestampButton = document.querySelector("#saveTimestampButton");
 const cancelTimestampButton = document.querySelector("#cancelTimestampButton");
 const timestampList = document.querySelector("#timestampList");
-const yearJumpSelect = document.querySelector("#yearJumpSelect");
+const yearJumpSelect = null;
 const favoritesFilterButton = null;
 const recentFilterButton = null;
 const commentInput = document.querySelector("#commentInput");
@@ -490,7 +490,7 @@ function extractYear(track) {
   const modified = new Date(track.modified);
   if (!Number.isNaN(modified.getTime())) return modified.getFullYear();
 
-  return "Okänt år";
+  return "Unknown year";
 }
 
 function cleanTitle(track) {
@@ -539,7 +539,7 @@ function decorateTracks(rawTracks) {
 }
 
 function sortTracks(list) {
-  const mode = sortSelect.value;
+  const mode = sortSelect?.value || "year-desc";
   return [...list].sort((a, b) => {
     if (mode === "title-asc") {
       return a.displayTitle.localeCompare(b.displayTitle, "sv", { numeric: true });
@@ -815,17 +815,7 @@ function saveCollapsedYears() {
   );
 }
 
-function updateYearJump() {
-  const years = [...new Set(
-    tracks
-      .map(track => track.year)
-      .filter(year => typeof year === "number")
-  )].sort((a, b) => b - a);
-
-  yearJumpSelect.innerHTML =
-    '<option value="">Choose year</option>' +
-    years.map(year => `<option value="${year}">${year}</option>`).join("");
-}
+function updateYearJump() {}
 
 function updateSummary() {
   const numericYears = tracks
@@ -841,7 +831,7 @@ function updateSummary() {
     const last = numericYears.at(-1);
     archiveRange.textContent = first === last ? `${first}` : `${first}–${last}`;
   } else {
-    archiveRange.textContent = "Årtal saknas";
+    archiveRange.textContent = "Year unavailable";
   }
 
   const yearCount = new Set(tracks.map(track => String(track.year))).size;
@@ -964,7 +954,7 @@ function formatFilmDate(value) {
 
 function filmYear(film) {
   const date = new Date(film.publishedAt || film.addedAt);
-  return Number.isNaN(date.getTime()) ? "Okänt år" : date.getFullYear();
+  return Number.isNaN(date.getTime()) ? "Unknown year" : date.getFullYear();
 }
 
 function sortFilms(list) {
@@ -1863,33 +1853,6 @@ searchInput.addEventListener("input", () => {
   renderTracks();
 });
 
-sortSelect.addEventListener("change", () => {
-  shuffledQueue = [];
-  renderTracks();
-});
-
-yearJumpSelect.addEventListener("change", () => {
-  const year = yearJumpSelect.value;
-  if (!year) return;
-
-  collapsedYears.delete(year);
-  saveCollapsedYears();
-  renderTracks();
-
-  requestAnimationFrame(() => {
-    const group = document.querySelector(`.year-group[data-year="${CSS.escape(year)}"]`);
-    if (!group) return;
-
-    group.scrollIntoView({ behavior: "smooth", block: "start" });
-    group.classList.add("flash-highlight");
-    window.setTimeout(() => group.classList.remove("flash-highlight"), 1500);
-  });
-
-  yearJumpSelect.value = "";
-});
-
-
-
 vaultTimeline.addEventListener("click", event => {
   const button = event.target.closest("[data-timeline-year]");
   if (!button) return;
@@ -1904,6 +1867,11 @@ vaultTimeline.addEventListener("click", event => {
   // A year button should always show the complete year.
   activeFilter = "all";
   searchInput.value = "";
+
+  if (timelineYearFilter) {
+    collapsedYears.delete(String(timelineYearFilter));
+    saveCollapsedYears();
+  }
 
   renderTimeline();
   renderTracks();
