@@ -4160,3 +4160,104 @@ body:has(#filmArchiveView:not(.hidden)) {
       calc(var(--bottom-player-height) + 24px);
   }
 }
+
+
+/* V12.3.2 – dedicated mobile Timestamp Notes panel */
+.mobile-notes-button,
+.mobile-notes-close {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .mobile-notes-button {
+    display: inline-flex;
+  }
+
+  .mobile-notes-close {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    min-width: 42px;
+    height: 42px;
+    padding: 0;
+    border: 1px solid rgba(212,184,117,.3);
+    background: rgba(0,0,0,.3);
+    color: var(--bone);
+    font-size: 1.35rem;
+    line-height: 1;
+  }
+
+  #audioTimestampPanel.timestamp-card {
+    position: fixed;
+    z-index: 1900;
+    top: 10px;
+    right: 10px;
+    bottom: calc(var(--bottom-player-height) + 10px);
+    left: 10px;
+    display: none;
+    width: auto;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border: 1px solid rgba(212,184,117,.55);
+    background:
+      radial-gradient(
+        circle at top,
+        rgba(182,148,85,.09),
+        transparent 34%
+      ),
+      linear-gradient(
+        180deg,
+        rgba(25,23,20,.998),
+        rgba(7,7,6,.998)
+      );
+    box-shadow:
+      0 18px 55px rgba(0,0,0,.8),
+      0 0 0 9999px rgba(0,0,0,.64);
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #audioTimestampPanel.mobile-notes-panel-open {
+    display: block;
+  }
+
+  #audioTimestampPanel .timestamp-heading {
+    position: sticky;
+    z-index: 5;
+    top: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: 8px;
+    align-items: center;
+    padding: 13px;
+    background:
+      linear-gradient(
+        180deg,
+        rgba(29,27,23,.998),
+        rgba(19,18,16,.985)
+      );
+    border-bottom: 1px solid var(--line);
+  }
+
+  #audioTimestampPanel .timestamp-list {
+    max-height: none;
+    overflow: visible;
+    padding-bottom: 18px;
+  }
+
+  #audioTimestampPanel .timestamp-discussion {
+    scroll-margin-top: 86px;
+    scroll-margin-bottom: 24px;
+  }
+
+  body.mobile-notes-panel-active {
+    overflow: hidden;
+  }
+
+  #audioTimestampPanel:not(.mobile-notes-panel-open) {
+    display: none !important;
+  }
+}

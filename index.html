@@ -101,12 +101,20 @@
     <aside class="sidebar">
       
 
-<section class="timestamp-card">
+<section id="audioTimestampPanel" class="timestamp-card">
         <div class="timestamp-heading">
           <div>
             <h2>Timestamp Notes</h2>
             <p>Click a timestamp to jump there.</p>
           </div>
+
+          <button id="closeMobileNotesPanel"
+                  class="mobile-notes-close"
+                  type="button"
+                  aria-label="Close Timestamp Notes">
+            ×
+          </button>
+
           <button id="addTimestampButton" class="gold-button compact-button" type="button" disabled>+ Add note</button>
         </div>
 
@@ -621,6 +629,16 @@
         </div>
       
       <div class="bottom-player-actions">
+        <button id="mobileNotesButton"
+                class="bottom-player-action mobile-notes-button"
+                type="button"
+                disabled
+                aria-controls="audioTimestampPanel"
+                aria-expanded="false">
+          <span aria-hidden="true">💬</span>
+          <span>Notes</span>
+        </button>
+
         <div class="share-menu-wrap">
           <button id="audioShareMenuButton"
                   class="bottom-player-action"

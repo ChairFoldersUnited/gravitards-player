@@ -130,7 +130,11 @@ const saveTimestampButton = document.querySelector("#saveTimestampButton");
 const cancelTimestampButton = document.querySelector("#cancelTimestampButton");
 const timestampList = document.querySelector("#timestampList");
 const audioTimestampPanel =
-  timestampList.closest(".timestamp-card");
+  document.querySelector("#audioTimestampPanel");
+const mobileNotesButton =
+  document.querySelector("#mobileNotesButton");
+const closeMobileNotesPanel =
+  document.querySelector("#closeMobileNotesPanel");
 const yearJumpSelect = null;
 const favoritesFilterButton = null;
 const recentFilterButton = null;
@@ -2463,10 +2467,14 @@ async function openActivityEntry(button) {
     await playTrack(track);
     renderTimestampNotes();
 
-    scrollToOpenedDiscussion({
-      type: "audio",
-      noteId
-    });
+    if (isMobileComposerLayout()) {
+      setMobileNotesPanel(true, noteId);
+    } else {
+      scrollToOpenedDiscussion({
+        type: "audio",
+        noteId
+      });
+    }
 
     if (seconds > 0) {
       seekSharedAudio(seconds);
@@ -2528,6 +2536,10 @@ function setArchiveView(view) {
 
   if (bottomPlayerDock) {
     bottomPlayerDock.classList.toggle("hidden", !showAudio);
+  }
+
+  if (!showAudio && isMobileComposerLayout()) {
+    setMobileNotesPanel(false);
   }
 
   localStorage.setItem("gravitards-archive-view", view);
@@ -2605,6 +2617,10 @@ async function playTrack(track) {
 
   if (audioShareMenuButton) {
     audioShareMenuButton.disabled = false;
+  }
+
+  if (mobileNotesButton) {
+    mobileNotesButton.disabled = false;
   }
   updateAudioNavigationControls();
   addToRecent(track.id);
@@ -2735,6 +2751,8 @@ addTimestampButton.addEventListener("click", event => {
   );
 
   if (isMobileComposerLayout()) {
+    setMobileNotesPanel(true);
+
     openMobileCommentComposer({
       mode: "Timestamp note",
       title: "Add note",
@@ -2847,6 +2865,65 @@ timestampInput.addEventListener("keydown", event => {
 });
 
 
+
+
+function setMobileNotesPanel(open, noteId = null) {
+  if (
+    !audioTimestampPanel ||
+    !mobileNotesButton ||
+    !isMobileComposerLayout()
+  ) {
+    return;
+  }
+
+  const shouldOpen = Boolean(open);
+
+  audioTimestampPanel.classList.toggle(
+    "mobile-notes-panel-open",
+    shouldOpen
+  );
+
+  document.body.classList.toggle(
+    "mobile-notes-panel-active",
+    shouldOpen
+  );
+
+  mobileNotesButton.setAttribute(
+    "aria-expanded",
+    shouldOpen ? "true" : "false"
+  );
+
+  if (!shouldOpen) return;
+
+  requestAnimationFrame(() => {
+    audioTimestampPanel.scrollTop = 0;
+
+    if (!noteId) return;
+
+    requestAnimationFrame(() => {
+      const discussion = timestampList.querySelector(
+        `.timestamp-discussion[data-timestamp-note-id="${CSS.escape(String(noteId))}"]`
+      );
+
+      if (!discussion) return;
+
+      discussion.scrollIntoView({
+        behavior: "smooth",
+        block: "center"
+      });
+
+      discussion.classList.add(
+        "opened-discussion-highlight"
+      );
+
+      window.setTimeout(() => {
+        discussion.classList.remove(
+          "opened-discussion-highlight"
+        );
+      }, 2600);
+    });
+  });
+}
 
 function isMobileComposerLayout() {
   return window.matchMedia("(max-width: 700px)").matches;
@@ -3761,6 +3838,24 @@ async function copyFilmShareLink(includeCurrentTime) {
   );
 }
 
+mobileNotesButton?.addEventListener("click", event => {
+  event.preventDefault();
+  event.stopPropagation();
+
+  const open =
+    !audioTimestampPanel.classList.contains(
+      "mobile-notes-panel-open"
+    );
+
+  setMobileNotesPanel(open);
+});
+
+closeMobileNotesPanel?.addEventListener("click", event => {
+  event.preventDefault();
+  event.stopPropagation();
+  setMobileNotesPanel(false);
+});
+
 audioShareMenuButton?.addEventListener("click", event => {
   event.stopPropagation();
 
@@ -3833,6 +3928,7 @@ document.addEventListener("keydown", event => {
   if (event.key === "Escape") {
     closeAllShareMenus();
     closeMobileCommentComposer();
+    setMobileNotesPanel(false);
   }
 });
 
