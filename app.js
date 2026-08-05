@@ -4,14 +4,6 @@ const audioPreviousEntryButton = document.querySelector("#audioPreviousEntryButt
 const audioNextEntryButton = document.querySelector("#audioNextEntryButton");
 const audioDownloadEntryButton = document.querySelector("#audioDownloadEntryButton");
 const audioArchiveTab = document.querySelector("#audioArchiveTab");
-const vaultAudioCollectionButton = document.querySelector("#vaultAudioCollectionButton");
-const soundCloudCollectionButton = document.querySelector("#soundCloudCollectionButton");
-const vaultAudioCollectionCount = document.querySelector("#vaultAudioCollectionCount");
-const vaultAudioContent = document.querySelector("#vaultAudioContent");
-const soundCloudContent = document.querySelector("#soundCloudContent");
-const audioPortalTitle = document.querySelector("#audioPortalTitle");
-const audioPortalSubtitle = document.querySelector("#audioPortalSubtitle");
-const audioCollectionGrid = document.querySelector(".audio-collection-grid");
 const soundCloudIframe = document.querySelector("#soundCloudPlayer");
 const filmArchiveTab = document.querySelector("#filmArchiveTab");
 const filmArchiveCount = document.querySelector("#filmArchiveCount");
@@ -221,14 +213,8 @@ function pauseAudioForVideo() {
 }
 
 
-function updateAudioPortalState() {
-  activeAudioSource = "vault";
-}
 function pauseSoundCloudPlayer() {
   if (soundCloudWidget && soundCloudReady) soundCloudWidget.pause();
-}
-function setAudioSource() {
-  activeAudioSource = "vault";
 }
 function initializeSoundCloudWidget() {
   if (!soundCloudIframe || !window.SC?.Widget) return;
@@ -1696,8 +1682,6 @@ async function loadTracks(force = false) {
     tracks = decorateTracks(data.tracks);
     audioArchiveCount.textContent =
       `${tracks.length} ${tracks.length === 1 ? "Vault Entry" : "Vault Entries"}`;
-    vaultAudioCollectionCount.textContent =
-      `${tracks.length} ${tracks.length === 1 ? "recording" : "recordings"}`;
     folderPath.textContent = `▱ ${data.folder}`;
     updateSummary();
     updateYearJump();
