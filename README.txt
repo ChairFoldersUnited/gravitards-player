@@ -1,21 +1,19 @@
-THE GRAVITARDS VAULT V9.1.2 – RESPONSIVE SIDEBAR FIX
+THE GRAVITARDS VAULT V9.1.8 – BOTTOM PLAYER COPY LINK
 
 Replace:
-- style.css
+- index.html
 - app.js
+- style.css
 
-index.html is included, but only needs replacing if your current file lacks
-the viewport meta tag.
-
-Fixed:
-- The page no longer grows wider than the browser window.
-- The Vault player keeps the available main-column width.
-- The SoundCloud sidebar is limited to 360 px on wide screens.
-- On smaller screens the SoundCloud panel moves below the Audio Archive.
-- Images, players, controls and forms cannot force horizontal scrolling.
-- Includes the V9.1.1 null-error fix.
+New:
+- Copy Link is available directly in the fixed bottom audio player.
+- The button becomes active after selecting a track.
+- Before playback it copies a link to the selected track.
+- During playback it includes the current timestamp.
+- The audio player still disappears on Film Archive.
+- The interface remains English; track titles are unchanged.
 
 After deploy:
 1. Press Ctrl + Shift + R.
-2. Check the Audio Archive at normal browser zoom.
-3. The page should no longer require horizontal scrolling.
+2. Select a track.
+3. Use Copy Link at the right side of the bottom player.

@@ -1,13 +1,11 @@
 const audio = document.querySelector("#audio");
-const shareAudioButton = document.querySelector("#shareAudioButton");
-const audioPreviousEntryButton = document.querySelector("#audioPreviousEntryButton");
-const audioNextEntryButton = document.querySelector("#audioNextEntryButton");
-const audioDownloadEntryButton = document.querySelector("#audioDownloadEntryButton");
 const audioArchiveTab = document.querySelector("#audioArchiveTab");
 const soundCloudIframe = document.querySelector("#soundCloudPlayer");
 const filmArchiveTab = document.querySelector("#filmArchiveTab");
 const filmArchiveCount = document.querySelector("#filmArchiveCount");
 const audioArchiveView = document.querySelector("#audioArchiveView");
+const bottomPlayerDock = document.querySelector(".bottom-player-dock");
+const bottomPlayerCopyLink = document.querySelector("#bottomPlayerCopyLink");
 const filmArchiveView = document.querySelector("#filmArchiveView");
 const audioArchiveCount = document.querySelector("#audioArchiveCount");
 const dropboxFilmPlayer = document.querySelector("#dropboxFilmPlayer");
@@ -226,6 +224,48 @@ function initializeSoundCloudWidget() {
   });
 }
 
+
+async function copyCurrentTrackLink() {
+  if (!currentTrack) return;
+
+  const url = buildShareUrl({
+    archive: "audio",
+    source: "dropbox",
+    id: currentTrack.id,
+    time:
+      Number.isFinite(audio.currentTime) && audio.currentTime > 0
+        ? Math.floor(audio.currentTime)
+        : 0
+  });
+
+  try {
+    await navigator.clipboard.writeText(url);
+    showShareToast(
+      audio.currentTime > 0
+        ? "Link with current time copied"
+        : "Track link copied"
+    );
+  } catch (error) {
+    console.error(error);
+
+    const temporaryInput = document.createElement("textarea");
+    temporaryInput.value = url;
+    temporaryInput.setAttribute("readonly", "");
+    temporaryInput.style.position = "fixed";
+    temporaryInput.style.opacity = "0";
+    document.body.appendChild(temporaryInput);
+    temporaryInput.select();
+    document.execCommand("copy");
+    temporaryInput.remove();
+
+    showShareToast(
+      audio.currentTime > 0
+        ? "Link with current time copied"
+        : "Track link copied"
+    );
+  }
+}
+
 function showShareToast(message = "Link copied") {
   shareToast.textContent = message;
   shareToast.classList.remove("hidden");
@@ -419,7 +459,7 @@ function extractYear(track) {
 }
 
 function cleanTitle(track) {
-  let title = track.title || track.name || "Namnlös inspelning";
+  let title = track.title || track.name || "Untitled recording";
 
   title = title
     .replace(/^(?:19|20)\d{2}[-_. /]*/i, "")
@@ -485,7 +525,7 @@ function sortTracks(list) {
   });
 }
 
-function saveFavorites() {
+function saveFavoritees() {
   localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify([...favoriteIds]));
 }
 
@@ -546,7 +586,7 @@ async function fetchSharedComments(entryType, entryId) {
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.error || "Kommentarerna kunde inte hämtas.");
+    throw new Error(data.error || "Comments could not be loaded.");
   }
 
   return data.comments || [];
@@ -569,7 +609,7 @@ async function postSharedComment(entryType, entryId, author, comment) {
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.error || "Kommentaren kunde inte sparas.");
+    throw new Error(data.error || "The comment could not be saved.");
   }
 
   return data.comment;
@@ -579,7 +619,7 @@ function updateFilterButtons() {
   favoritesFilterButton.classList.toggle("active", activeFilter === "favorites");
   recentFilterButton.classList.toggle("active", activeFilter === "recent");
   favoritesFilterButton.textContent =
-    `${activeFilter === "favorites" ? "★" : "☆"} Favoriter (${favoriteIds.size})`;
+    `${activeFilter === "favorites" ? "★" : "☆"} Favoritees (${favoriteIds.size})`;
 }
 
 async function loadCommentForCurrentTrack() {
@@ -589,12 +629,12 @@ async function loadCommentForCurrentTrack() {
     commentInput.disabled = true;
     commentAuthorInput.disabled = true;
     saveCommentButton.disabled = true;
-    commentStatus.textContent = "Ingen inspelning vald";
+    commentStatus.textContent = "No recording selected";
     audioSharedComments = [];
     renderSharedCommentList(
       audioCommentList,
       [],
-      "Välj en inspelning för att läsa kommentarer."
+      "Select a recording to view comments."
     );
     return;
   }
@@ -605,7 +645,7 @@ async function loadCommentForCurrentTrack() {
   commentAuthorInput.disabled = false;
   saveCommentButton.disabled = false;
   commentAuthorInput.value = savedCommentAuthor;
-  commentStatus.textContent = "Läser kommentarer…";
+  commentStatus.textContent = "Loading comments…";
   audioCommentList.classList.add("shared-comment-loading");
 
   try {
@@ -617,12 +657,12 @@ async function loadCommentForCurrentTrack() {
     renderSharedCommentList(
       audioCommentList,
       audioSharedComments,
-      "Det finns inga kommentarer ännu."
+      "No comments yet."
     );
 
     commentStatus.textContent =
       `${audioSharedComments.length} ` +
-      `${audioSharedComments.length === 1 ? "kommentar" : "kommentarer"}`;
+      `${audioSharedComments.length === 1 ? "comment" : "comments"}`;
   } catch (error) {
     if (currentTrack?.id !== requestedId) return;
 
@@ -632,7 +672,7 @@ async function loadCommentForCurrentTrack() {
       [],
       error.message
     );
-    commentStatus.textContent = "Kunde inte läsa kommentarer";
+    commentStatus.textContent = "Kunde inte läsa comments";
   }
 }
 
@@ -694,10 +734,10 @@ function updateDisplayedTimes() {
   if (showRemainingTime) {
     const remaining = Math.max(0, audio.duration - audio.currentTime);
     duration.textContent = `−${formatTime(remaining, timeDisplayMode)}`;
-    duration.title = "Klicka för att visa total speltid";
+    duration.title = "Click to show total duration";
   } else {
     duration.textContent = formatTime(audio.duration, timeDisplayMode);
-    duration.title = "Klicka för att visa återstående tid";
+    duration.title = "Click to show remaining time";
   }
 }
 
@@ -706,7 +746,7 @@ function renderTimestampNotes() {
 
   if (!currentTrack) {
     timestampList.innerHTML =
-      '<p class="empty-timestamps">Välj en inspelning för att se anteckningar.</p>';
+      '<p class="empty-timestamps">Select a recording to view timestamp notes.</p>';
     addTimestampButton.disabled = true;
     return;
   }
@@ -717,7 +757,7 @@ function renderTimestampNotes() {
 
   if (!notes.length) {
     timestampList.innerHTML =
-      '<p class="empty-timestamps">Inga tidsstämplade anteckningar ännu.</p>';
+      '<p class="empty-timestamps">No timestamp notes yet.</p>';
     return;
   }
 
@@ -753,7 +793,7 @@ function updateYearJump() {
   )].sort((a, b) => b - a);
 
   yearJumpSelect.innerHTML =
-    '<option value="">Välj år</option>' +
+    '<option value="">Choose year</option>' +
     years.map(year => `<option value="${year}">${year}</option>`).join("");
 }
 
@@ -822,7 +862,7 @@ function renderTracks() {
 
   if (!visibleTracks.length) {
     yearGroups.innerHTML =
-      `<div class="message">${tracks.length ? "No recordings match your search." : "Inga ljudfiler hittades."}</div>`;
+      `<div class="message">${tracks.length ? "No recordings match your search." : "No audio files found."}</div>`;
     return;
   }
 
@@ -845,12 +885,12 @@ function renderTracks() {
           <button class="track-favorite ${favoriteIds.has(track.id) ? "on" : ""}"
                   type="button"
                   data-favorite-id="${escapeHtml(track.id)}"
-                  title="Favorit">${favoriteIds.has(track.id) ? "★" : "☆"}</button>
+                  title="Favorite">${favoriteIds.has(track.id) ? "★" : "☆"}</button>
           <a class="track-download"
              href="/api/download/${encodeURIComponent(track.id)}"
              data-download-id="${escapeHtml(track.id)}"
-             title="Ladda ned filen"
-             aria-label="Ladda ned ${escapeHtml(track.displayTitle)}">↓</a>
+             title="Download file"
+             aria-label="Download ${escapeHtml(track.displayTitle)}">↓</a>
         </div>
       `;
     }).join("");
@@ -859,7 +899,7 @@ function renderTracks() {
       <section class="year-group ${collapsed ? "collapsed" : ""}" data-year="${escapeHtml(year)}">
         <button class="year-heading" type="button" data-toggle-year="${escapeHtml(year)}">
           <span class="year-number">${escapeHtml(year)}</span>
-          <span class="year-count">${items.length} ${items.length === 1 ? "inspelning" : "inspelningar"}</span>
+          <span class="year-count">${items.length} ${items.length === 1 ? "recording" : "recordings"}</span>
           <span class="chevron">▾</span>
         </button>
         <div class="year-tracks">${tracksHtml}</div>
@@ -982,12 +1022,12 @@ async function loadFilmComment() {
     filmCommentInput.disabled = true;
     filmCommentAuthorInput.disabled = true;
     saveFilmCommentButton.disabled = true;
-    filmCommentStatus.textContent = "Ingen video vald";
+    filmCommentStatus.textContent = "No video selected";
     filmSharedComments = [];
     renderSharedCommentList(
       filmCommentList,
       [],
-      "Välj en video för att läsa kommentarer."
+      "Select a video to view comments."
     );
     return;
   }
@@ -998,7 +1038,7 @@ async function loadFilmComment() {
   filmCommentAuthorInput.disabled = false;
   saveFilmCommentButton.disabled = false;
   filmCommentAuthorInput.value = savedCommentAuthor;
-  filmCommentStatus.textContent = "Läser kommentarer…";
+  filmCommentStatus.textContent = "Loading comments…";
   filmCommentList.classList.add("shared-comment-loading");
 
   try {
@@ -1010,12 +1050,12 @@ async function loadFilmComment() {
     renderSharedCommentList(
       filmCommentList,
       filmSharedComments,
-      "Det finns inga kommentarer ännu."
+      "No comments yet."
     );
 
     filmCommentStatus.textContent =
       `${filmSharedComments.length} ` +
-      `${filmSharedComments.length === 1 ? "kommentar" : "kommentarer"}`;
+      `${filmSharedComments.length === 1 ? "comment" : "comments"}`;
   } catch (error) {
     if (currentFilm?.id !== requestedId) return;
 
@@ -1025,14 +1065,14 @@ async function loadFilmComment() {
       [],
       error.message
     );
-    filmCommentStatus.textContent = "Kunde inte läsa kommentarer";
+    filmCommentStatus.textContent = "Kunde inte läsa comments";
   }
 }
 
 function renderFilmTimestampNotes() {
   if (!currentFilm) {
     filmTimestampList.innerHTML =
-      '<p class="empty-timestamps">Välj en video för att se anteckningar.</p>';
+      '<p class="empty-timestamps">Select a video to view timestamp notes.</p>';
     saveFilmTimestampButton.disabled = true;
     return;
   }
@@ -1044,7 +1084,7 @@ function renderFilmTimestampNotes() {
 
   if (!notes.length) {
     filmTimestampList.innerHTML =
-      '<p class="empty-timestamps">Inga tidsanteckningar för videon ännu.</p>';
+      '<p class="empty-timestamps">No timestamp notes for this video yet.</p>';
     return;
   }
 
@@ -1086,7 +1126,7 @@ function renderFilms() {
       : [...filteredFilms].sort((a, b) => a.position - b.position);
 
   filmCount.textContent =
-    `${visibleFilms.length} av ${films.length} ` +
+    `${visibleFilms.length} of ${films.length} ` +
     `${films.length === 1 ? "film" : "films"}`;
 
   if (!visibleFilms.length) {
@@ -1176,16 +1216,7 @@ function renderFilms() {
 }
 
 
-function updateAudioNavigationControls() {
-  const queue = visibleTracks.length ? visibleTracks : tracks;
-  const hasSelection = Boolean(currentTrack);
-  const canNavigate = hasSelection && queue.length > 0;
-
-  audioPreviousEntryButton.disabled = !canNavigate;
-  audioNextEntryButton.disabled = !canNavigate;
-  shareAudioButton.disabled = !hasSelection;
-  audioDownloadEntryButton.disabled = !hasSelection;
-}
+function updateAudioNavigationControls() {}
 
 function updateFilmNavigationControls() {
   const queue = visibleFilms.length ? visibleFilms : films;
@@ -1652,6 +1683,10 @@ function setArchiveView(view) {
   audioArchiveView.classList.toggle("hidden", !showAudio);
   filmArchiveView.classList.toggle("hidden", showAudio);
 
+  if (bottomPlayerDock) {
+    bottomPlayerDock.classList.toggle("hidden", !showAudio);
+  }
+
   localStorage.setItem("gravitards-archive-view", view);
 
   if (!showAudio && films.length === 0) {
@@ -1671,13 +1706,13 @@ async function loadTracks(force = false) {
       const refreshResponse = await fetch("/api/refresh", { method: "POST" });
       const refreshData = await refreshResponse.json();
       if (!refreshResponse.ok) {
-        throw new Error(refreshData.error || "Uppdateringen misslyckades.");
+        throw new Error(refreshData.error || "Refresh failed.");
       }
     }
 
     const response = await fetch("/api/tracks");
     const data = await response.json();
-    if (!response.ok) throw new Error(data.error || "Arkivet kunde inte läsas.");
+    if (!response.ok) throw new Error(data.error || "The archive could not be loaded.");
 
     tracks = decorateTracks(data.tracks);
     audioArchiveCount.textContent =
@@ -1690,7 +1725,7 @@ async function loadTracks(force = false) {
     window.setTimeout(tryOpenSharedAudio, 0);
 
     if (!tracks.length) {
-      showMessage("Mappen innehåller inga ljudfiler. Kontrollera DROPBOX_FOLDER.");
+      showMessage("The folder contains no audio files. Check DROPBOX_FOLDER.");
     }
   } catch (error) {
     showMessage(error.message, true);
@@ -1720,6 +1755,10 @@ async function playTrack(track) {
 
   currentTrack = track;
   downloadCurrentButton.disabled = false;
+
+  if (bottomPlayerCopyLink) {
+    bottomPlayerCopyLink.disabled = false;
+  }
   updateAudioNavigationControls();
   addToRecent(track.id);
   nowTitle.textContent = track.displayTitle;
@@ -1736,7 +1775,7 @@ async function playTrack(track) {
   try {
     await audio.play();
   } catch {
-    showMessage("Tryck på play för att starta uppspelningen.", true);
+    showMessage("Press play to start playback.", true);
   }
 }
 
@@ -1768,7 +1807,7 @@ yearGroups.addEventListener("click", event => {
     event.stopPropagation();
     const id = favoriteButton.dataset.favoriteId;
     favoriteIds.has(id) ? favoriteIds.delete(id) : favoriteIds.add(id);
-    saveFavorites();
+    saveFavoritees();
     renderTracks();
     return;
   }
@@ -1951,7 +1990,7 @@ saveCommentButton.addEventListener("click", async () => {
 
   if (!comment) {
     commentInput.focus();
-    commentStatus.textContent = "Skriv en kommentar";
+    commentStatus.textContent = "Skriv en comment";
     return;
   }
 
@@ -1971,7 +2010,7 @@ saveCommentButton.addEventListener("click", async () => {
     commentStatus.textContent = error.message;
   } finally {
     saveCommentButton.disabled = !currentTrack;
-    saveCommentButton.textContent = "Skicka kommentar";
+    saveCommentButton.textContent = "Skicka comment";
   }
 });
 
@@ -2012,24 +2051,6 @@ prevButton.addEventListener("click", () => {
 
 nextButton.addEventListener("click", () => step(1));
 
-audioPreviousEntryButton.addEventListener("click", () => {
-  step(-1);
-});
-
-audioNextEntryButton.addEventListener("click", () => {
-  step(1);
-});
-
-audioDownloadEntryButton.addEventListener("click", () => {
-  if (!currentTrack) return;
-
-  const link = document.createElement("a");
-  link.href = `/api/download/${encodeURIComponent(currentTrack.id)}`;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-});
-
 shuffleButton.addEventListener("click", () => {
   shuffled = !shuffled;
   shuffledQueue = [];
@@ -2040,10 +2061,15 @@ repeatButton.addEventListener("click", () => {
   repeatMode = (repeatMode + 1) % 3;
   repeatButton.classList.toggle("on", repeatMode > 0);
   repeatButton.textContent = repeatMode === 2 ? "↻¹" : "↻";
-  repeatButton.title = ["Upprepa av", "Upprepa kö", "Upprepa inspelning"][repeatMode];
+  repeatButton.title = ["Upprepa av", "Upprepa kö", "Upprepa recording"][repeatMode];
 });
 
 refreshButton.addEventListener("click", () => loadTracks(true));
+
+bottomPlayerCopyLink?.addEventListener(
+  "click",
+  copyCurrentTrackLink
+);
 
 audio.addEventListener("play", () => {
   playButton.textContent = "❚❚";
@@ -2077,7 +2103,7 @@ audio.addEventListener("ended", () => {
 });
 
 audio.addEventListener("error", () => {
-  showMessage("Inspelningen kunde inte spelas. Prova att klicka på den igen.", true);
+  showMessage("The recording could not be played. Try clicking it again.", true);
 });
 
 
@@ -2182,7 +2208,7 @@ saveFilmCommentButton.addEventListener("click", async () => {
 
   if (!comment) {
     filmCommentInput.focus();
-    filmCommentStatus.textContent = "Skriv en kommentar";
+    filmCommentStatus.textContent = "Skriv en comment";
     return;
   }
 
@@ -2202,7 +2228,7 @@ saveFilmCommentButton.addEventListener("click", async () => {
     filmCommentStatus.textContent = error.message;
   } finally {
     saveFilmCommentButton.disabled = !currentFilm;
-    saveFilmCommentButton.textContent = "Skicka kommentar";
+    saveFilmCommentButton.textContent = "Skicka comment";
   }
 });
 
@@ -2327,26 +2353,6 @@ refreshFilmsButton.addEventListener("click", async () => {
   }
 });
 
-
-shareAudioButton.addEventListener("click", async () => {
-  if (!currentTrack) return;
-
-  const seconds =
-    Number.isFinite(audio.currentTime) && audio.currentTime > 0
-      ? Math.floor(audio.currentTime)
-      : null;
-
-  const url = buildVaultShareUrl({
-    archive: "audio",
-    entryId: currentTrack.id,
-    seconds
-  });
-
-  await copyTextToClipboard(url);
-  showShareToast(
-    seconds ? "Link with current time copied" : "Link copied"
-  );
-});
 
 shareFilmButton.addEventListener("click", async () => {
   if (!currentFilm) return;

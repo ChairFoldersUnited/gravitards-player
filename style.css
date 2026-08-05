@@ -3042,3 +3042,104 @@ body {
     min-width: 48px;
   }
 }
+
+
+/* V9.1.7 – hide the audio dock outside Audio Archive */
+.bottom-player-dock.hidden {
+  display: none !important;
+}
+
+body:has(#filmArchiveView:not(.hidden)) {
+  padding-bottom: 0;
+}
+
+
+/* V9.1.8 – Copy Link action in fixed bottom player */
+.bottom-player-dock {
+  grid-template-columns:
+    minmax(190px, 310px)
+    minmax(240px, 1fr)
+    auto
+    minmax(100px, 155px)
+    auto;
+  grid-template-areas:
+    "track timeline transport volume actions";
+}
+
+.bottom-player-actions {
+  grid-area: actions;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.bottom-player-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid rgba(212,184,117,.3);
+  background: rgba(8,8,7,.54);
+  color: var(--brass-light);
+  font-family: Oswald, sans-serif;
+  font-size: .7rem;
+  letter-spacing: .055em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    border-color .16s ease,
+    background .16s ease,
+    color .16s ease;
+}
+
+.bottom-player-action:hover:not(:disabled) {
+  border-color: var(--brass-light);
+  background: rgba(182,148,85,.12);
+  color: var(--bone);
+}
+
+.bottom-player-action:disabled {
+  cursor: default;
+  opacity: .35;
+}
+
+@media (max-width: 1120px) {
+  .bottom-player-dock {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      "track transport actions"
+      "timeline timeline timeline";
+  }
+
+  .bottom-player-dock .volume-row {
+    display: none;
+  }
+}
+
+@media (max-width: 700px) {
+  :root {
+    --bottom-player-height: 218px;
+  }
+
+  .bottom-player-dock {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "track track"
+      "timeline timeline"
+      "transport actions";
+  }
+
+  .bottom-player-action span:last-child {
+    display: none;
+  }
+
+  .bottom-player-action {
+    width: 42px;
+    min-width: 42px;
+    padding-inline: 0;
+  }
+}
