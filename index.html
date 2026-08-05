@@ -54,24 +54,7 @@
   </section>
 
   <main id="audioArchiveView" class="layout archive-view active">
-    <section class="audio-portal" aria-labelledby="audioPortalTitle">
-      <div class="audio-portal-heading">
-        <p class="eyebrow">THE AUDIO ARCHIVE</p>
-        <h2 id="audioPortalTitle">Choose a collection</h2>
-        <p id="audioPortalSubtitle">Enter the complete Vault Archive or the curated SoundCloud collection.</p>
-      </div>
-      <div class="audio-collection-grid">
-        <button id="vaultAudioCollectionButton" class="audio-collection-card" type="button" data-audio-source="vault" aria-pressed="false">
-          <img src="vault-header.jpg" alt="The Gravitards Vault Archive">
-          <span class="audio-collection-overlay"><strong>Vault Archive</strong><small id="vaultAudioCollectionCount">Loading…</small></span>
-        </button>
-        <button id="soundCloudCollectionButton" class="audio-collection-card soundcloud-card" type="button" data-audio-source="soundcloud" aria-pressed="false">
-          <img src="soundcloud-cover.jpg" alt="The Gravitards Vault SoundCloud Collection">
-          <span class="audio-collection-overlay"><strong>SoundCloud Vault</strong><small>Curated playlist</small></span>
-        </button>
-      </div>
-    </section>
-    <div id="vaultAudioContent" class="layout audio-archive-content hidden" aria-live="polite">
+    <div id="vaultAudioContent" class="layout audio-archive-content" aria-live="polite">
 
     <section class="library-card">
       <header class="library-header">
@@ -175,6 +158,54 @@
           <span aria-hidden="true">◀</span>
           <input id="volumeBar" type="range" min="0" max="1" step="0.01" value="0.85" aria-label="Volym">
           <span aria-hidden="true">▶</span>
+        </div>
+      </section>
+
+      <section class="soundcloud-sidebar-card">
+        <header class="card-heading soundcloud-sidebar-heading">
+          <div>
+            <p class="sidebar-kicker">EXTERNAL COLLECTION</p>
+            <h2>SoundCloud Vault</h2>
+          </div>
+          <span class="soundcloud-dot" aria-hidden="true"></span>
+        </header>
+
+        <img class="soundcloud-sidebar-cover"
+             src="soundcloud-cover.jpg"
+             alt="The Gravitards Vault SoundCloud Collection">
+
+        <div class="soundcloud-sidebar-player">
+          <iframe id="soundCloudPlayer"
+                  title="The Gravitards Vault SoundCloud playlist"
+                  width="100%"
+                  height="450"
+                  scrolling="no"
+                  frameborder="no"
+                  allow="autoplay"
+                  loading="lazy"
+                  src="https://w.soundcloud.com/player/?url=https%3A//soundcloud.com/kronanmusic/sets/the-gravitards-vault&color=%23d88922&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false&visual=false">
+          </iframe>
+        </div>
+
+        <a class="entry-control-button soundcloud-open-link"
+           href="https://soundcloud.com/kronanmusic/sets/the-gravitards-vault"
+           target="_blank"
+           rel="noopener noreferrer">
+          Open on SoundCloud ↗
+        </a>
+      </section>
+
+      <section class="connect-card">
+        <div class="connect-card-icon" aria-hidden="true">◎</div>
+        <div class="connect-card-copy">
+          <p class="sidebar-kicker">CONNECT</p>
+          <h2>Follow Gravitards</h2>
+          <p>News, clips and new material on Instagram.</p>
+          <a href="https://www.instagram.com/gravitardsmusic/"
+             target="_blank"
+             rel="noopener noreferrer">
+            @gravitardsmusic ↗
+          </a>
         </div>
       </section>
 
@@ -287,17 +318,6 @@
       </section>
     </aside>
       </div>
-    <section id="soundCloudContent" class="soundcloud-vault hidden" aria-labelledby="soundCloudVaultTitle">
-      <header class="soundcloud-vault-heading">
-        <p class="eyebrow">CURRENT COLLECTION</p>
-        <h2 id="soundCloudVaultTitle">SoundCloud Vault</h2>
-        <p>Official releases and curated recordings.</p>
-      </header>
-      <div class="soundcloud-player-shell">
-        <iframe id="soundCloudPlayer" title="The Gravitards Vault SoundCloud playlist" width="100%" height="465" scrolling="no" frameborder="no" allow="autoplay" loading="lazy" src="https://w.soundcloud.com/player/?url=https%3A//soundcloud.com/kronanmusic/sets/the-gravitards-vault&color=%23d88922&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false&visual=true"></iframe>
-      </div>
-      <div class="soundcloud-actions"><a class="entry-control-button" href="https://soundcloud.com/kronanmusic/sets/the-gravitards-vault" target="_blank" rel="noopener noreferrer">Open on SoundCloud ↗</a></div>
-    </section>
 </main>
 
   <main id="filmArchiveView" class="film-layout archive-view hidden">

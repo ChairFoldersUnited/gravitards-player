@@ -111,7 +111,7 @@ let pendingSharedLocation = null;
 let shareToastTimer = null;
 let mediaSwitchInProgress = false;
 let activeFilmSource = "";
-let activeAudioSource = "";
+let activeAudioSource = "vault";
 let soundCloudWidget = null;
 let soundCloudReady = false;
 let audioSharedComments = [];
@@ -222,39 +222,13 @@ function pauseAudioForVideo() {
 
 
 function updateAudioPortalState() {
-  const vaultActive = activeAudioSource === "vault";
-  const soundCloudActive = activeAudioSource === "soundcloud";
-  vaultAudioCollectionButton.classList.toggle("active", vaultActive);
-  soundCloudCollectionButton.classList.toggle("active", soundCloudActive);
-  vaultAudioCollectionButton.setAttribute("aria-pressed", vaultActive ? "true" : "false");
-  soundCloudCollectionButton.setAttribute("aria-pressed", soundCloudActive ? "true" : "false");
-  audioCollectionGrid.classList.toggle("has-selection", Boolean(activeAudioSource));
-  vaultAudioContent.classList.toggle("hidden", !vaultActive);
-  soundCloudContent.classList.toggle("hidden", !soundCloudActive);
-  if (!activeAudioSource) {
-    audioPortalTitle.textContent = "Choose a collection";
-    audioPortalSubtitle.textContent = "Enter the complete Vault Archive or the curated SoundCloud collection.";
-  } else if (vaultActive) {
-    audioPortalTitle.textContent = "Vault Archive";
-    audioPortalSubtitle.textContent = "Every rehearsal, demo and forgotten idea.";
-  } else {
-    audioPortalTitle.textContent = "SoundCloud Vault";
-    audioPortalSubtitle.textContent = "Official releases and curated recordings.";
-  }
+  activeAudioSource = "vault";
 }
 function pauseSoundCloudPlayer() {
   if (soundCloudWidget && soundCloudReady) soundCloudWidget.pause();
 }
-function setAudioSource(source) {
-  activeAudioSource = source === "soundcloud" ? "soundcloud" : "vault";
-  updateAudioPortalState();
-  if (activeAudioSource === "vault") {
-    pauseSoundCloudPlayer();
-    if (!tracks.length) loadTracks();
-  } else {
-    audio.pause();
-    dropboxFilmPlayer.pause();
-  }
+function setAudioSource() {
+  activeAudioSource = "vault";
 }
 function initializeSoundCloudWidget() {
   if (!soundCloudIframe || !window.SC?.Widget) return;
@@ -1605,7 +1579,6 @@ function tryOpenSharedAudio() {
   }
 
   activeAudioSource = "vault";
-  updateAudioPortalState();
   setArchiveView("audio");
   selectTrack(track);
 
@@ -2423,8 +2396,6 @@ window.addEventListener("hashchange", () => {
   }
 });
 
-vaultAudioCollectionButton.addEventListener("click", () => setAudioSource("vault"));
-soundCloudCollectionButton.addEventListener("click", () => setAudioSource("soundcloud"));
 audioArchiveTab.addEventListener("click", () => setArchiveView("audio"));
 filmArchiveTab.addEventListener("click", () => setArchiveView("film"));
 
@@ -2448,8 +2419,7 @@ updateFilmPortalState();
 
 preloadFilmCounts();
 
-activeAudioSource = pendingSharedLocation?.archive === "audio" ? "vault" : "";
-updateAudioPortalState();
+activeAudioSource = "vault";
 initializeSoundCloudWidget();
 
 const savedArchiveView =
