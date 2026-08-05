@@ -2,6 +2,12 @@ const audio = document.querySelector("#audio");
 const audioArchiveTab = document.querySelector("#audioArchiveTab");
 const soundCloudIframe = document.querySelector("#soundCloudPlayer");
 const filmArchiveTab = document.querySelector("#filmArchiveTab");
+const activityArchiveTab = document.querySelector("#activityArchiveTab");
+const activityArchiveView = document.querySelector("#activityArchiveView");
+const latestActivityList = document.querySelector("#latestActivityList");
+const latestActivityCount = document.querySelector("#latestActivityCount");
+const activityFilterButtons =
+  document.querySelectorAll("[data-activity-filter]");
 const filmArchiveCount = document.querySelector("#filmArchiveCount");
 const audioArchiveView = document.querySelector("#audioArchiveView");
 const bottomPlayerDock = document.querySelector(".bottom-player-dock");
@@ -108,6 +114,7 @@ let audioSharedComments = [];
 let filmSharedComments = [];
 let filmYearFilter = null;
 let filmClockTimer = null;
+let activeActivityFilter = "all";
 
 const FILM_TIMESTAMPS_STORAGE_KEY = "gravitards-film-timestamps";
 
@@ -1733,13 +1740,220 @@ async function tryOpenSharedFilm() {
   return true;
 }
 
+
+function formatActivityDate(value) {
+  if (!value) return "Unknown date";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Unknown date";
+  }
+
+  return new Intl.DateTimeFormat("en", {
+    dateStyle: "medium",
+    timeStyle: "short"
+  }).format(date);
+}
+
+function getFilmSourceFromId(id) {
+  const text = String(id || "");
+
+  if (text.startsWith("facebook:")) return "facebook";
+  if (text.startsWith("instagram:")) return "instagram";
+  return "youtube";
+}
+
+function getLatestActivityEntries() {
+  const entries = [];
+
+  for (const [trackId, notes] of Object.entries(timestampNotes)) {
+    const track = tracks.find(item => item.id === trackId);
+
+    for (const note of notes || []) {
+      entries.push({
+        type: "audio",
+        id: trackId,
+        source: "dropbox",
+        title: track?.displayTitle || track?.title || "Audio recording",
+        seconds: Number(note.seconds || 0),
+        text: note.text || "",
+        createdAt: note.createdAt || ""
+      });
+    }
+  }
+
+  const allFilms = [
+    ...youtubeFilms,
+    ...facebookStreams,
+    ...instagramStreams
+  ];
+
+  for (const [filmId, notes] of Object.entries(filmTimestampNotes)) {
+    const film = allFilms.find(item => item.id === filmId);
+
+    for (const note of notes || []) {
+      entries.push({
+        type: "video",
+        id: filmId,
+        source: film?.source || getFilmSourceFromId(filmId),
+        title: film?.title || "Video",
+        seconds: Number(note.seconds || 0),
+        text: note.text || "",
+        createdAt: note.createdAt || ""
+      });
+    }
+  }
+
+  return entries.sort((a, b) => {
+    const aTime = new Date(a.createdAt || 0).getTime();
+    const bTime = new Date(b.createdAt || 0).getTime();
+    return bTime - aTime;
+  });
+}
+
+function renderLatestActivity() {
+  const allEntries = getLatestActivityEntries();
+
+  const entries =
+    activeActivityFilter === "all"
+      ? allEntries
+      : allEntries.filter(
+          entry => entry.type === activeActivityFilter
+        );
+
+  if (latestActivityCount) {
+    latestActivityCount.textContent =
+      `${allEntries.length} ${
+        allEntries.length === 1 ? "note" : "notes"
+      }`;
+  }
+
+  activityFilterButtons.forEach(button => {
+    button.classList.toggle(
+      "active",
+      button.dataset.activityFilter === activeActivityFilter
+    );
+  });
+
+  if (!entries.length) {
+    latestActivityList.innerHTML =
+      '<p class="activity-empty">No timestamp notes found yet.</p>';
+    return;
+  }
+
+  latestActivityList.innerHTML = entries
+    .slice(0, 100)
+    .map(entry => `
+      <button class="activity-entry"
+              type="button"
+              data-activity-type="${entry.type}"
+              data-activity-id="${escapeHtml(entry.id)}"
+              data-activity-source="${escapeHtml(entry.source)}"
+              data-activity-seconds="${entry.seconds}">
+        <span class="activity-type-icon" aria-hidden="true">
+          ${entry.type === "audio" ? "♫" : "▸"}
+        </span>
+
+        <span class="activity-entry-copy">
+          <strong class="activity-entry-title">
+            ${escapeHtml(entry.title)}
+          </strong>
+          <span class="activity-entry-note">
+            “${escapeHtml(entry.text)}”
+          </span>
+          <span class="activity-entry-meta">
+            <span class="activity-timestamp">
+              ${formatTime(entry.seconds)}
+            </span>
+            <span>${escapeHtml(formatActivityDate(entry.createdAt))}</span>
+          </span>
+        </span>
+
+        <span class="activity-open">Open ↗</span>
+      </button>
+    `)
+    .join("");
+}
+
+async function loadLatestActivityData() {
+  if (!tracks.length) {
+    await loadTracks();
+  }
+
+  await Promise.allSettled([
+    loadYouTubeFilms(),
+    loadFacebookStreams(),
+    loadInstagramStreams()
+  ]);
+
+  renderLatestActivity();
+}
+
+async function openActivityEntry(button) {
+  const type = button.dataset.activityType;
+  const id = button.dataset.activityId;
+  const source = button.dataset.activitySource;
+  const seconds = Number(button.dataset.activitySeconds || 0);
+
+  if (type === "audio") {
+    const track = tracks.find(item => item.id === id);
+
+    if (!track) {
+      showShareToast("The recording could not be found");
+      return;
+    }
+
+    setArchiveView("audio");
+    await playTrack(track);
+
+    if (seconds > 0) {
+      seekSharedAudio(seconds);
+    }
+
+    return;
+  }
+
+  setFilmSource(source);
+  setArchiveView("film");
+
+  const sourceFilms =
+    source === "facebook"
+      ? await loadFacebookStreams()
+      : source === "instagram"
+        ? await loadInstagramStreams()
+        : await loadYouTubeFilms();
+
+  films = sourceFilms;
+  renderFilmTimeline();
+  renderFilms();
+
+  const film = sourceFilms.find(item => item.id === id);
+
+  if (!film) {
+    showShareToast("The video could not be found");
+    return;
+  }
+
+  selectFilm(film);
+
+  if (seconds > 0) {
+    seekSharedFilm(seconds);
+  }
+}
+
 function setArchiveView(view) {
   const showAudio = view === "audio";
+  const showFilm = view === "film";
+  const showActivity = view === "activity";
 
   audioArchiveTab.classList.toggle("active", showAudio);
-  filmArchiveTab.classList.toggle("active", !showAudio);
+  filmArchiveTab.classList.toggle("active", showFilm);
+  activityArchiveTab.classList.toggle("active", showActivity);
+
   audioArchiveView.classList.toggle("hidden", !showAudio);
-  filmArchiveView.classList.toggle("hidden", showAudio);
+  filmArchiveView.classList.toggle("hidden", !showFilm);
+  activityArchiveView.classList.toggle("hidden", !showActivity);
 
   if (bottomPlayerDock) {
     bottomPlayerDock.classList.toggle("hidden", !showAudio);
@@ -1747,8 +1961,12 @@ function setArchiveView(view) {
 
   localStorage.setItem("gravitards-archive-view", view);
 
-  if (!showAudio && films.length === 0) {
+  if (showFilm && films.length === 0) {
     loadFilms();
+  }
+
+  if (showActivity) {
+    void loadLatestActivityData();
   }
 
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1970,6 +2188,7 @@ saveTimestampButton.addEventListener("click", () => {
   timestampInput.value = "";
   renderTimestampNotes();
   renderTracks();
+  renderLatestActivity();
 });
 
 timestampInput.addEventListener("keydown", event => {
@@ -2276,6 +2495,7 @@ saveFilmTimestampButton.addEventListener("click", () => {
   filmTimestampInput.value = "";
   renderFilmTimestampNotes();
   renderFilms();
+  renderLatestActivity();
 });
 
 filmTimestampList.addEventListener("click", event => {
@@ -2417,6 +2637,26 @@ window.addEventListener("hashchange", () => {
 });
 
 audioArchiveTab.addEventListener("click", () => setArchiveView("audio"));
+filmArchiveTab.addEventListener("click", () => setArchiveView("film"));
+activityArchiveTab.addEventListener(
+  "click",
+  () => setArchiveView("activity")
+);
+
+activityFilterButtons.forEach(button => {
+  button.addEventListener("click", () => {
+    activeActivityFilter = button.dataset.activityFilter;
+    renderLatestActivity();
+  });
+});
+
+latestActivityList.addEventListener("click", event => {
+  const entry = event.target.closest(".activity-entry");
+
+  if (entry) {
+    void openActivityEntry(entry);
+  }
+});
 filmArchiveTab.addEventListener("click", () => setArchiveView("film"));
 
 pendingSharedLocation = parseVaultShareLocation();

@@ -50,6 +50,14 @@
           <small id="filmArchiveCount">Loading…</small>
         </span>
       </button>
+
+      <button id="activityArchiveTab" class="archive-tab" type="button" data-archive-view="activity">
+        <span class="archive-tab__icon" aria-hidden="true">◆</span>
+        <span>
+          <strong>Latest Activity</strong>
+          <small id="latestActivityCount">Timestamp notes</small>
+        </span>
+      </button>
     </div>
   </section>
 
@@ -475,6 +483,50 @@
     </section>
     </div>
   </main>
+
+  <main id="activityArchiveView"
+        class="activity-layout archive-view hidden">
+    <section class="activity-card">
+      <header class="activity-header">
+        <div>
+          <p class="activity-eyebrow">THE VAULT FEED</p>
+          <h2>Latest Activity</h2>
+          <p>
+            The newest timestamp notes from Audio Archive and Film Archive.
+          </p>
+        </div>
+
+        <div class="activity-tools">
+          <button id="activityAllFilter"
+                  class="activity-filter active"
+                  type="button"
+                  data-activity-filter="all">
+            All
+          </button>
+          <button id="activityAudioFilter"
+                  class="activity-filter"
+                  type="button"
+                  data-activity-filter="audio">
+            Audio
+          </button>
+          <button id="activityVideoFilter"
+                  class="activity-filter"
+                  type="button"
+                  data-activity-filter="video">
+            Video
+          </button>
+        </div>
+      </header>
+
+      <div id="latestActivityList"
+           class="latest-activity-list"
+           aria-live="polite">
+        <p class="activity-empty">Loading activity…</p>
+      </div>
+    </section>
+  </main>
+
+
 
 <section class="now-card bottom-player-dock">
         <header class="card-heading">
