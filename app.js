@@ -145,8 +145,20 @@ const collapsedYears = new Set(
   JSON.parse(localStorage.getItem(COLLAPSED_STORAGE_KEY) || "[]")
 );
 
-const savedVolume = Number(localStorage.getItem("gravitards-volume"));
-audio.volume = Number.isFinite(savedVolume) ? savedVolume : 0.85;
+const storedVolume = localStorage.getItem("gravitards-volume");
+const savedVolume =
+  storedVolume === null
+    ? 0.85
+    : Number(storedVolume);
+
+audio.volume =
+  Number.isFinite(savedVolume) &&
+  savedVolume >= 0 &&
+  savedVolume <= 1
+    ? savedVolume
+    : 0.85;
+
+audio.muted = false;
 volumeBar.value = audio.volume;
 
 function formatTime(seconds, mode = 0) {
@@ -2322,6 +2334,17 @@ instagramStreamsTab.addEventListener("click", () => {
 audio.addEventListener("play", () => {
   pauseVideoForAudio();
   pauseSoundCloudPlayer();
+
+  audio.muted = false;
+
+  if (audio.volume === 0) {
+    audio.volume = 0.85;
+    volumeBar.value = audio.volume;
+    localStorage.setItem(
+      "gravitards-volume",
+      String(audio.volume)
+    );
+  }
 });
 dropboxFilmPlayer.addEventListener("play", () => {
   pauseAudioForVideo();
