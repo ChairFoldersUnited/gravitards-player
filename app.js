@@ -11,12 +11,26 @@ const activityFilterButtons =
 const filmArchiveCount = document.querySelector("#filmArchiveCount");
 const audioArchiveView = document.querySelector("#audioArchiveView");
 const bottomPlayerDock = document.querySelector(".bottom-player-dock");
-const bottomPlayerCopyLink = document.querySelector("#bottomPlayerCopyLink");
+const audioShareMenuButton =
+  document.querySelector("#audioShareMenuButton");
+const audioShareMenu =
+  document.querySelector("#audioShareMenu");
+const copyRecordingLinkButton =
+  document.querySelector("#copyRecordingLinkButton");
+const copyRecordingTimeLinkButton =
+  document.querySelector("#copyRecordingTimeLinkButton");
 const filmArchiveView = document.querySelector("#filmArchiveView");
 const audioArchiveCount = document.querySelector("#audioArchiveCount");
 const dropboxFilmPlayer = document.querySelector("#dropboxFilmPlayer");
 const filmDownloadLink = document.querySelector("#filmDownloadLink");
-const shareFilmButton = document.querySelector("#shareFilmButton");
+const filmShareMenuButton =
+  document.querySelector("#filmShareMenuButton");
+const filmShareMenu =
+  document.querySelector("#filmShareMenu");
+const copyVideoLinkButton =
+  document.querySelector("#copyVideoLinkButton");
+const copyVideoTimeLinkButton =
+  document.querySelector("#copyVideoTimeLinkButton");
 const filmPreviousButton = document.querySelector("#filmPreviousButton");
 const filmNextButton = document.querySelector("#filmNextButton");
 const youtubeFilmsTab = document.querySelector("#youtubeFilmsTab");
@@ -244,82 +258,39 @@ function initializeSoundCloudWidget() {
 }
 
 
-async function copyCurrentTrackLink() {
+async function copyAudioShareLink(includeCurrentTime) {
   if (!currentTrack) {
     showShareToast("Select a track first");
     return;
   }
 
-  const url = new URL(window.location.href);
-  url.hash = "";
-
-  const params = new URLSearchParams();
-  params.set("archive", "audio");
-  params.set("source", "dropbox");
-  params.set(
-    "id",
-    String(currentTrack.id || currentTrack.dropboxId || "")
-      .replace(/^(?:id:)+/i, "")
-  );
-
   const seconds =
-    Number.isFinite(audio.currentTime) && audio.currentTime > 0
+    includeCurrentTime &&
+    Number.isFinite(audio.currentTime) &&
+    audio.currentTime > 0
       ? Math.floor(audio.currentTime)
-      : 0;
+      : null;
 
-  if (seconds > 0) {
-    params.set("t", String(seconds));
-  }
+  const entryId = String(
+    currentTrack.id ||
+    currentTrack.dropboxId ||
+    ""
+  ).replace(/^(?:id:)+/i, "");
 
-  url.hash = params.toString();
-  const shareUrl = url.toString();
+  const url = buildVaultShareUrl({
+    archive: "audio",
+    source: "dropbox",
+    entryId,
+    seconds
+  });
 
-  let copied = false;
+  await copyTextToClipboard(url);
 
-  if (
-    navigator.clipboard &&
-    typeof navigator.clipboard.writeText === "function" &&
-    window.isSecureContext
-  ) {
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      copied = true;
-    } catch (error) {
-      console.error("Clipboard API failed:", error);
-    }
-  }
-
-  if (!copied) {
-    const textarea = document.createElement("textarea");
-    textarea.value = shareUrl;
-    textarea.setAttribute("readonly", "");
-    textarea.style.position = "fixed";
-    textarea.style.left = "-9999px";
-    textarea.style.top = "0";
-    document.body.appendChild(textarea);
-    textarea.focus();
-    textarea.select();
-
-    try {
-      copied = document.execCommand("copy");
-    } catch (error) {
-      console.error("Clipboard fallback failed:", error);
-    } finally {
-      textarea.remove();
-    }
-  }
-
-  if (copied) {
-    showShareToast(
-      seconds > 0
-        ? "Link with current time copied"
-        : "Track link copied"
-    );
-    return;
-  }
-
-  window.prompt("Copy this link:", shareUrl);
-  showShareToast("Copy the link from the dialog");
+  showShareToast(
+    seconds
+      ? "Link with current time copied"
+      : "Recording link copied"
+  );
 }
 
 function showShareToast(message = "Link copied") {
@@ -2032,8 +2003,8 @@ async function playTrack(track) {
   currentTrack = track;
   downloadCurrentButton.disabled = false;
 
-  if (bottomPlayerCopyLink) {
-    bottomPlayerCopyLink.disabled = false;
+  if (audioShareMenuButton) {
+    audioShareMenuButton.disabled = false;
   }
   updateAudioNavigationControls();
   addToRecent(track.id);
@@ -2299,15 +2270,6 @@ repeatButton.addEventListener("click", () => {
 
 refreshButton.addEventListener("click", () => loadTracks(true));
 
-
-
-if (bottomPlayerCopyLink) {
-  bottomPlayerCopyLink.addEventListener("click", async (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    await copyCurrentTrackLink();
-  });
-}
 
 audio.addEventListener("play", () => {
   playButton.textContent = "❚❚";
@@ -2604,24 +2566,126 @@ refreshFilmsButton.addEventListener("click", async () => {
 });
 
 
-shareFilmButton.addEventListener("click", async () => {
+function setShareMenuOpen(button, menu, open) {
+  button.setAttribute("aria-expanded", open ? "true" : "false");
+  menu.classList.toggle("hidden", !open);
+}
+
+function closeAllShareMenus() {
+  if (audioShareMenuButton && audioShareMenu) {
+    setShareMenuOpen(
+      audioShareMenuButton,
+      audioShareMenu,
+      false
+    );
+  }
+
+  if (filmShareMenuButton && filmShareMenu) {
+    setShareMenuOpen(
+      filmShareMenuButton,
+      filmShareMenu,
+      false
+    );
+  }
+}
+
+async function copyFilmShareLink(includeCurrentTime) {
   if (!currentFilm) return;
 
-  const seconds = getCurrentFilmSeconds();
+  const currentSeconds = getCurrentFilmSeconds();
+  const seconds =
+    includeCurrentTime && currentSeconds > 0
+      ? Math.floor(currentSeconds)
+      : null;
 
   const url = buildVaultShareUrl({
     archive: "video",
     source: activeFilmSource,
     entryId: currentFilm.id,
-    seconds: seconds > 0 ? seconds : null
+    seconds
   });
 
   await copyTextToClipboard(url);
+
   showShareToast(
-    seconds > 0
+    seconds
       ? "Link with current time copied"
-      : "Link copied"
+      : "Video link copied"
   );
+}
+
+audioShareMenuButton?.addEventListener("click", event => {
+  event.stopPropagation();
+
+  const opening =
+    audioShareMenu.classList.contains("hidden");
+
+  closeAllShareMenus();
+
+  setShareMenuOpen(
+    audioShareMenuButton,
+    audioShareMenu,
+    opening
+  );
+});
+
+filmShareMenuButton?.addEventListener("click", event => {
+  event.stopPropagation();
+
+  const opening =
+    filmShareMenu.classList.contains("hidden");
+
+  closeAllShareMenus();
+
+  setShareMenuOpen(
+    filmShareMenuButton,
+    filmShareMenu,
+    opening
+  );
+});
+
+copyRecordingLinkButton?.addEventListener(
+  "click",
+  async () => {
+    await copyAudioShareLink(false);
+    closeAllShareMenus();
+  }
+);
+
+copyRecordingTimeLinkButton?.addEventListener(
+  "click",
+  async () => {
+    await copyAudioShareLink(true);
+    closeAllShareMenus();
+  }
+);
+
+copyVideoLinkButton?.addEventListener(
+  "click",
+  async () => {
+    await copyFilmShareLink(false);
+    closeAllShareMenus();
+  }
+);
+
+copyVideoTimeLinkButton?.addEventListener(
+  "click",
+  async () => {
+    await copyFilmShareLink(true);
+    closeAllShareMenus();
+  }
+);
+
+document.addEventListener("click", event => {
+  if (!event.target.closest(".share-menu-wrap")) {
+    closeAllShareMenus();
+  }
+});
+
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape") {
+    closeAllShareMenus();
+  }
 });
 
 window.addEventListener("hashchange", () => {

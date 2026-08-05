@@ -348,12 +348,40 @@
               Next ▶
             </button>
 
-            <button id="shareFilmButton"
-                    class="entry-control-button"
-                    type="button"
-                    disabled>
-              Copy link ↗
-            </button>
+            <div class="share-menu-wrap film-share-menu-wrap">
+              <button id="filmShareMenuButton"
+                      class="entry-control-button"
+                      type="button"
+                      disabled
+                      aria-haspopup="true"
+                      aria-expanded="false">
+                Share ↗ ▾
+              </button>
+
+              <div id="filmShareMenu"
+                   class="vault-share-menu hidden"
+                   role="menu">
+                <button id="copyVideoLinkButton"
+                        type="button"
+                        role="menuitem">
+                  <span aria-hidden="true">↗</span>
+                  <span>
+                    <strong>Copy Video Link</strong>
+                    <small>Open from 00:00</small>
+                  </span>
+                </button>
+
+                <button id="copyVideoTimeLinkButton"
+                        type="button"
+                        role="menuitem">
+                  <span aria-hidden="true">◷</span>
+                  <span>
+                    <strong>Copy Link at Current Time</strong>
+                    <small>Open at the current position</small>
+                  </span>
+                </button>
+              </div>
+            </div>
 
             <a id="filmDownloadLink"
                class="entry-control-button disabled-link"
@@ -572,14 +600,42 @@
         </div>
       
       <div class="bottom-player-actions">
-        <button id="bottomPlayerCopyLink"
-                class="bottom-player-action"
-                type="button"
-                disabled
-                title="Copy link to this track">
-          <span aria-hidden="true">↗</span>
-          <span>Copy Link</span>
-        </button>
+        <div class="share-menu-wrap">
+          <button id="audioShareMenuButton"
+                  class="bottom-player-action"
+                  type="button"
+                  disabled
+                  aria-haspopup="true"
+                  aria-expanded="false">
+            <span aria-hidden="true">↗</span>
+            <span>Share</span>
+            <span aria-hidden="true">▾</span>
+          </button>
+
+          <div id="audioShareMenu"
+               class="vault-share-menu hidden"
+               role="menu">
+            <button id="copyRecordingLinkButton"
+                    type="button"
+                    role="menuitem">
+              <span aria-hidden="true">↗</span>
+              <span>
+                <strong>Copy Recording Link</strong>
+                <small>Open from 00:00</small>
+              </span>
+            </button>
+
+            <button id="copyRecordingTimeLinkButton"
+                    type="button"
+                    role="menuitem">
+              <span aria-hidden="true">◷</span>
+              <span>
+                <strong>Copy Link at Current Time</strong>
+                <small>Open at the current position</small>
+              </span>
+            </button>
+          </div>
+        </div>
       </div>
 </section>
 
