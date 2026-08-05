@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="sv">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -28,7 +28,7 @@
 
       <div class="archive-actions">
         <span id="folderPath" class="folder-path">▱ /Musik/Gravitards</span>
-        <button id="refreshButton" class="text-button" type="button">↻ Uppdatera</button>
+        <button id="refreshButton" class="text-button" type="button">↻ Refresh</button>
       </div>
     </div>
   </nav>
@@ -47,13 +47,32 @@
         <span class="archive-tab__icon" aria-hidden="true">▸</span>
         <span>
           <strong>Film Archive</strong>
-          <small id="filmArchiveCount">Läser in…</small>
+          <small id="filmArchiveCount">Loading…</small>
         </span>
       </button>
     </div>
   </section>
 
   <main id="audioArchiveView" class="layout archive-view active">
+    <section class="audio-portal" aria-labelledby="audioPortalTitle">
+      <div class="audio-portal-heading">
+        <p class="eyebrow">THE AUDIO ARCHIVE</p>
+        <h2 id="audioPortalTitle">Choose a collection</h2>
+        <p id="audioPortalSubtitle">Enter the complete Vault Archive or the curated SoundCloud collection.</p>
+      </div>
+      <div class="audio-collection-grid">
+        <button id="vaultAudioCollectionButton" class="audio-collection-card" type="button" data-audio-source="vault" aria-pressed="false">
+          <img src="vault-header.jpg" alt="The Gravitards Vault Archive">
+          <span class="audio-collection-overlay"><strong>Vault Archive</strong><small id="vaultAudioCollectionCount">Loading…</small></span>
+        </button>
+        <button id="soundCloudCollectionButton" class="audio-collection-card soundcloud-card" type="button" data-audio-source="soundcloud" aria-pressed="false">
+          <img src="soundcloud-cover.jpg" alt="The Gravitards Vault SoundCloud Collection">
+          <span class="audio-collection-overlay"><strong>SoundCloud Vault</strong><small>Curated playlist</small></span>
+        </button>
+      </div>
+    </section>
+    <div id="vaultAudioContent" class="layout audio-archive-content hidden" aria-live="polite">
+
     <section class="library-card">
       <header class="library-header">
         <div>
@@ -68,11 +87,11 @@
         <div class="library-tools">
           <label class="search-box">
             <span aria-hidden="true">⌕</span>
-            <input id="searchInput" type="search" placeholder="Sök inspelning…" autocomplete="off">
+            <input id="searchInput" type="search" placeholder="Search recordings…" autocomplete="off">
           </label>
 
           <label class="sort-box">
-            <span>Sortera</span>
+            <span>Sort</span>
             <select id="sortSelect">
               <option value="year-desc">Nyaste år först</option>
               <option value="year-asc">Äldsta år först</option>
@@ -93,17 +112,17 @@
       <section class="vault-timeline-wrap">
         <div class="vault-timeline-heading">
           <span>VAULT TIMELINE</span>
-          <button id="clearTimelineFilterButton" class="text-button hidden" type="button">Visa alla år</button>
+          <button id="clearTimelineFilterButton" class="text-button hidden" type="button">Show all years</button>
         </div>
         <div id="vaultTimeline" class="vault-timeline" aria-label="Årtidslinje"></div>
       </section>
 
       <section class="quick-actions">
-        <button id="shuffleAllButton" class="gold-button" type="button">⤨ Blanda hela valvet</button>
-        <button id="favoritesFilterButton" class="text-button filter-button" type="button">☆ Favoriter</button>
-        <button id="recentFilterButton" class="text-button filter-button" type="button">◷ Senast spelade</button>
-        <button id="expandAllButton" class="text-button" type="button">Visa alla år</button>
-        <button id="collapseAllButton" class="text-button" type="button">Fäll ihop alla</button>
+        <button id="shuffleAllButton" class="gold-button" type="button">⤨ Shuffle the Vault</button>
+        <button id="favoritesFilterButton" class="text-button filter-button" type="button">☆ Favorites</button>
+        <button id="recentFilterButton" class="text-button filter-button" type="button">◷ Recently played</button>
+        <button id="expandAllButton" class="text-button" type="button">Show all years</button>
+        <button id="collapseAllButton" class="text-button" type="button">Collapse all</button>
       </section>
 
       <section id="message" class="message hidden" role="status"></section>
@@ -145,7 +164,7 @@
 
         <div class="transport">
           <button id="shuffleButton" class="round-button small" type="button" title="Blanda">⤨</button>
-          <button id="prevButton" class="round-button" type="button" title="Föregående">⏮</button>
+          <button id="prevButton" class="round-button" type="button" title="Previous">⏮</button>
           <button id="playButton" class="main-play" type="button" title="Spela eller pausa">▶</button>
           <button id="nextButton" class="round-button" type="button" title="Nästa">⏭</button>
           <button id="repeatButton" class="round-button small" type="button" title="Upprepa">↻</button>
@@ -159,10 +178,10 @@
         </div>
       </section>
 
-      <section class="media-control-panel audio-media-control-panel" aria-label="Kontroller för aktuell låt">
+      <section class="media-control-panel audio-media-control-panel" aria-label="Controls for current track">
         <div class="media-control-panel__heading">
           <span>AUDIO CONTROLS</span>
-          <small>Bläddra inom den aktuella listan</small>
+          <small>Browse within the current list</small>
         </div>
 
         <div class="entry-control-row">
@@ -170,28 +189,28 @@
                 class="entry-control-button"
                 type="button"
                 disabled>
-          ◀ Föregående
+          ◀ Previous
         </button>
 
         <button id="audioNextEntryButton"
                 class="entry-control-button"
                 type="button"
                 disabled>
-          Nästa ▶
+          Next ▶
         </button>
 
         <button id="shareAudioButton"
                 class="entry-control-button"
                 type="button"
                 disabled>
-          Kopiera länk ↗
+          Copy link ↗
         </button>
 
         <button id="audioDownloadEntryButton"
                 class="entry-control-button"
                 type="button"
                 disabled>
-          Ladda ned ↓
+          Download ↓
         </button>
         </div>
       </section>
@@ -199,7 +218,7 @@
       <section class="comments-card">
         <div class="comments-heading">
           <h2>Vault Comments</h2>
-          <span id="commentStatus">Ingen inspelning vald</span>
+          <span id="commentStatus">No recording selected</span>
         </div>
 
         <div id="audioCommentList" class="shared-comment-list">
@@ -212,7 +231,7 @@
             <input id="commentAuthorInput"
                    type="text"
                    maxlength="80"
-                   placeholder="Ditt namn">
+                   placeholder="Your name">
           </label>
 
           <textarea id="commentInput"
@@ -225,13 +244,13 @@
                     class="gold-button"
                     type="button"
                     disabled>
-              Skicka kommentar
+              Post comment
             </button>
           </div>
         </div>
 
         <p class="comments-note">
-          Kommentarer sparas i The Gravitards Vault och kan ses av alla.
+          Comments are stored in The Gravitards Vault and are visible to everyone.
         </p>
       </section>
 
@@ -262,12 +281,24 @@
       </section>
 
       <section class="info-card">
-        <h2>Om valvet</h2>
+        <h2>About the Vault</h2>
         <p>Varje inspelning är ett fragment ur Gravitards historia. Här bevaras repetitioner, improvisationer och färdiga verk i den ordning de skapades – ett valv över år av musikaliska experiment och gemensamt skapande.</p>
         <p>Mellanslag spelar eller pausar. Piltangenter byter inspelning.</p>
       </section>
     </aside>
-  </main>
+      </div>
+    <section id="soundCloudContent" class="soundcloud-vault hidden" aria-labelledby="soundCloudVaultTitle">
+      <header class="soundcloud-vault-heading">
+        <p class="eyebrow">CURRENT COLLECTION</p>
+        <h2 id="soundCloudVaultTitle">SoundCloud Vault</h2>
+        <p>Official releases and curated recordings.</p>
+      </header>
+      <div class="soundcloud-player-shell">
+        <iframe id="soundCloudPlayer" title="The Gravitards Vault SoundCloud playlist" width="100%" height="465" scrolling="no" frameborder="no" allow="autoplay" loading="lazy" src="https://w.soundcloud.com/player/?url=https%3A//soundcloud.com/kronanmusic/sets/the-gravitards-vault&color=%23d88922&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false&visual=true"></iframe>
+      </div>
+      <div class="soundcloud-actions"><a class="entry-control-button" href="https://soundcloud.com/kronanmusic/sets/the-gravitards-vault" target="_blank" rel="noopener noreferrer">Open on SoundCloud ↗</a></div>
+    </section>
+</main>
 
   <main id="filmArchiveView" class="film-layout archive-view hidden">
     <section class="film-hero-card">
@@ -305,7 +336,7 @@
                alt="The Gravitards Vault – YouTube Videos">
           <span class="film-collection-overlay">
             <strong>YouTube Videos</strong>
-            <small id="youtubeFilmsCount">Läser in…</small>
+            <small id="youtubeFilmsCount">Loading…</small>
           </span>
         </button>
 
@@ -318,7 +349,7 @@
                alt="The Gravitards Vault – Facebook Streams">
           <span class="film-collection-overlay">
             <strong>Facebook Streams</strong>
-            <small id="facebookStreamsCount">Läser in…</small>
+            <small id="facebookStreamsCount">Loading…</small>
           </span>
         </button>
 
@@ -331,7 +362,7 @@
                alt="The Gravitards Vault – Instagram Streams">
           <span class="film-collection-overlay">
             <strong>Instagram Streams</strong>
-            <small id="instagramStreamsCount">Läser in…</small>
+            <small id="instagramStreamsCount">Loading…</small>
           </span>
         </button>
       </div>
@@ -347,7 +378,7 @@
           <h2>År</h2>
         </div>
         <button id="clearFilmYearButton" class="text-button hidden" type="button">
-          Visa alla år
+          Show all years
         </button>
       </div>
       <div id="filmTimeline" class="vault-timeline" aria-label="Filmer efter år"></div>
@@ -372,10 +403,10 @@
           </video>
         </div>
 
-        <section class="media-control-panel" aria-label="Kontroller för aktuell video">
+        <section class="media-control-panel" aria-label="Controls for current video">
           <div class="media-control-panel__heading">
             <span>FILM CONTROLS</span>
-            <small>Bläddra inom den aktuella videokategorin</small>
+            <small>Browse within the current video category</small>
           </div>
 
           <div class="entry-control-row film-entry-control-row">
@@ -383,21 +414,21 @@
                     class="entry-control-button"
                     type="button"
                     disabled>
-              ◀ Föregående
+              ◀ Previous
             </button>
 
             <button id="filmNextButton"
                     class="entry-control-button"
                     type="button"
                     disabled>
-              Nästa ▶
+              Next ▶
             </button>
 
             <button id="shareFilmButton"
                     class="entry-control-button"
                     type="button"
                     disabled>
-              Kopiera länk ↗
+              Copy link ↗
             </button>
 
             <a id="filmDownloadLink"
@@ -405,7 +436,7 @@
                href="#"
                download
                aria-disabled="true">
-              Ladda ned ↓
+              Download ↓
             </a>
           </div>
         </section>
@@ -415,7 +446,7 @@
         <section class="comments-card film-comments-card">
           <div class="comments-heading">
             <h2>Film Comments</h2>
-            <span id="filmCommentStatus">Ingen video vald</span>
+            <span id="filmCommentStatus">No video selected</span>
           </div>
 
           <div id="filmCommentList" class="shared-comment-list">
@@ -428,7 +459,7 @@
               <input id="filmCommentAuthorInput"
                      type="text"
                      maxlength="80"
-                     placeholder="Ditt namn">
+                     placeholder="Your name">
             </label>
 
             <textarea id="filmCommentInput"
@@ -441,13 +472,13 @@
                       class="gold-button"
                       type="button"
                       disabled>
-                Skicka kommentar
+                Post comment
               </button>
             </div>
           </div>
 
           <p class="comments-note">
-            Kommentarer sparas i The Gravitards Vault och kan ses av alla.
+            Comments are stored in The Gravitards Vault and are visible to everyone.
           </p>
         </section>
 
@@ -490,7 +521,7 @@
         <header class="film-library-header">
           <div>
             <p class="section-kicker">FILM INDEX</p>
-            <h2 id="filmLibraryTitle">Alla YouTube-videor</h2>
+            <h2 id="filmLibraryTitle">All YouTube videos</h2>
             <p id="filmCount" class="film-count">Läser in Film Archive…</p>
           </div>
 
@@ -504,7 +535,7 @@
             </label>
 
             <label class="sort-box film-sort-box">
-              <span>Sortera</span>
+              <span>Sort</span>
               <select id="filmSortSelect">
                 <option value="playlist">Spellistans ordning</option>
                 <option value="newest">Nyaste först</option>
@@ -517,7 +548,7 @@
             <button id="refreshFilmsButton"
                     class="youtube-link film-refresh-button"
                     type="button">
-              Uppdatera
+              Refresh
             </button>
           </div>
         </header>
@@ -531,6 +562,7 @@
 
   <audio id="audio" preload="metadata"></audio>
   <script src="https://www.youtube.com/iframe_api"></script>
+  <script src="https://w.soundcloud.com/player/api.js"></script>
   <script src="/app.js" defer></script>
   <div id="shareToast"
        class="share-toast hidden"

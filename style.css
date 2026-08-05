@@ -2527,3 +2527,34 @@ button:disabled { opacity: .4; cursor: wait; }
     gap: 4px;
   }
 }
+
+
+/* V9 Audio Portal */
+#audioArchiveView.active { display: block; }
+.audio-portal { margin-top:18px; padding:24px; border:1px solid var(--line-strong); background:radial-gradient(circle at top,rgba(182,148,85,.09),transparent 42%),linear-gradient(180deg,rgba(18,16,12,.98),rgba(7,7,6,.98)); box-shadow:var(--shadow); }
+.audio-portal-heading,.soundcloud-vault-heading { text-align:center; margin-bottom:20px; }
+.audio-portal-heading .eyebrow,.soundcloud-vault-heading .eyebrow { margin:0 0 6px; color:var(--brass-light); font-family:Cinzel,serif; font-size:.72rem; letter-spacing:.2em; }
+.audio-portal-heading h2,.soundcloud-vault-heading h2 { margin:0; color:var(--bone); font-family:Cinzel,serif; font-size:clamp(1.2rem,2.5vw,2rem); letter-spacing:.07em; }
+.audio-portal-heading p:last-child,.soundcloud-vault-heading p:last-child { margin:8px 0 0; color:#827c72; font-family:Oswald,sans-serif; font-size:.82rem; letter-spacing:.04em; }
+.audio-collection-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; max-width:1100px; margin:0 auto; }
+.audio-collection-card { position:relative; overflow:hidden; min-width:0; padding:0; border:1px solid rgba(205,193,174,.18); background:#080807; box-shadow:0 12px 28px rgba(0,0,0,.28); cursor:pointer; transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease,filter .2s ease,opacity .2s ease; }
+.audio-collection-card img { display:block; width:100%; aspect-ratio:16/9; object-fit:cover; filter:saturate(.86) contrast(1.04) brightness(.76); transition:transform .2s ease,filter .2s ease; }
+.audio-collection-card:hover { z-index:2; border-color:rgba(212,184,117,.62); box-shadow:0 0 0 1px rgba(212,184,117,.14),0 18px 42px rgba(0,0,0,.46),0 0 26px rgba(182,148,85,.12); transform:translateY(-5px) scale(1.012); }
+.audio-collection-card:hover img { transform:scale(1.025); filter:saturate(1) contrast(1.07) brightness(.92); }
+.audio-collection-card.active { border-color:var(--brass-light); box-shadow:0 0 0 1px rgba(212,184,117,.32),0 20px 48px rgba(0,0,0,.5),0 0 34px rgba(182,148,85,.22); transform:translateY(-4px) scale(1.018); }
+.audio-collection-card.active img { filter:saturate(1.03) contrast(1.08) brightness(.97); }
+.audio-collection-grid.has-selection .audio-collection-card:not(.active) { opacity:.64; filter:brightness(.72); }
+.audio-collection-grid.has-selection .audio-collection-card:not(.active):hover { opacity:1; filter:none; }
+.audio-collection-overlay { position:absolute; inset:auto 0 0; display:flex; align-items:flex-end; justify-content:space-between; gap:12px; padding:34px 13px 12px; background:linear-gradient(180deg,transparent,rgba(0,0,0,.9)); color:white; text-align:left; pointer-events:none; }
+.audio-collection-overlay strong { font-family:Cinzel,serif; font-size:.82rem; letter-spacing:.06em; text-transform:uppercase; }
+.audio-collection-overlay small { color:#d8c28a; font-family:Oswald,sans-serif; font-size:.67rem; letter-spacing:.06em; white-space:nowrap; text-transform:uppercase; }
+.soundcloud-card.active { border-color:#e48122; box-shadow:0 0 0 1px rgba(228,129,34,.28),0 20px 48px rgba(0,0,0,.52),0 0 36px rgba(228,129,34,.22); }
+.audio-archive-content,.soundcloud-vault { margin-top:18px; animation:vaultAudioReveal .22s ease both; }
+.soundcloud-vault { padding:22px; border:1px solid var(--line-strong); background:radial-gradient(circle at top left,rgba(228,129,34,.09),transparent 34%),linear-gradient(180deg,rgba(18,15,11,.98),rgba(7,7,6,.98)); box-shadow:var(--shadow); }
+.soundcloud-player-shell { overflow:hidden; border:1px solid rgba(228,129,34,.35); background:#090806; box-shadow:inset 0 0 0 1px rgba(0,0,0,.55),0 18px 42px rgba(0,0,0,.34); }
+.soundcloud-player-shell iframe { display:block; width:100%; }
+.soundcloud-actions { display:flex; justify-content:flex-end; margin-top:12px; }
+.soundcloud-actions .entry-control-button { min-width:210px; }
+@keyframes vaultAudioReveal { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+@media(max-width:850px){ .audio-collection-grid{grid-template-columns:1fr}.audio-collection-card img{aspect-ratio:16/7} }
+@media(max-width:560px){ .audio-portal,.soundcloud-vault{padding:13px}.audio-collection-card img{aspect-ratio:16/9}.audio-collection-overlay{align-items:flex-start;flex-direction:column;gap:4px}.soundcloud-actions .entry-control-button{width:100%} }

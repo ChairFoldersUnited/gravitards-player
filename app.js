@@ -4,6 +4,15 @@ const audioPreviousEntryButton = document.querySelector("#audioPreviousEntryButt
 const audioNextEntryButton = document.querySelector("#audioNextEntryButton");
 const audioDownloadEntryButton = document.querySelector("#audioDownloadEntryButton");
 const audioArchiveTab = document.querySelector("#audioArchiveTab");
+const vaultAudioCollectionButton = document.querySelector("#vaultAudioCollectionButton");
+const soundCloudCollectionButton = document.querySelector("#soundCloudCollectionButton");
+const vaultAudioCollectionCount = document.querySelector("#vaultAudioCollectionCount");
+const vaultAudioContent = document.querySelector("#vaultAudioContent");
+const soundCloudContent = document.querySelector("#soundCloudContent");
+const audioPortalTitle = document.querySelector("#audioPortalTitle");
+const audioPortalSubtitle = document.querySelector("#audioPortalSubtitle");
+const audioCollectionGrid = document.querySelector(".audio-collection-grid");
+const soundCloudIframe = document.querySelector("#soundCloudPlayer");
 const filmArchiveTab = document.querySelector("#filmArchiveTab");
 const filmArchiveCount = document.querySelector("#filmArchiveCount");
 const audioArchiveView = document.querySelector("#audioArchiveView");
@@ -102,6 +111,9 @@ let pendingSharedLocation = null;
 let shareToastTimer = null;
 let mediaSwitchInProgress = false;
 let activeFilmSource = "";
+let activeAudioSource = "";
+let soundCloudWidget = null;
+let soundCloudReady = false;
 let audioSharedComments = [];
 let filmSharedComments = [];
 let filmYearFilter = null;
@@ -208,7 +220,53 @@ function pauseAudioForVideo() {
   }, 0);
 }
 
-function showShareToast(message = "Länk kopierad") {
+
+function updateAudioPortalState() {
+  const vaultActive = activeAudioSource === "vault";
+  const soundCloudActive = activeAudioSource === "soundcloud";
+  vaultAudioCollectionButton.classList.toggle("active", vaultActive);
+  soundCloudCollectionButton.classList.toggle("active", soundCloudActive);
+  vaultAudioCollectionButton.setAttribute("aria-pressed", vaultActive ? "true" : "false");
+  soundCloudCollectionButton.setAttribute("aria-pressed", soundCloudActive ? "true" : "false");
+  audioCollectionGrid.classList.toggle("has-selection", Boolean(activeAudioSource));
+  vaultAudioContent.classList.toggle("hidden", !vaultActive);
+  soundCloudContent.classList.toggle("hidden", !soundCloudActive);
+  if (!activeAudioSource) {
+    audioPortalTitle.textContent = "Choose a collection";
+    audioPortalSubtitle.textContent = "Enter the complete Vault Archive or the curated SoundCloud collection.";
+  } else if (vaultActive) {
+    audioPortalTitle.textContent = "Vault Archive";
+    audioPortalSubtitle.textContent = "Every rehearsal, demo and forgotten idea.";
+  } else {
+    audioPortalTitle.textContent = "SoundCloud Vault";
+    audioPortalSubtitle.textContent = "Official releases and curated recordings.";
+  }
+}
+function pauseSoundCloudPlayer() {
+  if (soundCloudWidget && soundCloudReady) soundCloudWidget.pause();
+}
+function setAudioSource(source) {
+  activeAudioSource = source === "soundcloud" ? "soundcloud" : "vault";
+  updateAudioPortalState();
+  if (activeAudioSource === "vault") {
+    pauseSoundCloudPlayer();
+    if (!tracks.length) loadTracks();
+  } else {
+    audio.pause();
+    dropboxFilmPlayer.pause();
+  }
+}
+function initializeSoundCloudWidget() {
+  if (!soundCloudIframe || !window.SC?.Widget) return;
+  soundCloudWidget = window.SC.Widget(soundCloudIframe);
+  soundCloudWidget.bind(window.SC.Widget.Events.READY, () => { soundCloudReady = true; });
+  soundCloudWidget.bind(window.SC.Widget.Events.PLAY, () => {
+    audio.pause();
+    dropboxFilmPlayer.pause();
+  });
+}
+
+function showShareToast(message = "Link copied") {
   shareToast.textContent = message;
   shareToast.classList.remove("hidden");
 
@@ -324,8 +382,8 @@ function addTimestampShareButtons(container, archive) {
       const shareButton = document.createElement("button");
       shareButton.className = "timestamp-share";
       shareButton.type = "button";
-      shareButton.title = "Kopiera länk till denna tid";
-      shareButton.setAttribute("aria-label", "Kopiera tidslänk");
+      shareButton.title = "Copy link to this timestamp";
+      shareButton.setAttribute("aria-label", "Copy timestamp link");
       shareButton.textContent = "↗";
 
       shareButton.addEventListener("click", async event => {
@@ -353,7 +411,7 @@ function addTimestampShareButtons(container, archive) {
         if (!url) return;
 
         await copyTextToClipboard(url);
-        showShareToast("Tidslänk kopierad");
+        showShareToast("Timestamp link copied");
       });
 
       const deleteButton = note.querySelector(".timestamp-delete");
@@ -714,7 +772,7 @@ function renderTimestampNotes() {
       <button class="timestamp-delete"
               type="button"
               data-delete-timestamp="${index}"
-              title="Ta bort">×</button>
+              title="Delete">×</button>
     </div>
   `).join("");
   addTimestampShareButtons(timestampList, "audio");
@@ -804,7 +862,7 @@ function renderTracks() {
 
   if (!visibleTracks.length) {
     yearGroups.innerHTML =
-      `<div class="message">${tracks.length ? "Inga inspelningar matchar sökningen." : "Inga ljudfiler hittades."}</div>`;
+      `<div class="message">${tracks.length ? "No recordings match your search." : "Inga ljudfiler hittades."}</div>`;
     return;
   }
 
@@ -819,7 +877,7 @@ function renderTracks() {
         <div class="track ${active ? "active" : ""}" role="button" tabindex="0" data-id="${escapeHtml(track.id)}">
           <span class="track-index">${active && !audio.paused ? "▶" : "♫"}</span>
           <span class="track-copy">
-            <span class="track-title">${escapeHtml(track.displayTitle)}${timestampNotes[track.id]?.length ? '<span class="track-comment-badge" title="Har tidsanteckningar">◆</span>' : ''}</span>
+            <span class="track-title">${escapeHtml(track.displayTitle)}${timestampNotes[track.id]?.length ? '<span class="track-comment-badge" title="Has timestamp notes">◆</span>' : ''}</span>
             <span class="track-folder">${escapeHtml(cleanFolder(track.folder))}</span>
           </span>
           <span class="track-date">${escapeHtml(formatDate(track.modified))}</span>
@@ -1041,7 +1099,7 @@ function renderFilmTimestampNotes() {
       <button class="timestamp-delete"
               type="button"
               data-film-timestamp-delete="${index}"
-              title="Ta bort">×</button>
+              title="Delete">×</button>
     </div>
   `).join("");
   addTimestampShareButtons(filmTimestampList, "video");
@@ -1069,11 +1127,11 @@ function renderFilms() {
 
   filmCount.textContent =
     `${visibleFilms.length} av ${films.length} ` +
-    `${films.length === 1 ? "film" : "filmer"}`;
+    `${films.length === 1 ? "film" : "films"}`;
 
   if (!visibleFilms.length) {
     filmGrid.innerHTML =
-      '<div class="message">Inga videor matchar sökningen.</div>';
+      '<div class="message">No videos match your search.</div>';
     return;
   }
 
@@ -1143,7 +1201,7 @@ function renderFilms() {
         </div>
 
         <div class="film-entry-copy">
-          <strong class="film-entry-title">${escapeHtml(film.title)}${filmTimestampNotes[film.id]?.length ? '<span class="film-entry-note-badge" title="Har tidsanteckningar">◆</span>' : ''}</strong>
+          <strong class="film-entry-title">${escapeHtml(film.title)}${filmTimestampNotes[film.id]?.length ? '<span class="film-entry-note-badge" title="Has timestamp notes">◆</span>' : ''}</strong>
           ${originalName}
           <span class="film-entry-meta">
             ${meta}
@@ -1288,7 +1346,7 @@ async function preloadFilmCounts(force = false) {
 
     updateFilmArchiveCount();
   } catch (error) {
-    console.error("Kunde inte läsa filmräknarna:", error);
+    console.error("Could not load film counters:", error);
   }
 }
 
@@ -1304,7 +1362,7 @@ async function loadYouTubeFilms(force = false) {
 
     if (!refreshResponse.ok) {
       throw new Error(
-        refreshData.error || "YouTube-mappen kunde inte uppdateras."
+        refreshData.error || "The YouTube folder could not be refreshed."
       );
     }
   }
@@ -1314,14 +1372,14 @@ async function loadYouTubeFilms(force = false) {
 
   if (!response.ok) {
     throw new Error(
-      data.error || "YouTube-mappen kunde inte läsas."
+      data.error || "The YouTube folder could not be loaded."
     );
   }
 
   youtubeFilms = data.videos || [];
   updateFilmArchiveCount();
   youtubeFilmsCount.textContent =
-    `${youtubeFilms.length} ${youtubeFilms.length === 1 ? "video" : "videor"}`;
+    `${youtubeFilms.length} ${youtubeFilms.length === 1 ? "video" : "videos"}`;
 
   return youtubeFilms;
 }
@@ -1339,7 +1397,7 @@ async function loadFacebookStreams(force = false) {
 
     if (!refreshResponse.ok) {
       throw new Error(
-        refreshData.error || "Facebook Streams kunde inte uppdateras."
+        refreshData.error || "Facebook Streams could not be refreshed."
       );
     }
   }
@@ -1349,7 +1407,7 @@ async function loadFacebookStreams(force = false) {
 
   if (!response.ok) {
     throw new Error(
-      data.error || "Facebook Streams kunde inte läsas."
+      data.error || "Facebook Streams could not be loaded."
     );
   }
 
@@ -1373,7 +1431,7 @@ async function loadInstagramStreams(force = false) {
     const refreshData = await refreshResponse.json();
     if (!refreshResponse.ok) {
       throw new Error(
-        refreshData.error || "Instagram Streams kunde inte uppdateras."
+        refreshData.error || "Instagram Streams could not be refreshed."
       );
     }
   }
@@ -1383,7 +1441,7 @@ async function loadInstagramStreams(force = false) {
 
   if (!response.ok) {
     throw new Error(
-      data.error || "Instagram Streams kunde inte läsas."
+      data.error || "Instagram Streams could not be loaded."
     );
   }
 
@@ -1400,7 +1458,7 @@ async function loadInstagramStreams(force = false) {
 async function loadFilms(force = false) {
   filmMessage.classList.add("hidden");
   refreshFilmsButton.disabled = true;
-  refreshFilmsButton.textContent = "Uppdaterar…";
+  refreshFilmsButton.textContent = "Refreshing…";
 
   try {
     films =
@@ -1415,7 +1473,7 @@ async function loadFilms(force = false) {
         ? "Alla Facebook Streams"
         : activeFilmSource === "instagram"
           ? "Alla Instagram Streams"
-          : "Alla YouTube-videor";
+          : "Alla YouTube-videos";
 
     filmSortSelect.disabled = activeFilmSource === "facebook";
     renderFilmTimeline();
@@ -1428,7 +1486,7 @@ async function loadFilms(force = false) {
       if (films.length) {
         selectFilm(films[0]);
       } else {
-        filmNowTitle.textContent = "Inga videor hittades";
+        filmNowTitle.textContent = "No videos found";
         filmNowMeta.textContent = "";
         loadFilmComment();
         renderFilmTimestampNotes();
@@ -1439,10 +1497,10 @@ async function loadFilms(force = false) {
   } catch (error) {
     filmMessage.textContent = error.message;
     filmMessage.classList.remove("hidden");
-    filmCount.textContent = "Film Archive kunde inte läsas";
+    filmCount.textContent = "Film Archive could not be loaded";
   } finally {
     refreshFilmsButton.disabled = false;
-    refreshFilmsButton.textContent = "Uppdatera";
+    refreshFilmsButton.textContent = "Refresh";
   }
 }
 
@@ -1541,11 +1599,13 @@ function tryOpenSharedAudio() {
   );
 
   if (!track) {
-    showShareToast("Låten i länken hittades inte");
+    showShareToast("The track in this link could not be found");
     pendingSharedLocation = null;
     return false;
   }
 
+  activeAudioSource = "vault";
+  updateAudioPortalState();
   setArchiveView("audio");
   selectTrack(track);
 
@@ -1607,7 +1667,7 @@ async function tryOpenSharedFilm() {
   );
 
   if (!film) {
-    showShareToast("Videon i länken hittades inte");
+    showShareToast("The video in this link could not be found");
     pendingSharedLocation = null;
     return false;
   }
@@ -1645,7 +1705,7 @@ function setArchiveView(view) {
 async function loadTracks(force = false) {
   hideMessage();
   refreshButton.disabled = true;
-  refreshButton.textContent = "↻ Uppdaterar…";
+  refreshButton.textContent = "↻ Refreshing…";
 
   try {
     if (force) {
@@ -1663,6 +1723,8 @@ async function loadTracks(force = false) {
     tracks = decorateTracks(data.tracks);
     audioArchiveCount.textContent =
       `${tracks.length} ${tracks.length === 1 ? "Vault Entry" : "Vault Entries"}`;
+    vaultAudioCollectionCount.textContent =
+      `${tracks.length} ${tracks.length === 1 ? "recording" : "recordings"}`;
     folderPath.textContent = `▱ ${data.folder}`;
     updateSummary();
     updateYearJump();
@@ -1677,7 +1739,7 @@ async function loadTracks(force = false) {
     showMessage(error.message, true);
   } finally {
     refreshButton.disabled = false;
-    refreshButton.textContent = "↻ Uppdatera";
+    refreshButton.textContent = "↻ Refresh";
   }
 }
 
@@ -2267,8 +2329,14 @@ instagramStreamsTab.addEventListener("click", () => {
   setFilmSource("instagram");
 });
 
-audio.addEventListener("play", pauseVideoForAudio);
-dropboxFilmPlayer.addEventListener("play", pauseAudioForVideo);
+audio.addEventListener("play", () => {
+  pauseVideoForAudio();
+  pauseSoundCloudPlayer();
+});
+dropboxFilmPlayer.addEventListener("play", () => {
+  pauseAudioForVideo();
+  pauseSoundCloudPlayer();
+});
 
 dropboxFilmPlayer.addEventListener("timeupdate", updateFilmCurrentTime);
 dropboxFilmPlayer.addEventListener("loadedmetadata", updateFilmCurrentTime);
@@ -2319,7 +2387,7 @@ shareAudioButton.addEventListener("click", async () => {
 
   await copyTextToClipboard(url);
   showShareToast(
-    seconds ? "Länk med aktuell tid kopierad" : "Länk kopierad"
+    seconds ? "Link with current time copied" : "Link copied"
   );
 });
 
@@ -2338,8 +2406,8 @@ shareFilmButton.addEventListener("click", async () => {
   await copyTextToClipboard(url);
   showShareToast(
     seconds > 0
-      ? "Länk med aktuell tid kopierad"
-      : "Länk kopierad"
+      ? "Link with current time copied"
+      : "Link copied"
   );
 });
 
@@ -2355,6 +2423,8 @@ window.addEventListener("hashchange", () => {
   }
 });
 
+vaultAudioCollectionButton.addEventListener("click", () => setAudioSource("vault"));
+soundCloudCollectionButton.addEventListener("click", () => setAudioSource("soundcloud"));
 audioArchiveTab.addEventListener("click", () => setArchiveView("audio"));
 filmArchiveTab.addEventListener("click", () => setArchiveView("film"));
 
@@ -2377,6 +2447,10 @@ activeFilmSource =
 updateFilmPortalState();
 
 preloadFilmCounts();
+
+activeAudioSource = pendingSharedLocation?.archive === "audio" ? "vault" : "";
+updateAudioPortalState();
+initializeSoundCloudWidget();
 
 const savedArchiveView =
   localStorage.getItem("gravitards-archive-view") || "audio";

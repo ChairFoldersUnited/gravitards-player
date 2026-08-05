@@ -756,14 +756,14 @@ app.get("/duplicate-videos", async (_req, res) => {
             <p class="hash">Hash: ${group.contentHash}</p>
             <p>
               ${group.fileCount} identiska filer ·
-              möjlig besparing ${formatBytesForReport(group.wastedBytes)}
+              potential savings ${formatBytesForReport(group.wastedBytes)}
             </p>
 
             <div class="files">
               ${group.files.map((file, fileIndex) => `
                 <article>
                   <strong>
-                    ${fileIndex === 0 ? "Behåll exempelvis:" : "Dubblett:"}
+                    ${fileIndex === 0 ? "Keep, for example:" : "Duplicate:"}
                   </strong>
                   <span>${String(file.originalName || "").replace(/[&<>"']/g, character => ({
                     "&": "&amp;",
@@ -783,9 +783,9 @@ app.get("/duplicate-videos", async (_req, res) => {
         `).join("")
       : `
           <section class="empty">
-            <h2>Inga exakta dubbletter hittades</h2>
+            <h2>No exact duplicates found</h2>
             <p>
-              Alla kontrollerade videor hade olika Dropbox content_hash.
+              All checked videos had different Dropbox content_hash values.
             </p>
           </section>
         `;
@@ -893,25 +893,25 @@ app.get("/duplicate-videos", async (_req, res) => {
     <header>
       <h1>The Gravitards Vault – Duplicate Report</h1>
       <p>
-        Endast exakta dubbletter visas. Rapporten raderar eller ändrar inga filer.
+        Only exact duplicates are shown. This report does not delete or modify any files.
       </p>
 
       <div class="summary">
         <div>
           <strong>${report.checkedFiles}</strong>
-          <span>kontrollerade filer</span>
+          <span>checked files</span>
         </div>
         <div>
           <strong>${report.exactDuplicateGroups}</strong>
-          <span>dubblettgrupper</span>
+          <span>duplicate groups</span>
         </div>
         <div>
           <strong>${report.duplicateCopies}</strong>
-          <span>extra kopior</span>
+          <span>extra copies</span>
         </div>
         <div>
           <strong>${report.wastedSpace}</strong>
-          <span>möjlig besparing</span>
+          <span>potential savings</span>
         </div>
       </div>
     </header>
@@ -924,7 +924,7 @@ app.get("/duplicate-videos", async (_req, res) => {
     console.error(error);
 
     res.status(500).type("html").send(`
-      <h1>Dubblettkontrollen misslyckades</h1>
+      <h1>Duplicate check failed</h1>
       <pre>${String(error.message || error)}</pre>
     `);
   }
@@ -1043,7 +1043,7 @@ app.get("/api/download/:id", async (req, res) => {
       const details = await response.text();
 
       throw new Error(
-        `Dropbox-nedladdning misslyckades ` +
+        `Dropbox download failed ` +
         `(${response.status}): ${details}`
       );
     }
@@ -1115,7 +1115,7 @@ app.get("/api/facebook-streams/play/:id", async (req, res) => {
     );
 
     if (!stream) {
-      return res.status(404).send("Facebook-streamen hittades inte.");
+      return res.status(404).send("The Facebook stream could not be found.");
     }
 
     const data = await dropboxRpc("files/get_temporary_link", {
@@ -1138,7 +1138,7 @@ app.get("/api/facebook-streams/download/:id", async (req, res) => {
     );
 
     if (!stream) {
-      return res.status(404).send("Facebook-streamen hittades inte.");
+      return res.status(404).send("The Facebook stream could not be found.");
     }
 
     const response = await dropboxDownload(stream.dropboxId);
@@ -1146,7 +1146,7 @@ app.get("/api/facebook-streams/download/:id", async (req, res) => {
     if (!response.ok || !response.body) {
       const details = await response.text();
       throw new Error(
-        `Dropbox-nedladdning misslyckades (${response.status}): ${details}`
+        `Dropbox download failed (${response.status}): ${details}`
       );
     }
 
@@ -1203,7 +1203,7 @@ app.get("/api/instagram-streams/play/:id", async (req, res) => {
   try {
     const streams = await fetchInstagramStreams();
     const stream = streams.find(item => item.dropboxId === req.params.id);
-    if (!stream) return res.status(404).send("Instagram-streamen hittades inte.");
+    if (!stream) return res.status(404).send("The Instagram stream could not be found.");
 
     const data = await dropboxRpc("files/get_temporary_link", {
       path: stream.dropboxId
@@ -1220,12 +1220,12 @@ app.get("/api/instagram-streams/download/:id", async (req, res) => {
   try {
     const streams = await fetchInstagramStreams();
     const stream = streams.find(item => item.dropboxId === req.params.id);
-    if (!stream) return res.status(404).send("Instagram-streamen hittades inte.");
+    if (!stream) return res.status(404).send("The Instagram stream could not be found.");
 
     const response = await dropboxDownload(stream.dropboxId);
     if (!response.ok || !response.body) {
       const details = await response.text();
-      throw new Error(`Dropbox-nedladdning misslyckades (${response.status}): ${details}`);
+      throw new Error(`Dropbox download failed (${response.status}): ${details}`);
     }
 
     const filename = safeDownloadFilename(stream.originalName);
@@ -1279,7 +1279,7 @@ app.get("/api/videos/play/:id", async (req, res) => {
     );
 
     if (!video) {
-      return res.status(404).send("YouTube-videon hittades inte.");
+      return res.status(404).send("The YouTube video could not be found.");
     }
 
     const data = await dropboxRpc("files/get_temporary_link", {
@@ -1302,7 +1302,7 @@ app.get("/api/videos/download/:id", async (req, res) => {
     );
 
     if (!video) {
-      return res.status(404).send("YouTube-videon hittades inte.");
+      return res.status(404).send("The YouTube video could not be found.");
     }
 
     const response = await dropboxDownload(video.dropboxId);
@@ -1310,7 +1310,7 @@ app.get("/api/videos/download/:id", async (req, res) => {
     if (!response.ok || !response.body) {
       const details = await response.text();
       throw new Error(
-        `Dropbox-nedladdning misslyckades (${response.status}): ${details}`
+        `Dropbox download failed (${response.status}): ${details}`
       );
     }
 
