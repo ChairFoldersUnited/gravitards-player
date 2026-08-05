@@ -228,42 +228,25 @@ function initializeSoundCloudWidget() {
 async function copyCurrentTrackLink() {
   if (!currentTrack) return;
 
-  const url = buildShareUrl({
+  const seconds =
+    Number.isFinite(audio.currentTime) && audio.currentTime > 0
+      ? Math.floor(audio.currentTime)
+      : null;
+
+  const url = buildVaultShareUrl({
     archive: "audio",
     source: "dropbox",
-    id: currentTrack.id,
-    time:
-      Number.isFinite(audio.currentTime) && audio.currentTime > 0
-        ? Math.floor(audio.currentTime)
-        : 0
+    entryId: currentTrack.id,
+    seconds
   });
 
-  try {
-    await navigator.clipboard.writeText(url);
-    showShareToast(
-      audio.currentTime > 0
-        ? "Link with current time copied"
-        : "Track link copied"
-    );
-  } catch (error) {
-    console.error(error);
+  await copyTextToClipboard(url);
 
-    const temporaryInput = document.createElement("textarea");
-    temporaryInput.value = url;
-    temporaryInput.setAttribute("readonly", "");
-    temporaryInput.style.position = "fixed";
-    temporaryInput.style.opacity = "0";
-    document.body.appendChild(temporaryInput);
-    temporaryInput.select();
-    document.execCommand("copy");
-    temporaryInput.remove();
-
-    showShareToast(
-      audio.currentTime > 0
-        ? "Link with current time copied"
-        : "Track link copied"
-    );
-  }
+  showShareToast(
+    seconds
+      ? "Link with current time copied"
+      : "Track link copied"
+  );
 }
 
 function showShareToast(message = "Link copied") {

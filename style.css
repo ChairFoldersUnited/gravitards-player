@@ -3143,3 +3143,49 @@ body:has(#filmArchiveView:not(.hidden)) {
     padding-inline: 0;
   }
 }
+
+
+/* V9.1.9 – Copy confirmation and right sidebar scrolling */
+@media (min-width: 1121px) {
+  #audioArchiveView .sidebar {
+    position: sticky;
+    top: 76px;
+    max-height:
+      calc(
+        100vh
+        - 76px
+        - var(--bottom-player-height)
+        - 18px
+      );
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    padding-right: 7px;
+    padding-bottom: 18px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(182,148,85,.38) transparent;
+  }
+
+  #audioArchiveView .sidebar::-webkit-scrollbar {
+    width: 7px;
+  }
+
+  #audioArchiveView .sidebar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  #audioArchiveView .sidebar::-webkit-scrollbar-thumb {
+    border-radius: 2px;
+    background: rgba(182,148,85,.34);
+  }
+}
+
+/* When the sidebar stacks below the archive, use normal page scrolling. */
+@media (max-width: 1120px) {
+  #audioArchiveView .sidebar {
+    position: static;
+    max-height: none;
+    overflow: visible;
+    padding-bottom: 0;
+  }
+}
