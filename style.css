@@ -2684,3 +2684,138 @@ iframe {
     justify-self: stretch;
   }
 }
+
+
+/* V9.1.3 – exact Audio Archive width fix */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+/*
+ * Use the site's actual layout selectors.
+ * The previous patch targeted generic class names that this page does not use.
+ */
+#audioArchiveView.layout {
+  width: min(1380px, calc(100vw - 42px));
+  max-width: calc(100vw - 42px);
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+  overflow: visible;
+}
+
+#audioArchiveView > .library-card,
+#audioArchiveView > .sidebar {
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+}
+
+#audioArchiveView .sidebar {
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
+}
+
+#audioArchiveView .sidebar > *,
+#audioArchiveView .sidebar section,
+#audioArchiveView .sidebar form,
+#audioArchiveView .sidebar iframe,
+#audioArchiveView .sidebar img,
+#audioArchiveView .sidebar audio,
+#audioArchiveView .sidebar video {
+  min-width: 0;
+  max-width: 100%;
+}
+
+#audioArchiveView .now-card,
+#audioArchiveView .soundcloud-sidebar-card,
+#audioArchiveView .connect-card,
+#audioArchiveView .media-control-panel,
+#audioArchiveView .comments-card,
+#audioArchiveView .timestamp-card,
+#audioArchiveView .info-card {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+#audioArchiveView .soundcloud-sidebar-cover {
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+}
+
+#audioArchiveView .soundcloud-sidebar-player,
+#audioArchiveView #soundCloudPlayer {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+#audioArchiveView .entry-control-row {
+  width: 100%;
+  max-width: 100%;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+#audioArchiveView .entry-control-button {
+  min-width: 0;
+  width: 100%;
+  white-space: normal;
+}
+
+#audioArchiveView .transport {
+  width: 100%;
+  max-width: 100%;
+}
+
+#audioArchiveView .comments-card textarea,
+#audioArchiveView .timestamp-card textarea,
+#audioArchiveView input,
+#audioArchiveView select {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Stack the sidebar below the archive before it becomes cramped. */
+@media (max-width: 1120px) {
+  #audioArchiveView.layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #audioArchiveView .sidebar {
+    position: static;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-height: none;
+    overflow: visible;
+    padding-right: 0;
+  }
+
+  #audioArchiveView .now-card,
+  #audioArchiveView .soundcloud-sidebar-card {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 760px) {
+  #audioArchiveView.layout {
+    width: min(100% - 20px, 1380px);
+    max-width: calc(100vw - 20px);
+  }
+
+  #audioArchiveView .sidebar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #audioArchiveView .entry-control-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
