@@ -67,6 +67,9 @@ const filmTimestampAuthorInput =
   document.querySelector("#filmTimestampAuthorInput");
 const saveFilmTimestampButton = document.querySelector("#saveFilmTimestampButton");
 const filmTimestampList = document.querySelector("#filmTimestampList");
+const filmTimestampPanel =
+  filmTimestampList.closest(".film-timestamp-card") ||
+  filmTimestampList.closest(".timestamp-card");
 const yearGroups = document.querySelector("#yearGroups");
 const searchInput = document.querySelector("#searchInput");
 const sortSelect = null;
@@ -126,6 +129,8 @@ const mobileComposerTextLabel =
 const saveTimestampButton = document.querySelector("#saveTimestampButton");
 const cancelTimestampButton = document.querySelector("#cancelTimestampButton");
 const timestampList = document.querySelector("#timestampList");
+const audioTimestampPanel =
+  timestampList.closest(".timestamp-card");
 const yearJumpSelect = null;
 const favoritesFilterButton = null;
 const recentFilterButton = null;
@@ -2385,8 +2390,59 @@ async function loadLatestActivityData() {
   renderLatestActivity();
 }
 
+
+function scrollToOpenedDiscussion({
+  type,
+  noteId
+}) {
+  if (!isMobileComposerLayout()) return;
+
+  const panel =
+    type === "audio"
+      ? audioTimestampPanel
+      : filmTimestampPanel;
+
+  const list =
+    type === "audio"
+      ? timestampList
+      : filmTimestampList;
+
+  if (!panel || !list) return;
+
+  window.setTimeout(() => {
+    panel.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+
+    window.setTimeout(() => {
+      const discussion = list.querySelector(
+        `.timestamp-discussion[data-timestamp-note-id="${CSS.escape(String(noteId || ""))}"]`
+      );
+
+      discussion?.scrollIntoView({
+        behavior: "smooth",
+        block: "center"
+      });
+
+      if (discussion) {
+        discussion.classList.add(
+          "opened-discussion-highlight"
+        );
+
+        window.setTimeout(() => {
+          discussion.classList.remove(
+            "opened-discussion-highlight"
+          );
+        }, 2600);
+      }
+    }, 600);
+  }, 200);
+}
+
 async function openActivityEntry(button) {
   const type = button.dataset.activityType;
+  const noteId = button.dataset.activityNoteId;
   const id = button.dataset.activityId;
   const source = button.dataset.activitySource;
   const seconds = Number(button.dataset.activitySeconds || 0);
@@ -2406,6 +2462,11 @@ async function openActivityEntry(button) {
     setArchiveView("audio");
     await playTrack(track);
     renderTimestampNotes();
+
+    scrollToOpenedDiscussion({
+      type: "audio",
+      noteId
+    });
 
     if (seconds > 0) {
       seekSharedAudio(seconds);
@@ -2441,6 +2502,11 @@ async function openActivityEntry(button) {
 
   selectFilm(film);
   renderFilmTimestampNotes();
+
+  scrollToOpenedDiscussion({
+    type: "video",
+    noteId
+  });
 
   if (seconds > 0) {
     seekSharedFilm(seconds);
