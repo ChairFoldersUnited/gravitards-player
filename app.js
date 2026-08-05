@@ -226,37 +226,89 @@ function initializeSoundCloudWidget() {
 
 
 async function copyCurrentTrackLink() {
-  if (!currentTrack) return;
+  if (!currentTrack) {
+    showShareToast("Select a track first");
+    return;
+  }
+
+  const url = new URL(window.location.href);
+  url.hash = "";
+
+  const params = new URLSearchParams();
+  params.set("archive", "audio");
+  params.set("source", "dropbox");
+  params.set("id", String(currentTrack.id));
 
   const seconds =
     Number.isFinite(audio.currentTime) && audio.currentTime > 0
       ? Math.floor(audio.currentTime)
-      : null;
+      : 0;
 
-  const url = buildVaultShareUrl({
-    archive: "audio",
-    source: "dropbox",
-    entryId: currentTrack.id,
-    seconds
-  });
+  if (seconds > 0) {
+    params.set("t", String(seconds));
+  }
 
-  await copyTextToClipboard(url);
+  url.hash = params.toString();
+  const shareUrl = url.toString();
 
-  showShareToast(
-    seconds
-      ? "Link with current time copied"
-      : "Track link copied"
-  );
+  let copied = false;
+
+  if (
+    navigator.clipboard &&
+    typeof navigator.clipboard.writeText === "function" &&
+    window.isSecureContext
+  ) {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      copied = true;
+    } catch (error) {
+      console.error("Clipboard API failed:", error);
+    }
+  }
+
+  if (!copied) {
+    const textarea = document.createElement("textarea");
+    textarea.value = shareUrl;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.left = "-9999px";
+    textarea.style.top = "0";
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+
+    try {
+      copied = document.execCommand("copy");
+    } catch (error) {
+      console.error("Clipboard fallback failed:", error);
+    } finally {
+      textarea.remove();
+    }
+  }
+
+  if (copied) {
+    showShareToast(
+      seconds > 0
+        ? "Link with current time copied"
+        : "Track link copied"
+    );
+    return;
+  }
+
+  window.prompt("Copy this link:", shareUrl);
+  showShareToast("Copy the link from the dialog");
 }
 
 function showShareToast(message = "Link copied") {
+  if (!shareToast) return;
+
   shareToast.textContent = message;
   shareToast.classList.remove("hidden");
 
   window.clearTimeout(shareToastTimer);
   shareToastTimer = window.setTimeout(() => {
     shareToast.classList.add("hidden");
-  }, 2200);
+  }, 2400);
 }
 
 async function copyTextToClipboard(value) {
@@ -2049,10 +2101,15 @@ repeatButton.addEventListener("click", () => {
 
 refreshButton.addEventListener("click", () => loadTracks(true));
 
-bottomPlayerCopyLink?.addEventListener(
-  "click",
-  copyCurrentTrackLink
-);
+
+
+if (bottomPlayerCopyLink) {
+  bottomPlayerCopyLink.addEventListener("click", async (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    await copyCurrentTrackLink();
+  });
+}
 
 audio.addEventListener("play", () => {
   playButton.textContent = "❚❚";

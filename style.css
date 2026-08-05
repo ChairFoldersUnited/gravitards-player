@@ -3189,3 +3189,33 @@ body:has(#filmArchiveView:not(.hidden)) {
     padding-bottom: 0;
   }
 }
+
+
+/* V10 – remove the obsolete archive quick-actions row */
+#audioArchiveView .quick-actions {
+  display: none !important;
+}
+
+/* Robust copy confirmation above the fixed player */
+.share-toast {
+  position: fixed;
+  z-index: 1300;
+  left: 50%;
+  bottom: calc(var(--bottom-player-height) + 18px);
+  max-width: min(90vw, 420px);
+  padding: 11px 16px;
+  border: 1px solid rgba(212,184,117,.48);
+  background: rgba(10,10,9,.97);
+  box-shadow: 0 12px 32px rgba(0,0,0,.55);
+  color: var(--bone);
+  font-family: Oswald, sans-serif;
+  font-size: .78rem;
+  letter-spacing: .055em;
+  text-align: center;
+  text-transform: uppercase;
+  transform: translateX(-50%);
+}
+
+.share-toast.hidden {
+  display: none !important;
+}
