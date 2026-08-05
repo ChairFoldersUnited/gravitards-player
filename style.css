@@ -2859,3 +2859,186 @@ body {
     grid-column: 1 / -1;
   }
 }
+
+
+/* V9.1.6 – SoundCloud-style fixed bottom player */
+:root {
+  --bottom-player-height: 104px;
+}
+
+body {
+  padding-bottom: calc(var(--bottom-player-height) + 18px);
+}
+
+.bottom-player-dock {
+  position: fixed;
+  z-index: 1000;
+  inset: auto 0 0;
+  display: grid;
+  grid-template-columns:
+    minmax(190px, 330px)
+    minmax(240px, 1fr)
+    auto
+    minmax(110px, 180px);
+  grid-template-areas:
+    "track timeline transport volume";
+  align-items: center;
+  gap: 18px;
+  width: 100%;
+  min-height: var(--bottom-player-height);
+  margin: 0;
+  padding: 12px max(18px, calc((100vw - 1380px) / 2));
+  border: 0;
+  border-top: 1px solid rgba(212,184,117,.32);
+  border-radius: 0;
+  background:
+    linear-gradient(180deg, rgba(31,29,26,.99), rgba(15,15,14,.995));
+  box-shadow:
+    0 -12px 34px rgba(0,0,0,.55),
+    inset 0 1px 0 rgba(255,255,255,.025);
+  overflow: hidden;
+}
+
+.bottom-player-dock .card-heading,
+.bottom-player-dock .cover {
+  display: none;
+}
+
+.bottom-player-dock .now-copy {
+  grid-area: track;
+  min-width: 0;
+  margin: 0;
+  text-align: left;
+}
+
+.bottom-player-dock .now-copy strong,
+.bottom-player-dock .now-copy span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bottom-player-dock .now-copy strong {
+  color: var(--bone);
+  font-family: Cinzel, serif;
+  font-size: .88rem;
+  letter-spacing: .035em;
+}
+
+.bottom-player-dock .now-copy span {
+  margin-top: 4px;
+  color: #a59983;
+  font-family: Oswald, sans-serif;
+  font-size: .72rem;
+}
+
+.bottom-player-dock .timeline {
+  grid-area: timeline;
+  min-width: 0;
+  margin: 0;
+}
+
+.bottom-player-dock .seek-wrap {
+  width: 100%;
+}
+
+.bottom-player-dock .time-row {
+  margin-top: 4px;
+}
+
+.bottom-player-dock .transport {
+  grid-area: transport;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: auto;
+  margin: 0;
+}
+
+.bottom-player-dock .round-button,
+.bottom-player-dock .main-play {
+  flex: 0 0 auto;
+}
+
+.bottom-player-dock .main-play {
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+}
+
+.bottom-player-dock .round-button {
+  width: 36px;
+  height: 36px;
+}
+
+.bottom-player-dock .round-button.small {
+  width: 31px;
+  height: 31px;
+}
+
+.bottom-player-dock .volume-row {
+  grid-area: volume;
+  width: 100%;
+  margin: 0;
+}
+
+#audioArchiveView .sidebar {
+  max-height: none;
+}
+
+/* Tablet: keep the fixed dock, but use two rows. */
+@media (max-width: 980px) {
+  :root {
+    --bottom-player-height: 150px;
+  }
+
+  .bottom-player-dock {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "track transport"
+      "timeline timeline";
+    gap: 10px 16px;
+    padding-inline: 18px;
+  }
+
+  .bottom-player-dock .volume-row {
+    display: none;
+  }
+}
+
+/* Mobile: compact vertical layout. */
+@media (max-width: 620px) {
+  :root {
+    --bottom-player-height: 188px;
+  }
+
+  .bottom-player-dock {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "track"
+      "timeline"
+      "transport";
+    gap: 8px;
+    padding: 10px 12px 12px;
+  }
+
+  .bottom-player-dock .now-copy {
+    text-align: center;
+  }
+
+  .bottom-player-dock .transport {
+    justify-content: center;
+  }
+
+  .bottom-player-dock .round-button.small {
+    display: none;
+  }
+
+  .bottom-player-dock .main-play {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+  }
+}

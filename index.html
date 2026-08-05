@@ -117,49 +117,7 @@
     </section>
 
     <aside class="sidebar">
-      <section class="now-card">
-        <header class="card-heading">
-          <h2>Spelas nu</h2>
-          <span class="equalizer" aria-hidden="true">▮▮▮</span>
-        </header>
-
-        <div class="cover">
-          <div class="cover-pattern"></div>
-          <span aria-hidden="true">♫</span>
-        </div>
-
-        <div class="now-copy">
-          <strong id="nowTitle">Välj en Vault Entry</strong>
-          <span id="nowMeta">Inget spelas</span>
-        </div>
-
-        <div class="timeline">
-          <div id="seekWrap" class="seek-wrap">
-            <input id="seekBar" type="range" min="0" max="1000" value="0" aria-label="Spola">
-            <div id="chapterMarkers" class="chapter-markers" aria-hidden="true"></div>
-            <div id="seekTooltip" class="seek-tooltip hidden">0:00</div>
-          </div>
-          <div class="time-row">
-            <button id="currentTime" class="time-display" type="button" title="Dubbelklicka för att byta tidsformat">0:00</button>
-            <button id="duration" class="time-display" type="button" title="Klicka för att växla mellan total och återstående tid">0:00</button>
-          </div>
-        </div>
-
-        <div class="transport">
-          <button id="shuffleButton" class="round-button small" type="button" title="Blanda">⤨</button>
-          <button id="prevButton" class="round-button" type="button" title="Previous">⏮</button>
-          <button id="playButton" class="main-play" type="button" title="Spela eller pausa">▶</button>
-          <button id="nextButton" class="round-button" type="button" title="Nästa">⏭</button>
-          <button id="repeatButton" class="round-button small" type="button" title="Upprepa">↻</button>
-          <button id="downloadCurrentButton" class="round-button small" type="button" title="Ladda ned aktuell fil" disabled>↓</button>
-        </div>
-
-        <div class="volume-row">
-          <span aria-hidden="true">◀</span>
-          <input id="volumeBar" type="range" min="0" max="1" step="0.01" value="0.85" aria-label="Volym">
-          <span aria-hidden="true">▶</span>
-        </div>
-      </section>
+      
 
 <section class="timestamp-card">
         <div class="timestamp-heading">
@@ -581,6 +539,50 @@
     </section>
     </div>
   </main>
+
+<section class="now-card bottom-player-dock">
+        <header class="card-heading">
+          <h2>Spelas nu</h2>
+          <span class="equalizer" aria-hidden="true">▮▮▮</span>
+        </header>
+
+        <div class="cover">
+          <div class="cover-pattern"></div>
+          <span aria-hidden="true">♫</span>
+        </div>
+
+        <div class="now-copy">
+          <strong id="nowTitle">Välj en Vault Entry</strong>
+          <span id="nowMeta">Inget spelas</span>
+        </div>
+
+        <div class="timeline">
+          <div id="seekWrap" class="seek-wrap">
+            <input id="seekBar" type="range" min="0" max="1000" value="0" aria-label="Spola">
+            <div id="chapterMarkers" class="chapter-markers" aria-hidden="true"></div>
+            <div id="seekTooltip" class="seek-tooltip hidden">0:00</div>
+          </div>
+          <div class="time-row">
+            <button id="currentTime" class="time-display" type="button" title="Dubbelklicka för att byta tidsformat">0:00</button>
+            <button id="duration" class="time-display" type="button" title="Klicka för att växla mellan total och återstående tid">0:00</button>
+          </div>
+        </div>
+
+        <div class="transport">
+          <button id="shuffleButton" class="round-button small" type="button" title="Blanda">⤨</button>
+          <button id="prevButton" class="round-button" type="button" title="Previous">⏮</button>
+          <button id="playButton" class="main-play" type="button" title="Spela eller pausa">▶</button>
+          <button id="nextButton" class="round-button" type="button" title="Nästa">⏭</button>
+          <button id="repeatButton" class="round-button small" type="button" title="Upprepa">↻</button>
+          <button id="downloadCurrentButton" class="round-button small" type="button" title="Ladda ned aktuell fil" disabled>↓</button>
+        </div>
+
+        <div class="volume-row">
+          <span aria-hidden="true">◀</span>
+          <input id="volumeBar" type="range" min="0" max="1" step="0.01" value="0.85" aria-label="Volym">
+          <span aria-hidden="true">▶</span>
+        </div>
+      </section>
 
   <audio id="audio" preload="metadata"></audio>
   <script src="https://www.youtube.com/iframe_api"></script>
