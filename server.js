@@ -536,13 +536,18 @@ app.get("/api/comments", async (req, res) => {
 
     const query = new URLSearchParams({
       select:
-        "id,entry_type,entry_id,entry_title,source,author,comment,seconds,created_at",
+        "id,entry_type,entry_id,entry_title,source,author,comment,seconds,parent_id,created_at",
       order: latest ? "created_at.desc" : "created_at.asc",
       limit: String(limit)
     });
 
     if (latest) {
-      query.set("seconds", "not.is.null");
+      // Latest Activity needs timestamp roots and their replies,
+      // but not unrelated ordinary comments.
+      query.set(
+        "or",
+        "(seconds.not.is.null,parent_id.not.is.null)"
+      );
     } else {
       const entryType = validateCommentInput(
         req.query.type,
@@ -652,6 +657,23 @@ app.post("/api/comments", async (req, res) => {
       req.body?.source || ""
     ).trim().slice(0, 80);
 
+    const rawParentId = req.body?.parent_id;
+    const parentId =
+      rawParentId === null ||
+      rawParentId === undefined ||
+      rawParentId === ""
+        ? null
+        : Number(rawParentId);
+
+    if (
+      parentId !== null &&
+      (!Number.isInteger(parentId) || parentId <= 0)
+    ) {
+      return res.status(400).json({
+        error: "Parent comment ID must be valid."
+      });
+    }
+
     const inserted = await supabaseRequest(
       "vault_comments",
       {
@@ -666,7 +688,8 @@ app.post("/api/comments", async (req, res) => {
           source,
           author,
           comment,
-          seconds
+          seconds: parentId ? null : seconds,
+          parent_id: parentId
         })
       }
     );
@@ -687,6 +710,88 @@ app.post("/api/comments", async (req, res) => {
     res.status(status).json({
       error: error.message
     });
+  }
+});
+
+
+app.get("/api/comment-likes", async (req, res) => {
+  try {
+    const voterId = String(req.query.voter_id || "")
+      .trim()
+      .slice(0, 120);
+
+    const rows = await supabaseRequest(
+      "vault_comment_likes?select=comment_id,voter_id&limit=10000"
+    );
+
+    const counts = {};
+    const liked = [];
+
+    for (const row of rows || []) {
+      const commentId = String(row.comment_id);
+      counts[commentId] = (counts[commentId] || 0) + 1;
+
+      if (voterId && row.voter_id === voterId) {
+        liked.push(commentId);
+      }
+    }
+
+    res.json({ counts, liked });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/comment-likes/toggle", async (req, res) => {
+  try {
+    const commentId = Number(req.body?.comment_id);
+    const voterId = validateCommentInput(
+      req.body?.voter_id,
+      "Voter ID",
+      120
+    );
+
+    if (!Number.isInteger(commentId) || commentId <= 0) {
+      return res.status(400).json({
+        error: "Comment ID must be valid."
+      });
+    }
+
+    const existing = await supabaseRequest(
+      `vault_comment_likes?select=comment_id&comment_id=eq.${commentId}` +
+      `&voter_id=eq.${encodeURIComponent(voterId)}&limit=1`
+    );
+
+    if (existing?.length) {
+      await supabaseRequest(
+        `vault_comment_likes?comment_id=eq.${commentId}` +
+        `&voter_id=eq.${encodeURIComponent(voterId)}`,
+        {
+          method: "DELETE",
+          headers: { Prefer: "return=minimal" }
+        }
+      );
+
+      return res.json({ liked: false });
+    }
+
+    await supabaseRequest(
+      "vault_comment_likes",
+      {
+        method: "POST",
+        headers: { Prefer: "return=minimal" },
+        body: JSON.stringify({
+          comment_id: commentId,
+          voter_id: voterId
+        })
+      }
+    );
+
+    res.json({ liked: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
   }
 });
 

@@ -133,6 +133,31 @@ let filmSharedComments = [];
 let filmYearFilter = null;
 let filmClockTimer = null;
 let activeActivityFilter = "all";
+let activityReplies = {};
+let commentLikeCounts = {};
+const likedCommentIds = new Set();
+const expandedAudioTimestampThreads = new Set();
+const expandedFilmTimestampThreads = new Set();
+const openAudioTimestampReplyForms = new Set();
+const openFilmTimestampReplyForms = new Set();
+
+const vaultVoterId = (() => {
+  const storageKey = "gravitards-voter-id";
+  const saved = localStorage.getItem(storageKey);
+
+  if (saved) return saved;
+
+  const generated =
+    globalThis.crypto?.randomUUID?.() ||
+    `vault-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+  localStorage.setItem(storageKey, generated);
+  return generated;
+})();
+
+const expandedActivityThreads = new Set();
+const openActivityReplyForms = new Set();
+
 const savedTimestampAuthor =
   localStorage.getItem("gravitards-timestamp-author") || "";
 
@@ -795,25 +820,95 @@ function renderTimestampNotes() {
     return;
   }
 
-  timestampList.innerHTML = notes.map((note, index) => `
-    <div class="timestamp-note">
-      <button class="timestamp-jump"
-              type="button"
-              data-jump-seconds="${note.seconds}">
-        ${formatTime(note.seconds)}
-      </button>
-      <div class="timestamp-text">
-        ${escapeHtml(note.text)}
-        <span class="timestamp-note-author">
-          ${escapeHtml(note.author || "Anonymous")}
-        </span>
-      </div>
-      <button class="timestamp-delete"
-              type="button"
-              data-delete-timestamp="${index}"
-              title="Delete">×</button>
-    </div>
-  `).join("");
+  timestampList.innerHTML = notes.map((note, index) => {
+    const noteId = String(note.id || "");
+    const replies = activityReplies[noteId] || [];
+    const expanded = expandedAudioTimestampThreads.has(noteId);
+    const replyOpen = openAudioTimestampReplyForms.has(noteId);
+    const author =
+      timestampAuthorInput?.value.trim() ||
+      localStorage.getItem("gravitards-timestamp-author") ||
+      "";
+
+    return `
+      <article class="timestamp-note timestamp-discussion"
+               data-timestamp-note-id="${escapeHtml(noteId)}"
+               data-timestamp-entry-type="audio"
+               data-timestamp-entry-id="${escapeHtml(currentTrack.id)}"
+               data-timestamp-entry-title="${escapeHtml(
+                 currentTrack.displayTitle ||
+                 currentTrack.title ||
+                 currentTrack.name ||
+                 "Audio recording"
+               )}"
+               data-timestamp-source="dropbox">
+        <div class="timestamp-discussion-main">
+          <button class="timestamp-jump"
+                  type="button"
+                  data-jump-seconds="${note.seconds}">
+            ${formatTime(note.seconds)}
+          </button>
+
+          <div class="timestamp-text">
+            ${escapeHtml(note.text)}
+            <span class="timestamp-note-author">
+              ${escapeHtml(note.author || "Anonymous")}
+            </span>
+
+            <div class="timestamp-discussion-actions">
+              ${renderLikeButton(note.id)}
+              <button type="button"
+                      data-timestamp-reply-toggle="${escapeHtml(noteId)}">
+                Reply
+              </button>
+              ${
+                replies.length
+                  ? `<button type="button"
+                             data-timestamp-thread-toggle="${escapeHtml(noteId)}">
+                       ${expanded ? "Hide" : "Show"} ${replies.length}
+                       ${replies.length === 1 ? "reply" : "replies"}
+                     </button>`
+                  : ""
+              }
+            </div>
+          </div>
+
+          <button class="timestamp-delete"
+                  type="button"
+                  data-delete-timestamp="${index}"
+                  title="Delete">×</button>
+        </div>
+
+        <div class="timestamp-inline-reply-form ${replyOpen ? "" : "hidden"}">
+          <input class="timestamp-inline-author"
+                 type="text"
+                 maxlength="80"
+                 autocomplete="name"
+                 value="${escapeHtml(author)}"
+                 placeholder="Your name">
+          <textarea class="timestamp-inline-text"
+                    rows="3"
+                    maxlength="2000"
+                    placeholder="Write a reply…"></textarea>
+          <div>
+            <button type="button"
+                    data-timestamp-reply-submit="${escapeHtml(noteId)}">
+              Post reply
+            </button>
+            <button type="button"
+                    data-timestamp-reply-cancel="${escapeHtml(noteId)}">
+              Cancel
+            </button>
+          </div>
+        </div>
+
+        <div class="timestamp-thread-replies ${expanded ? "" : "hidden"}">
+          ${replies.map(renderTimestampReply).join("")}
+        </div>
+      </article>
+    `;
+  }).join("");
+
   addTimestampShareButtons(timestampList, "audio");
 }
 
@@ -1117,25 +1212,94 @@ function renderFilmTimestampNotes() {
     return;
   }
 
-  filmTimestampList.innerHTML = notes.map((note, index) => `
-    <div class="timestamp-note">
-      <button class="timestamp-jump"
-              type="button"
-              data-film-jump="${note.seconds}">
-        ${formatFilmDuration(note.seconds)}
-      </button>
-      <div class="timestamp-text">
-        ${escapeHtml(note.text)}
-        <span class="timestamp-note-author">
-          ${escapeHtml(note.author || "Anonymous")}
-        </span>
-      </div>
-      <button class="timestamp-delete"
-              type="button"
-              data-film-timestamp-delete="${index}"
-              title="Delete">×</button>
-    </div>
-  `).join("");
+  filmTimestampList.innerHTML = notes.map((note, index) => {
+    const noteId = String(note.id || "");
+    const replies = activityReplies[noteId] || [];
+    const expanded = expandedFilmTimestampThreads.has(noteId);
+    const replyOpen = openFilmTimestampReplyForms.has(noteId);
+    const author =
+      filmTimestampAuthorInput?.value.trim() ||
+      localStorage.getItem("gravitards-timestamp-author") ||
+      "";
+
+    return `
+      <article class="timestamp-note timestamp-discussion"
+               data-timestamp-note-id="${escapeHtml(noteId)}"
+               data-timestamp-entry-type="video"
+               data-timestamp-entry-id="${escapeHtml(currentFilm.id)}"
+               data-timestamp-entry-title="${escapeHtml(
+                 currentFilm.title ||
+                 currentFilm.originalName ||
+                 "Video"
+               )}"
+               data-timestamp-source="${escapeHtml(activeFilmSource)}">
+        <div class="timestamp-discussion-main">
+          <button class="timestamp-jump"
+                  type="button"
+                  data-film-jump="${note.seconds}">
+            ${formatFilmDuration(note.seconds)}
+          </button>
+
+          <div class="timestamp-text">
+            ${escapeHtml(note.text)}
+            <span class="timestamp-note-author">
+              ${escapeHtml(note.author || "Anonymous")}
+            </span>
+
+            <div class="timestamp-discussion-actions">
+              ${renderLikeButton(note.id)}
+              <button type="button"
+                      data-timestamp-reply-toggle="${escapeHtml(noteId)}">
+                Reply
+              </button>
+              ${
+                replies.length
+                  ? `<button type="button"
+                             data-timestamp-thread-toggle="${escapeHtml(noteId)}">
+                       ${expanded ? "Hide" : "Show"} ${replies.length}
+                       ${replies.length === 1 ? "reply" : "replies"}
+                     </button>`
+                  : ""
+              }
+            </div>
+          </div>
+
+          <button class="timestamp-delete"
+                  type="button"
+                  data-film-timestamp-delete="${index}"
+                  title="Delete">×</button>
+        </div>
+
+        <div class="timestamp-inline-reply-form ${replyOpen ? "" : "hidden"}">
+          <input class="timestamp-inline-author"
+                 type="text"
+                 maxlength="80"
+                 autocomplete="name"
+                 value="${escapeHtml(author)}"
+                 placeholder="Your name">
+          <textarea class="timestamp-inline-text"
+                    rows="3"
+                    maxlength="2000"
+                    placeholder="Write a reply…"></textarea>
+          <div>
+            <button type="button"
+                    data-timestamp-reply-submit="${escapeHtml(noteId)}">
+              Post reply
+            </button>
+            <button type="button"
+                    data-timestamp-reply-cancel="${escapeHtml(noteId)}">
+              Cancel
+            </button>
+          </div>
+        </div>
+
+        <div class="timestamp-thread-replies ${expanded ? "" : "hidden"}">
+          ${replies.map(renderTimestampReply).join("")}
+        </div>
+      </article>
+    `;
+  }).join("");
+
   addTimestampShareButtons(filmTimestampList, "video");
 }
 
@@ -1741,15 +1905,30 @@ function normalizeVaultTimestampComment(row) {
     author: row.author || "Anonymous",
     createdAt: row.created_at || row.createdAt || "",
     entryTitle: row.entry_title || row.entryTitle || "",
-    source: row.source || ""
+    source: row.source || "",
+    parentId:
+      row.parent_id === null ||
+      row.parent_id === undefined
+        ? null
+        : Number(row.parent_id)
   };
 }
 
 function groupVaultTimestampComments(rows) {
   const audio = {};
   const video = {};
+  const replies = {};
 
   for (const row of rows || []) {
+    const normalized =
+      normalizeVaultTimestampComment(row);
+
+    if (normalized.parentId) {
+      replies[normalized.parentId] ||= [];
+      replies[normalized.parentId].push(normalized);
+      continue;
+    }
+
     if (
       row.seconds === null ||
       row.seconds === undefined
@@ -1763,12 +1942,19 @@ function groupVaultTimestampComments(rows) {
         : audio;
 
     target[row.entry_id] ||= [];
-    target[row.entry_id].push(
-      normalizeVaultTimestampComment(row)
-    );
+    target[row.entry_id].push(normalized);
   }
 
-  return { audio, video };
+  for (const threadReplies of Object.values(replies)) {
+    threadReplies.sort((a, b) => {
+      return (
+        new Date(a.createdAt || 0).getTime() -
+        new Date(b.createdAt || 0).getTime()
+      );
+    });
+  }
+
+  return { audio, video, replies };
 }
 
 async function loadCentralTimestampComments() {
@@ -1800,6 +1986,7 @@ async function loadCentralTimestampComments() {
 
   timestampNotes = grouped.audio;
   filmTimestampNotes = grouped.video;
+  activityReplies = grouped.replies;
 
   saveTimestampNotes();
   saveFilmTimestampNotes();
@@ -1837,6 +2024,130 @@ async function createCentralTimestampComment(payload) {
   if (!response.ok) {
     throw new Error(
       data.error || "Could not save timestamp note."
+    );
+  }
+
+  return normalizeVaultTimestampComment(
+    data.comment || {}
+  );
+}
+
+
+async function loadCommentLikes() {
+  const response = await fetch(
+    `/api/comment-likes?voter_id=${encodeURIComponent(vaultVoterId)}`,
+    { cache: "no-store" }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || "Could not load likes.");
+  }
+
+  commentLikeCounts = data.counts || {};
+  likedCommentIds.clear();
+
+  for (const id of data.liked || []) {
+    likedCommentIds.add(String(id));
+  }
+
+  renderTimestampNotes();
+  renderFilmTimestampNotes();
+  renderLatestActivity();
+}
+
+async function toggleCommentLike(commentId) {
+  const id = String(commentId || "");
+  if (!id) return;
+
+  const response = await fetch(
+    "/api/comment-likes/toggle",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        comment_id: Number(id),
+        voter_id: vaultVoterId
+      })
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || "Could not update like.");
+  }
+
+  const current = Number(commentLikeCounts[id] || 0);
+
+  if (data.liked) {
+    likedCommentIds.add(id);
+    commentLikeCounts[id] = current + 1;
+  } else {
+    likedCommentIds.delete(id);
+    commentLikeCounts[id] = Math.max(0, current - 1);
+  }
+
+  renderTimestampNotes();
+  renderFilmTimestampNotes();
+  renderLatestActivity();
+}
+
+function renderLikeButton(commentId) {
+  const id = String(commentId || "");
+  const count = Number(commentLikeCounts[id] || 0);
+  const liked = likedCommentIds.has(id);
+
+  return `
+    <button class="timestamp-like ${liked ? "liked" : ""}"
+            type="button"
+            data-comment-like="${escapeHtml(id)}"
+            aria-pressed="${liked ? "true" : "false"}">
+      ${liked ? "♥" : "♡"} ${count}
+    </button>
+  `;
+}
+
+function renderTimestampReply(reply) {
+  return `
+    <div class="timestamp-thread-reply">
+      <div class="timestamp-thread-reply-meta">
+        <strong>${escapeHtml(reply.author || "Anonymous")}</strong>
+        <span>${escapeHtml(formatActivityDate(reply.createdAt))}</span>
+      </div>
+      <p>${escapeHtml(reply.text || "")}</p>
+      ${renderLikeButton(reply.id)}
+    </div>
+  `;
+}
+
+async function createActivityReply(payload) {
+  const response = await fetch(
+    "/api/comments",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    }
+  );
+
+  const rawText = await response.text();
+  let data = {};
+
+  try {
+    data = rawText ? JSON.parse(rawText) : {};
+  } catch {
+    throw new Error(
+      rawText || "Could not post reply."
+    );
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      data.error || "Could not post reply."
     );
   }
 
@@ -1892,6 +2203,7 @@ function getLatestActivityEntries() {
 
     for (const note of notes || []) {
       entries.push({
+        noteId: note.id,
         type: "audio",
         id: trackId,
         source: "dropbox",
@@ -1903,7 +2215,8 @@ function getLatestActivityEntries() {
         seconds: Number(note.seconds || 0),
         text: note.text || "",
         author: note.author || "Anonymous",
-        createdAt: note.createdAt || ""
+        createdAt: note.createdAt || "",
+        replies: activityReplies[note.id] || []
       });
     }
   }
@@ -1919,6 +2232,7 @@ function getLatestActivityEntries() {
 
     for (const note of notes || []) {
       entries.push({
+        noteId: note.id,
         type: "video",
         id: filmId,
         source: film?.source || getFilmSourceFromId(filmId),
@@ -1929,7 +2243,8 @@ function getLatestActivityEntries() {
         seconds: Number(note.seconds || 0),
         text: note.text || "",
         author: note.author || "Anonymous",
-        createdAt: note.createdAt || ""
+        createdAt: note.createdAt || "",
+        replies: activityReplies[note.id] || []
       });
     }
   }
@@ -1951,17 +2266,26 @@ function renderLatestActivity() {
           entry => entry.type === activeActivityFilter
         );
 
+  const replyCount = allEntries.reduce(
+    (total, entry) =>
+      total + (entry.replies?.length || 0),
+    0
+  );
+
   if (latestActivityCount) {
     latestActivityCount.textContent =
       `${allEntries.length} ${
         allEntries.length === 1 ? "note" : "notes"
+      } · ${replyCount} ${
+        replyCount === 1 ? "reply" : "replies"
       }`;
   }
 
   activityFilterButtons.forEach(button => {
     button.classList.toggle(
       "active",
-      button.dataset.activityFilter === activeActivityFilter
+      button.dataset.activityFilter ===
+        activeActivityFilter
     );
   });
 
@@ -1973,36 +2297,53 @@ function renderLatestActivity() {
 
   latestActivityList.innerHTML = entries
     .slice(0, 100)
-    .map(entry => `
-      <button class="activity-entry"
-              type="button"
-              data-activity-type="${entry.type}"
-              data-activity-id="${escapeHtml(entry.id)}"
-              data-activity-source="${escapeHtml(entry.source)}"
-              data-activity-seconds="${entry.seconds}">
-        <span class="activity-type-icon" aria-hidden="true">
-          ${entry.type === "audio" ? "♫" : "▸"}
-        </span>
+    .map(entry => {
+      const replies = entry.replies || [];
+      const likes = Number(
+        commentLikeCounts[String(entry.noteId)] || 0
+      );
 
-        <span class="activity-entry-copy">
-          <strong class="activity-entry-title">
-            ${escapeHtml(entry.title)}
-          </strong>
-          <span class="activity-entry-note">
-            “${escapeHtml(entry.text)}”
-          </span>
-          <span class="activity-entry-meta">
-            <span class="activity-timestamp">
-              ${formatTime(entry.seconds)}
+      return `
+        <article class="activity-thread"
+                 data-activity-note-id="${entry.noteId}"
+                 data-activity-type="${entry.type}"
+                 data-activity-id="${escapeHtml(entry.id)}"
+                 data-activity-source="${escapeHtml(entry.source)}"
+                 data-activity-seconds="${entry.seconds}"
+                 data-activity-title="${escapeHtml(entry.title)}">
+          <div class="activity-entry">
+            <span class="activity-type-icon" aria-hidden="true">
+              ${entry.type === "audio" ? "♫" : "▸"}
             </span>
-            <span>${escapeHtml(entry.author || "Anonymous")}</span>
-            <span>${escapeHtml(formatActivityDate(entry.createdAt))}</span>
-          </span>
-        </span>
 
-        <span class="activity-open">Open ↗</span>
-      </button>
-    `)
+            <span class="activity-entry-copy">
+              <strong class="activity-entry-title">
+                ${escapeHtml(entry.title)}
+              </strong>
+              <span class="activity-entry-note">
+                “${escapeHtml(entry.text)}”
+              </span>
+              <span class="activity-entry-meta">
+                <span class="activity-timestamp">
+                  ${formatTime(entry.seconds)}
+                </span>
+                <span>${escapeHtml(entry.author || "Anonymous")}</span>
+                <span>${escapeHtml(formatActivityDate(entry.createdAt))}</span>
+                <span>♡ ${likes}</span>
+                <span>💬 ${replies.length}</span>
+              </span>
+
+              <span class="activity-entry-actions">
+                <button class="activity-open-button"
+                        type="button">
+                  Open discussion
+                </button>
+              </span>
+            </span>
+          </div>
+        </article>
+      `;
+    })
     .join("");
 }
 
@@ -2034,8 +2375,13 @@ async function openActivityEntry(button) {
       return;
     }
 
+    expandedAudioTimestampThreads.add(
+      String(button.dataset.activityNoteId || "")
+    );
+
     setArchiveView("audio");
     await playTrack(track);
+    renderTimestampNotes();
 
     if (seconds > 0) {
       seekSharedAudio(seconds);
@@ -2065,7 +2411,12 @@ async function openActivityEntry(button) {
     return;
   }
 
+  expandedFilmTimestampThreads.add(
+    String(button.dataset.activityNoteId || "")
+  );
+
   selectFilm(film);
+  renderFilmTimestampNotes();
 
   if (seconds > 0) {
     seekSharedFilm(seconds);
@@ -2382,7 +2733,169 @@ timestampInput.addEventListener("keydown", event => {
   }
 });
 
+
+async function handleTimestampDiscussionAction(
+  event,
+  listType
+) {
+  const discussion =
+    event.target.closest(".timestamp-discussion");
+
+  const likeButton =
+    event.target.closest("[data-comment-like]");
+
+  if (likeButton) {
+    try {
+      await toggleCommentLike(
+        likeButton.dataset.commentLike
+      );
+    } catch (error) {
+      showShareToast(error.message);
+    }
+    return true;
+  }
+
+  if (!discussion) return false;
+
+  const noteId = String(
+    discussion.dataset.timestampNoteId || ""
+  );
+
+  const expandedSet =
+    listType === "audio"
+      ? expandedAudioTimestampThreads
+      : expandedFilmTimestampThreads;
+
+  const formSet =
+    listType === "audio"
+      ? openAudioTimestampReplyForms
+      : openFilmTimestampReplyForms;
+
+  if (event.target.closest("[data-timestamp-reply-toggle]")) {
+    formSet.add(noteId);
+
+    if (listType === "audio") {
+      renderTimestampNotes();
+    } else {
+      renderFilmTimestampNotes();
+    }
+
+    window.setTimeout(() => {
+      const list =
+        listType === "audio"
+          ? timestampList
+          : filmTimestampList;
+
+      list.querySelector(
+        `.timestamp-discussion[data-timestamp-note-id="${CSS.escape(noteId)}"] .timestamp-inline-text`
+      )?.focus();
+    }, 0);
+
+    return true;
+  }
+
+  if (event.target.closest("[data-timestamp-reply-cancel]")) {
+    formSet.delete(noteId);
+
+    if (listType === "audio") {
+      renderTimestampNotes();
+    } else {
+      renderFilmTimestampNotes();
+    }
+
+    return true;
+  }
+
+  if (event.target.closest("[data-timestamp-thread-toggle]")) {
+    if (expandedSet.has(noteId)) {
+      expandedSet.delete(noteId);
+    } else {
+      expandedSet.add(noteId);
+    }
+
+    if (listType === "audio") {
+      renderTimestampNotes();
+    } else {
+      renderFilmTimestampNotes();
+    }
+
+    return true;
+  }
+
+  if (event.target.closest("[data-timestamp-reply-submit]")) {
+    const authorInput =
+      discussion.querySelector(".timestamp-inline-author");
+    const textInput =
+      discussion.querySelector(".timestamp-inline-text");
+
+    const author = authorInput.value.trim();
+    const text = textInput.value.trim();
+
+    if (!author) {
+      authorInput.focus();
+      return true;
+    }
+
+    if (!text) {
+      textInput.focus();
+      return true;
+    }
+
+    const submitButton =
+      event.target.closest("[data-timestamp-reply-submit]");
+
+    submitButton.disabled = true;
+
+    try {
+      localStorage.setItem(
+        "gravitards-timestamp-author",
+        author
+      );
+
+      timestampAuthorInput.value = author;
+      filmTimestampAuthorInput.value = author;
+
+      const saved = await createActivityReply({
+        entry_type: discussion.dataset.timestampEntryType,
+        entry_id: discussion.dataset.timestampEntryId,
+        entry_title: discussion.dataset.timestampEntryTitle,
+        source: discussion.dataset.timestampSource,
+        author,
+        comment: text,
+        seconds: null,
+        parent_id: Number(noteId)
+      });
+
+      activityReplies[noteId] ||= [];
+      activityReplies[noteId].push(saved);
+
+      formSet.delete(noteId);
+      expandedSet.add(noteId);
+
+      if (listType === "audio") {
+        renderTimestampNotes();
+      } else {
+        renderFilmTimestampNotes();
+      }
+
+      renderLatestActivity();
+      showShareToast("Reply posted");
+    } catch (error) {
+      submitButton.disabled = false;
+      showShareToast(error.message);
+    }
+
+    return true;
+  }
+
+  return false;
+}
+
 timestampList.addEventListener("click", async event => {
+  if (await handleTimestampDiscussionAction(event, "audio")) {
+    return;
+  }
+
   const jumpButton = event.target.closest("[data-jump-seconds]");
   if (jumpButton) {
     audio.currentTime = Number(jumpButton.dataset.jumpSeconds);
@@ -2732,6 +3245,10 @@ saveFilmTimestampButton.addEventListener("click", async event => {
 });
 
 filmTimestampList.addEventListener("click", async event => {
+  if (await handleTimestampDiscussionAction(event, "film")) {
+    return;
+  }
+
   const jumpButton = event.target.closest("[data-film-jump]");
 
   if (jumpButton && currentFilm) {
@@ -3068,10 +3585,13 @@ activityFilterButtons.forEach(button => {
 });
 
 latestActivityList.addEventListener("click", event => {
-  const entry = event.target.closest(".activity-entry");
+  const thread = event.target.closest(".activity-thread");
 
-  if (entry) {
-    void openActivityEntry(entry);
+  if (
+    thread &&
+    event.target.closest(".activity-open-button")
+  ) {
+    void openActivityEntry(thread);
   }
 });
 filmArchiveTab.addEventListener("click", () => setArchiveView("film"));
@@ -3100,6 +3620,10 @@ void loadCentralTimestampComments().catch(error => {
     "Could not load central timestamp comments:",
     error
   );
+});
+
+void loadCommentLikes().catch(error => {
+  console.error("Could not load likes:", error);
 });
 
 

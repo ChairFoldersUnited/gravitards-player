@@ -3662,3 +3662,285 @@ body:has(#filmArchiveView:not(.hidden)) {
     width: 100%;
   }
 }
+
+
+/* V12.1 – Latest Activity reply threads */
+.activity-thread {
+  border-bottom: 1px solid var(--line);
+}
+
+.activity-thread:last-child {
+  border-bottom: 0;
+}
+
+.activity-thread > .activity-entry {
+  border-bottom: 0;
+}
+
+.activity-entry-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 11px;
+}
+
+.activity-entry-actions button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--brass-light);
+  font-family: Oswald, sans-serif;
+  font-size: .68rem;
+  letter-spacing: .065em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.activity-entry-actions button:hover {
+  color: var(--bone);
+}
+
+.activity-reply-form {
+  display: grid;
+  gap: 10px;
+  margin: 0 22px 16px 80px;
+  padding: 14px;
+  border: 1px solid rgba(212,184,117,.2);
+  background: rgba(0,0,0,.2);
+}
+
+.activity-reply-form.hidden,
+.activity-replies.hidden {
+  display: none !important;
+}
+
+.activity-reply-form label {
+  display: grid;
+  gap: 5px;
+}
+
+.activity-reply-form label > span {
+  color: #8f887d;
+  font-family: Oswald, sans-serif;
+  font-size: .66rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.activity-reply-form input,
+.activity-reply-form textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  background: #0a0a09;
+  color: var(--bone);
+  font: inherit;
+  font-size: 16px;
+}
+
+.activity-reply-form-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.activity-reply-form-actions button {
+  min-height: 40px;
+  padding: 8px 13px;
+  border: 1px solid rgba(212,184,117,.3);
+  background: rgba(182,148,85,.08);
+  color: var(--bone);
+  font-family: Oswald, sans-serif;
+  font-size: .7rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.activity-replies {
+  display: grid;
+  gap: 1px;
+  margin: 0 22px 18px 80px;
+  border-left: 2px solid rgba(182,148,85,.22);
+}
+
+.activity-reply {
+  padding: 11px 13px;
+  background: rgba(255,255,255,.018);
+}
+
+.activity-reply-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  color: #777168;
+  font-family: Oswald, sans-serif;
+  font-size: .66rem;
+}
+
+.activity-reply-meta strong {
+  color: var(--brass-light);
+  font-weight: 500;
+}
+
+.activity-reply p {
+  margin: 6px 0 0;
+  color: #bcb3a7;
+  font-family: Inter, sans-serif;
+  font-size: .8rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 700px) {
+  .activity-reply-form,
+  .activity-replies {
+    margin-right: 12px;
+    margin-left: 12px;
+  }
+
+  .activity-reply-form-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .activity-reply-form-actions button {
+    width: 100%;
+    min-height: 46px;
+  }
+}
+
+
+/* V12.2 – timestamp discussions and likes */
+.timestamp-discussion {
+  display: block;
+  padding: 0;
+}
+
+.timestamp-discussion-main {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 10px;
+  padding: 12px;
+}
+
+.timestamp-discussion-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.timestamp-discussion-actions button,
+.timestamp-like {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #9a9286;
+  font-family: Oswald, sans-serif;
+  font-size: .66rem;
+  letter-spacing: .05em;
+  cursor: pointer;
+}
+
+.timestamp-discussion-actions button:hover,
+.timestamp-like:hover,
+.timestamp-like.liked {
+  color: var(--brass-light);
+}
+
+.timestamp-like.liked {
+  font-weight: 600;
+}
+
+.timestamp-inline-reply-form {
+  display: grid;
+  gap: 8px;
+  margin: 0 12px 12px;
+  padding: 11px;
+  border: 1px solid rgba(212,184,117,.2);
+  background: rgba(0,0,0,.2);
+}
+
+.timestamp-inline-reply-form.hidden,
+.timestamp-thread-replies.hidden {
+  display: none !important;
+}
+
+.timestamp-inline-reply-form input,
+.timestamp-inline-reply-form textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid var(--line);
+  background: #090908;
+  color: var(--bone);
+  font-size: 16px;
+}
+
+.timestamp-inline-reply-form > div {
+  display: flex;
+  gap: 8px;
+}
+
+.timestamp-inline-reply-form button {
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid rgba(212,184,117,.28);
+  background: rgba(182,148,85,.08);
+  color: var(--bone);
+  font-family: Oswald, sans-serif;
+  cursor: pointer;
+}
+
+.timestamp-thread-replies {
+  display: grid;
+  gap: 1px;
+  margin: 0 12px 12px 42px;
+  border-left: 2px solid rgba(182,148,85,.22);
+}
+
+.timestamp-thread-reply {
+  padding: 10px 12px;
+  background: rgba(255,255,255,.018);
+}
+
+.timestamp-thread-reply-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: #777168;
+  font-family: Oswald, sans-serif;
+  font-size: .64rem;
+}
+
+.timestamp-thread-reply-meta strong {
+  color: var(--brass-light);
+  font-weight: 500;
+}
+
+.timestamp-thread-reply p {
+  margin: 5px 0 7px;
+  color: #bbb2a6;
+  font-family: Inter, sans-serif;
+  font-size: .78rem;
+  line-height: 1.4;
+}
+
+@media (max-width: 700px) {
+  .timestamp-inline-reply-form > div {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .timestamp-inline-reply-form button {
+    width: 100%;
+    min-height: 46px;
+  }
+
+  .timestamp-thread-replies {
+    margin-left: 12px;
+  }
+}
