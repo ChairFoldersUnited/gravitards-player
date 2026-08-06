@@ -2445,10 +2445,23 @@ function renderForumPost({
   root = false
 }) {
   return `
-    <article class="forum-post ${root ? "forum-post-root" : ""}">
+    <article class="forum-post ${root ? "forum-post-root" : ""}"
+             data-forum-post-id="${escapeHtml(String(id))}">
       <header class="forum-post-header">
-        <strong>${escapeHtml(author || "Anonymous")}</strong>
-        <time>${escapeHtml(formatActivityDate(createdAt))}</time>
+        <span class="forum-post-author">
+          <strong>${escapeHtml(author || "Anonymous")}</strong>
+          <time>${escapeHtml(formatActivityDate(createdAt))}</time>
+        </span>
+
+        <button class="forum-delete-button"
+                type="button"
+                ${
+                  root
+                    ? `data-delete-forum-thread="${escapeHtml(String(id))}"`
+                    : `data-delete-forum-reply="${escapeHtml(String(id))}"`
+                }>
+          ${root ? "Delete Thread" : "Delete Reply"}
+        </button>
       </header>
 
       <p>${escapeHtml(text || "")}</p>
@@ -2458,6 +2471,109 @@ function renderForumPost({
       </footer>
     </article>
   `;
+}
+
+function removeForumThreadFromState(noteId) {
+  const targetId = String(noteId);
+
+  for (const [trackId, notes] of Object.entries(timestampNotes)) {
+    const remaining = (notes || []).filter(
+      note => String(note.id) !== targetId
+    );
+
+    if (remaining.length) {
+      timestampNotes[trackId] = remaining;
+    } else {
+      delete timestampNotes[trackId];
+    }
+  }
+
+  for (const [filmId, notes] of Object.entries(filmTimestampNotes)) {
+    const remaining = (notes || []).filter(
+      note => String(note.id) !== targetId
+    );
+
+    if (remaining.length) {
+      filmTimestampNotes[filmId] = remaining;
+    } else {
+      delete filmTimestampNotes[filmId];
+    }
+  }
+
+  for (const reply of activityReplies[targetId] || []) {
+    const replyId = String(reply.id);
+    delete commentLikeCounts[replyId];
+    likedCommentIds.delete(replyId);
+  }
+
+  delete activityReplies[targetId];
+  delete commentLikeCounts[targetId];
+  likedCommentIds.delete(targetId);
+
+  saveTimestampNotes();
+  saveFilmTimestampNotes();
+}
+
+function removeForumReplyFromState(replyId) {
+  const targetId = String(replyId);
+
+  for (const [rootId, replies] of Object.entries(activityReplies)) {
+    const remaining = (replies || []).filter(
+      reply => String(reply.id) !== targetId
+    );
+
+    if (remaining.length) {
+      activityReplies[rootId] = remaining;
+    } else {
+      delete activityReplies[rootId];
+    }
+  }
+
+  delete commentLikeCounts[targetId];
+  likedCommentIds.delete(targetId);
+}
+
+async function deleteForumThread(noteId) {
+  const confirmed = window.confirm(
+    "Delete this entire thread and all of its replies?"
+  );
+
+  if (!confirmed) return;
+
+  for (const reply of activityReplies[String(noteId)] || []) {
+    await deleteCentralTimestampComment(reply.id);
+  }
+
+  await deleteCentralTimestampComment(noteId);
+  removeForumThreadFromState(noteId);
+
+  activeForumThreadId = null;
+  forumThreadView.classList.add("hidden");
+  latestActivityList.classList.remove("hidden");
+  document.querySelector(".forum-header")?.classList.remove("hidden");
+  document.querySelector(".forum-filters")?.classList.remove("hidden");
+
+  renderTimestampNotes();
+  renderFilmTimestampNotes();
+  renderLatestActivity();
+  showShareToast("Thread deleted");
+}
+
+async function deleteForumReply(replyId) {
+  const confirmed = window.confirm(
+    "Delete this reply?"
+  );
+
+  if (!confirmed) return;
+
+  await deleteCentralTimestampComment(replyId);
+  removeForumReplyFromState(replyId);
+
+  renderTimestampNotes();
+  renderFilmTimestampNotes();
+  renderLatestActivity();
+  renderForumThread();
+  showShareToast("Reply deleted");
 }
 
 function closeForumThread() {
@@ -4490,6 +4606,38 @@ forumThreadMedia?.addEventListener("click", event => {
 });
 
 forumThreadPosts?.addEventListener("click", event => {
+  const deleteThreadButton =
+    event.target.closest("[data-delete-forum-thread]");
+
+  if (deleteThreadButton) {
+    deleteThreadButton.disabled = true;
+
+    void deleteForumThread(
+      deleteThreadButton.dataset.deleteForumThread
+    ).catch(error => {
+      deleteThreadButton.disabled = false;
+      showShareToast(error.message);
+    });
+
+    return;
+  }
+
+  const deleteReplyButton =
+    event.target.closest("[data-delete-forum-reply]");
+
+  if (deleteReplyButton) {
+    deleteReplyButton.disabled = true;
+
+    void deleteForumReply(
+      deleteReplyButton.dataset.deleteForumReply
+    ).catch(error => {
+      deleteReplyButton.disabled = false;
+      showShareToast(error.message);
+    });
+
+    return;
+  }
+
   const likeButton =
     event.target.closest("[data-comment-like]");
 

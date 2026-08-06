@@ -4861,3 +4861,47 @@ body:has(#filmArchiveView:not(.hidden)) {
 #audioArchiveView .info-card {
   order: 3;
 }
+
+
+/* V13.4.4 – Forum delete controls */
+.forum-post-header {
+  align-items: flex-start;
+}
+
+.forum-post-author {
+  display: grid;
+  gap: 3px;
+}
+
+.forum-delete-button {
+  margin-left: auto;
+  padding: 6px 9px;
+  border: 1px solid rgba(199, 117, 104, .38);
+  background: transparent;
+  color: #c9897e;
+  font-family: Oswald, sans-serif;
+  font-size: .62rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.forum-delete-button:hover,
+.forum-delete-button:focus-visible {
+  border-color: rgba(220, 139, 125, .72);
+  background: rgba(173, 74, 60, .11);
+  color: #e0a096;
+  outline: none;
+}
+
+.forum-delete-button:disabled {
+  cursor: wait;
+  opacity: .45;
+}
+
+@media (max-width: 700px) {
+  .forum-delete-button {
+    min-height: 34px;
+    padding: 6px 8px;
+  }
+}
