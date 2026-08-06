@@ -587,19 +587,73 @@ function formatDate(dateValue) {
 }
 
 function extractYear(track) {
-  const source = `${track.name || ""} ${track.path || ""} ${track.folder || ""}`;
-  const matches = source.match(/(?:19|20)\d{2}/g);
+  const currentYear = new Date().getFullYear() + 1;
 
-  if (matches?.length) {
-    const plausible = matches
-      .map(Number)
-      .filter(year => year >= 1950 && year <= new Date().getFullYear() + 1);
+  const isPlausibleYear = value => {
+    const year = Number(value);
+    return (
+      Number.isInteger(year) &&
+      year >= 1950 &&
+      year <= currentYear
+    );
+  };
 
-    if (plausible.length) return Math.max(...plausible);
+  // 1. Prefer a folder segment that is exactly a year,
+  // e.g. /Audio/2014/Recording.mp3
+  const rawPath =
+    track.path ||
+    track.pathDisplay ||
+    track.path_display ||
+    track.folder ||
+    "";
+
+  const pathSegments = String(rawPath)
+    .split(/[\\/]+/)
+    .map(segment => segment.trim())
+    .filter(Boolean);
+
+  for (let index = pathSegments.length - 2; index >= 0; index -= 1) {
+    const segment = pathSegments[index];
+
+    if (/^(?:19|20)\d{2}$/.test(segment)) {
+      const year = Number(segment);
+
+      if (isPlausibleYear(year)) {
+        return year;
+      }
+    }
   }
 
-  const modified = new Date(track.modified);
-  if (!Number.isNaN(modified.getTime())) return modified.getFullYear();
+  // 2. Fall back to a plausible year in the filename.
+  const filename =
+    track.name ||
+    track.title ||
+    "";
+
+  const filenameYears =
+    String(filename).match(/(?:19|20)\d{2}/g) || [];
+
+  for (const value of filenameYears) {
+    const year = Number(value);
+
+    if (isPlausibleYear(year)) {
+      return year;
+    }
+  }
+
+  // 3. Last resort: Dropbox modified date.
+  const modified = new Date(
+    track.modified ||
+    track.serverModified ||
+    track.server_modified ||
+    track.clientModified ||
+    track.client_modified ||
+    ""
+  );
+
+  if (!Number.isNaN(modified.getTime())) {
+    return modified.getFullYear();
+  }
 
   return "Unknown year";
 }
