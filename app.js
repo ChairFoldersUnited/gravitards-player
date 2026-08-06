@@ -1,6 +1,6 @@
 const audio = document.querySelector("#audio");
 const audioArchiveTab = document.querySelector("#audioArchiveTab");
-const soundCloudIframe = document.querySelector("#soundCloudPlayer");
+const soundCloudIframe = null;
 const filmArchiveTab = document.querySelector("#filmArchiveTab");
 const activityArchiveTab = document.querySelector("#activityArchiveTab");
 const activityArchiveView = document.querySelector("#activityArchiveView");
