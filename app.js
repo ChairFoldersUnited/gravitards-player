@@ -147,6 +147,22 @@ const mobileComposerContext =
   document.querySelector("#mobileComposerContext");
 const mobileComposerTextLabel =
   document.querySelector("#mobileComposerTextLabel");
+const mobileComposerScope =
+  document.querySelector("#mobileComposerScope");
+const mobileScopeGeneral =
+  document.querySelector("#mobileScopeGeneral");
+const mobileScopeMoment =
+  document.querySelector("#mobileScopeMoment");
+const mobileScopeMomentLabel =
+  document.querySelector("#mobileScopeMomentLabel");
+const audioThreadMomentLabel =
+  document.querySelector("#audioThreadMomentLabel");
+const videoThreadMomentLabel =
+  document.querySelector("#videoThreadMomentLabel");
+const audioThreadScopeInputs =
+  document.querySelectorAll('input[name="audioThreadScope"]');
+const videoThreadScopeInputs =
+  document.querySelectorAll('input[name="videoThreadScope"]');
 
 const saveTimestampButton = document.querySelector("#saveTimestampButton");
 const cancelTimestampButton = document.querySelector("#cancelTimestampButton");
@@ -863,18 +879,22 @@ function renderTimestampNotes() {
 
   if (!currentTrack) {
     timestampList.innerHTML =
-      '<p class="empty-timestamps">Select a recording to view timestamp notes.</p>';
+      '<p class="empty-timestamps">Select a recording to view forum threads.</p>';
     addTimestampButton.disabled = true;
     return;
   }
 
   addTimestampButton.disabled = false;
   const notes = [...(timestampNotes[currentTrack.id] || [])]
-    .sort((a, b) => a.seconds - b.seconds);
+    .sort((a, b) => {
+      if (a.seconds === null && b.seconds !== null) return -1;
+      if (a.seconds !== null && b.seconds === null) return 1;
+      return Number(a.seconds || 0) - Number(b.seconds || 0);
+    });
 
   if (!notes.length) {
     timestampList.innerHTML =
-      '<p class="empty-timestamps">No timestamp notes yet.</p>';
+      '<p class="empty-timestamps">No forum threads yet.</p>';
     return;
   }
 
@@ -901,11 +921,15 @@ function renderTimestampNotes() {
                )}"
                data-timestamp-source="dropbox">
         <div class="timestamp-discussion-main">
-          <button class="timestamp-jump"
-                  type="button"
-                  data-jump-seconds="${note.seconds}">
-            ${formatTime(note.seconds)}
-          </button>
+          ${
+            note.seconds === null
+              ? `<span class="timestamp-jump thread-general-badge">GENERAL</span>`
+              : `<button class="timestamp-jump"
+                         type="button"
+                         data-jump-seconds="${note.seconds}">
+                   ${formatTime(note.seconds)}
+                 </button>`
+          }
 
           <div class="timestamp-text">
             ${escapeHtml(note.text)}
@@ -1161,8 +1185,15 @@ function getCurrentFilmSeconds() {
 }
 
 function updateFilmCurrentTime() {
-  filmCurrentTime.textContent =
+  const current =
     formatFilmDuration(getCurrentFilmSeconds()) || "0:00";
+
+  filmCurrentTime.textContent = current;
+
+  if (videoThreadMomentLabel) {
+    videoThreadMomentLabel.textContent =
+      `Linked to ${current}`;
+  }
 }
 
 function startFilmClock() {
@@ -1254,7 +1285,7 @@ async function loadFilmComment() {
 function renderFilmTimestampNotes() {
   if (!currentFilm) {
     filmTimestampList.innerHTML =
-      '<p class="empty-timestamps">Select a video to view timestamp notes.</p>';
+      '<p class="empty-timestamps">Select a video to view forum threads.</p>';
     saveFilmTimestampButton.disabled = true;
     return;
   }
@@ -1262,11 +1293,15 @@ function renderFilmTimestampNotes() {
   saveFilmTimestampButton.disabled = false;
 
   const notes = [...(filmTimestampNotes[currentFilm.id] || [])]
-    .sort((a, b) => a.seconds - b.seconds);
+    .sort((a, b) => {
+      if (a.seconds === null && b.seconds !== null) return -1;
+      if (a.seconds !== null && b.seconds === null) return 1;
+      return Number(a.seconds || 0) - Number(b.seconds || 0);
+    });
 
   if (!notes.length) {
     filmTimestampList.innerHTML =
-      '<p class="empty-timestamps">No timestamp notes for this video yet.</p>';
+      '<p class="empty-timestamps">No forum threads for this video yet.</p>';
     return;
   }
 
@@ -1292,11 +1327,15 @@ function renderFilmTimestampNotes() {
                )}"
                data-timestamp-source="${escapeHtml(activeFilmSource)}">
         <div class="timestamp-discussion-main">
-          <button class="timestamp-jump"
-                  type="button"
-                  data-film-jump="${note.seconds}">
-            ${formatFilmDuration(note.seconds)}
-          </button>
+          ${
+            note.seconds === null
+              ? `<span class="timestamp-jump thread-general-badge">GENERAL</span>`
+              : `<button class="timestamp-jump"
+                         type="button"
+                         data-film-jump="${note.seconds}">
+                   ${formatFilmDuration(note.seconds)}
+                 </button>`
+          }
 
           <div class="timestamp-text">
             ${escapeHtml(note.text)}
@@ -1960,7 +1999,10 @@ async function tryOpenSharedFilm() {
 function normalizeVaultTimestampComment(row) {
   return {
     id: row.id,
-    seconds: Math.max(0, Number(row.seconds || 0)),
+    seconds:
+      row.seconds === null || row.seconds === undefined
+        ? null
+        : Math.max(0, Number(row.seconds)),
     text: row.comment || row.text || "",
     author: row.author || "Anonymous",
     createdAt: row.created_at || row.createdAt || "",
@@ -1986,13 +2028,6 @@ function groupVaultTimestampComments(rows) {
     if (normalized.parentId) {
       replies[normalized.parentId] ||= [];
       replies[normalized.parentId].push(normalized);
-      continue;
-    }
-
-    if (
-      row.seconds === null ||
-      row.seconds === undefined
-    ) {
       continue;
     }
 
@@ -2298,7 +2333,10 @@ function getLatestActivityEntries() {
         firstLine.length > 86
           ? `${firstLine.slice(0, 83)}…`
           : firstLine || "Untitled thread",
-      seconds: Number(note.seconds || 0),
+      seconds:
+        note.seconds === null || note.seconds === undefined
+          ? null
+          : Number(note.seconds),
       text: note.text || "",
       author: note.author || "Anonymous",
       createdAt: note.createdAt || "",
@@ -2434,7 +2472,11 @@ function renderForumThread() {
   forumThreadHeading.textContent = entry.threadTitle;
   forumThreadMediaMeta.textContent =
     `${entry.type === "audio" ? "Audio" : "Video"} · ` +
-    `${entry.title} · ${formatTime(entry.seconds)}`;
+    `${entry.title} · ${
+      entry.seconds === null
+        ? "GENERAL"
+        : formatTime(entry.seconds)
+    }`;
 
   forumThreadPosts.innerHTML =
     renderForumPost({
@@ -2464,10 +2506,18 @@ function renderForumThread() {
     forumThreadMedia.innerHTML = `
       <div class="forum-audio-moment">
         <span>♫ ${escapeHtml(entry.title)}</span>
-        <strong>${formatTime(entry.seconds)}</strong>
+        <strong>${
+          entry.seconds === null
+            ? "GENERAL"
+            : formatTime(entry.seconds)
+        }</strong>
         <button id="forumPlayMoment"
                 type="button">
-          Play moment
+          ${
+            entry.seconds === null
+              ? "Play recording"
+              : "Play moment"
+          }
         </button>
       </div>
     `;
@@ -2480,7 +2530,11 @@ function renderForumThread() {
                playsinline></video>
         <button id="forumPlayMoment"
                 type="button">
-          Load video at ${formatTime(entry.seconds)}
+          ${
+            entry.seconds === null
+              ? "Load video"
+              : `Load video at ${formatTime(entry.seconds)}`
+          }
         </button>
       </div>
     `;
@@ -2517,11 +2571,15 @@ async function playForumMoment() {
     }
 
     await playTrack(track);
-    seekSharedAudio(entry.seconds);
+    seekSharedAudio(entry.seconds ?? 0);
 
     // Keep Forum visible while exposing the fixed audio player.
     bottomPlayerDock?.classList.remove("hidden");
-    showShareToast(`Playing from ${formatTime(entry.seconds)}`);
+    showShareToast(
+      entry.seconds === null
+        ? "Playing recording"
+        : `Playing from ${formatTime(entry.seconds)}`
+    );
     return;
   }
 
@@ -2533,7 +2591,7 @@ async function playForumMoment() {
   player.src = forumVideoPlayUrl(entry);
 
   const seekAndPlay = () => {
-    player.currentTime = Math.max(0, entry.seconds);
+    player.currentTime = Math.max(0, entry.seconds ?? 0);
     player.play().catch(() => {});
   };
 
@@ -2674,7 +2732,11 @@ function renderLatestActivity() {
             <span class="forum-thread-copy">
               <span class="forum-thread-source">
                 ${escapeHtml(entry.title)}
-                <b>${formatTime(entry.seconds)}</b>
+                <b>${
+                  entry.seconds === null
+                    ? "GENERAL"
+                    : formatTime(entry.seconds)
+                }</b>
               </span>
 
               <strong class="forum-thread-title">
@@ -3088,19 +3150,26 @@ addTimestampButton.addEventListener("click", event => {
     setMobileNotesPanel(true);
 
     openMobileCommentComposer({
-      mode: "Timestamp note",
-      title: "Add note",
+      mode: "Forum",
+      title: "New discussion",
       context: `${
         currentTrack.displayTitle ||
         currentTrack.title ||
         "Audio recording"
       } · ${formatTime(pendingTimestampSeconds)}`,
-      textLabel: "Note",
-      placeholder: "What happens here?",
+      textLabel: "Message",
+      placeholder: "What would you like to discuss?",
+      allowThreadScope: true,
+      momentLabel: `Linked to ${formatTime(pendingTimestampSeconds)}`,
+      generalLabel: "Whole recording",
       author: timestampAuthorInput.value,
       trigger: event.currentTarget,
-      action: async ({ author, text }) => {
-        await saveAudioTimestampNote(author, text);
+      action: async ({ author, text, scope }) => {
+        await saveAudioTimestampNote(
+          author,
+          text,
+          scope === "general" ? null : pendingTimestampSeconds
+        );
       }
     });
     return;
@@ -3108,6 +3177,11 @@ addTimestampButton.addEventListener("click", event => {
 
   timestampComposerTime.textContent =
     formatTime(pendingTimestampSeconds);
+
+  if (audioThreadMomentLabel) {
+    audioThreadMomentLabel.textContent =
+      `Linked to ${formatTime(pendingTimestampSeconds)}`;
+  }
 
   timestampInput.value = "";
   timestampComposer.classList.remove("hidden");
@@ -3129,7 +3203,7 @@ cancelTimestampButton.addEventListener("click", () => {
   timestampInput.value = "";
 });
 
-async function saveAudioTimestampNote(author, text) {
+async function saveAudioTimestampNote(author, text, seconds) {
   if (!currentTrack) return;
 
   const saved = await createCentralTimestampComment({
@@ -3143,7 +3217,7 @@ async function saveAudioTimestampNote(author, text) {
     source: "dropbox",
     author,
     comment: text,
-    seconds: pendingTimestampSeconds
+    seconds
   });
 
   timestampNotes[currentTrack.id] ||= [];
@@ -3156,7 +3230,7 @@ async function saveAudioTimestampNote(author, text) {
   renderTimestampNotes();
   renderTracks();
   renderLatestActivity();
-  showShareToast("Timestamp note posted");
+  showShareToast("Discussion created");
 }
 
 saveTimestampButton.addEventListener("click", async event => {
@@ -3184,7 +3258,15 @@ saveTimestampButton.addEventListener("click", async event => {
       author
     );
     filmTimestampAuthorInput.value = author;
-    await saveAudioTimestampNote(author, text);
+    const scope = document.querySelector(
+      'input[name="audioThreadScope"]:checked'
+    )?.value || "moment";
+
+    await saveAudioTimestampNote(
+      author,
+      text,
+      scope === "general" ? null : pendingTimestampSeconds
+    );
   } catch (error) {
     showShareToast(error.message);
   } finally {
@@ -3284,7 +3366,10 @@ function openMobileCommentComposer({
   placeholder,
   author,
   action,
-  trigger
+  trigger,
+  allowThreadScope = false,
+  momentLabel = "",
+  generalLabel = "Whole recording"
 }) {
   mobileComposerMode.textContent = mode;
   mobileComposerTitle.textContent = title;
@@ -3296,6 +3381,22 @@ function openMobileCommentComposer({
     localStorage.getItem("gravitards-timestamp-author") ||
     "";
   mobileComposerText.value = "";
+
+  mobileComposerScope.classList.toggle(
+    "hidden",
+    !allowThreadScope
+  );
+
+  mobileScopeGeneral
+    .closest("label")
+    .querySelector("strong")
+    .textContent = generalLabel;
+
+  mobileScopeMomentLabel.textContent =
+    momentLabel || "Linked to current position";
+
+  mobileScopeMoment.checked = true;
+  mobileScopeGeneral.checked = false;
 
   mobileComposerAction = action;
   mobileComposerTrigger = trigger || document.activeElement;
@@ -3339,7 +3440,14 @@ async function submitMobileCommentComposer() {
     timestampAuthorInput.value = author;
     filmTimestampAuthorInput.value = author;
 
-    await mobileComposerAction({ author, text });
+    const scope =
+      mobileComposerScope.classList.contains("hidden")
+        ? null
+        : document.querySelector(
+            'input[name="mobileThreadScope"]:checked'
+          )?.value || "moment";
+
+    await mobileComposerAction({ author, text, scope });
     closeMobileCommentComposer();
   } catch (error) {
     showShareToast(error.message);
@@ -3888,13 +3996,8 @@ saveFilmCommentButton.addEventListener("click", async () => {
   }
 });
 
-async function saveVideoTimestampNote(author, text) {
+async function saveVideoTimestampNote(author, text, seconds) {
   if (!currentFilm) return;
-
-  const seconds = Math.max(
-    0,
-    Math.floor(getCurrentFilmSeconds())
-  );
 
   const saved = await createCentralTimestampComment({
     entry_type: "video",
@@ -3918,7 +4021,7 @@ async function saveVideoTimestampNote(author, text) {
   renderFilmTimestampNotes();
   renderFilms();
   renderLatestActivity();
-  showShareToast("Timestamp note posted");
+  showShareToast("Discussion created");
 }
 
 saveFilmTimestampButton.addEventListener("click", async event => {
@@ -3946,7 +4049,16 @@ saveFilmTimestampButton.addEventListener("click", async event => {
       author
     );
     timestampAuthorInput.value = author;
-    await saveVideoTimestampNote(author, text);
+    const scope = document.querySelector(
+      'input[name="videoThreadScope"]:checked'
+    )?.value || "moment";
+
+    const seconds =
+      scope === "general"
+        ? null
+        : Math.max(0, Math.floor(getCurrentFilmSeconds()));
+
+    await saveVideoTimestampNote(author, text, seconds);
   } catch (error) {
     showShareToast(error.message);
   } finally {

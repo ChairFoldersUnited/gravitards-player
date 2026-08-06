@@ -542,12 +542,8 @@ app.get("/api/comments", async (req, res) => {
     });
 
     if (latest) {
-      // Latest Activity needs timestamp roots and their replies,
-      // but not unrelated ordinary comments.
-      query.set(
-        "or",
-        "(seconds.not.is.null,parent_id.not.is.null)"
-      );
+      // Forum includes general roots, moment roots and replies.
+      // No seconds filter is applied here.
     } else {
       const entryType = validateCommentInput(
         req.query.type,

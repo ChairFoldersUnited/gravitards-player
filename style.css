@@ -4630,3 +4630,78 @@ body:has(#filmArchiveView:not(.hidden)) {
     margin-left: 0;
   }
 }
+
+
+/* V13.2 – general and moment discussion choice */
+.thread-scope-picker {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid rgba(212,184,117,.2);
+  background: rgba(0,0,0,.16);
+}
+
+.thread-scope-picker legend {
+  padding: 0 5px;
+  color: #a29a8e;
+  font-family: Oswald, sans-serif;
+  font-size: .68rem;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+
+.thread-scope-picker label {
+  display: grid;
+  grid-template-columns: auto minmax(0,1fr);
+  align-items: start;
+  gap: 9px;
+  padding: 9px;
+  cursor: pointer;
+}
+
+.thread-scope-picker label:has(input:checked) {
+  background: rgba(182,148,85,.1);
+  box-shadow: inset 0 0 0 1px rgba(212,184,117,.28);
+}
+
+.thread-scope-picker input {
+  margin-top: 3px;
+  accent-color: #b69455;
+}
+
+.thread-scope-picker strong,
+.thread-scope-picker small {
+  display: block;
+}
+
+.thread-scope-picker strong {
+  color: var(--bone);
+  font-family: Oswald, sans-serif;
+  font-size: .76rem;
+}
+
+.thread-scope-picker small {
+  margin-top: 2px;
+  color: #817a70;
+  font-family: Inter, sans-serif;
+  font-size: .68rem;
+}
+
+.thread-general-badge {
+  display: inline-grid;
+  place-items: center;
+  cursor: default;
+  font-size: .62rem;
+  letter-spacing: .06em;
+}
+
+.mobile-thread-scope.hidden {
+  display: none !important;
+}
+
+@media (max-width:700px) {
+  .mobile-thread-scope {
+    margin-bottom: 2px;
+  }
+}

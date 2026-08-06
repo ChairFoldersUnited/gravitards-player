@@ -104,8 +104,8 @@
 <section id="audioTimestampPanel" class="timestamp-card">
         <div class="timestamp-heading">
           <div>
-            <h2>Timestamp Notes</h2>
-            <p>Click a timestamp to jump there.</p>
+            <h2>Forum Threads</h2>
+            <p>Start a discussion about the whole recording or a specific moment.</p>
           </div>
 
           <button id="closeMobileNotesPanel"
@@ -115,7 +115,7 @@
             ×
           </button>
 
-          <button id="addTimestampButton" class="gold-button compact-button" type="button" disabled>+ Add note</button>
+          <button id="addTimestampButton" class="gold-button compact-button" type="button" disabled>+ New discussion</button>
         </div>
 
         <div id="timestampComposer" class="timestamp-composer hidden">
@@ -123,6 +123,28 @@
             <strong id="timestampComposerTime">0:00</strong>
             <span>Current position</span>
           </div>
+          <fieldset class="thread-scope-picker">
+            <legend>Where should this discussion begin?</legend>
+            <label>
+              <input type="radio"
+                     name="audioThreadScope"
+                     value="general">
+              <span>
+                <strong>Whole recording</strong>
+                <small>General discussion about this recording</small>
+              </span>
+            </label>
+            <label>
+              <input type="radio"
+                     name="audioThreadScope"
+                     value="moment"
+                     checked>
+              <span>
+                <strong>Current playback position</strong>
+                <small id="audioThreadMomentLabel">Linked to 0:00</small>
+              </span>
+            </label>
+          </fieldset>
           <label class="timestamp-field">
             <span>Name</span>
             <input id="timestampAuthorInput"
@@ -135,15 +157,15 @@
           <textarea id="timestampInput"
                     rows="3"
                     maxlength="500"
-                    placeholder="What happens here?"></textarea>
+                    placeholder="What would you like to discuss?"></textarea>
           <div class="comments-actions">
-            <button id="saveTimestampButton" class="gold-button" type="button">Save note</button>
+            <button id="saveTimestampButton" class="gold-button" type="button">Create discussion</button>
             <button id="cancelTimestampButton" class="text-button" type="button">Cancel</button>
           </div>
         </div>
 
         <div id="timestampList" class="timestamp-list">
-          <p class="empty-timestamps">Select a recording to view timestamp notes.</p>
+          <p class="empty-timestamps">Select a recording to view forum threads.</p>
         </div>
       </section>
 
@@ -457,8 +479,8 @@
         <section class="timestamp-card film-timestamp-card">
           <div class="timestamp-heading">
             <div>
-              <h2>Film Timestamp Notes</h2>
-              <p>Click a timestamp to open the video there.</p>
+              <h2>Video Forum Threads</h2>
+              <p>Discuss the whole video or a specific moment.</p>
             </div>
           </div>
 
@@ -467,6 +489,28 @@
               <span>Current video position</span>
               <strong id="filmCurrentTime">0:00</strong>
             </div>
+            <fieldset class="thread-scope-picker">
+              <legend>Where should this discussion begin?</legend>
+              <label>
+                <input type="radio"
+                       name="videoThreadScope"
+                       value="general">
+                <span>
+                  <strong>Whole video</strong>
+                  <small>General discussion about this video</small>
+                </span>
+              </label>
+              <label>
+                <input type="radio"
+                       name="videoThreadScope"
+                       value="moment"
+                       checked>
+                <span>
+                  <strong>Current playback position</strong>
+                  <small id="videoThreadMomentLabel">Linked to 0:00</small>
+                </span>
+              </label>
+            </fieldset>
 
             <label class="timestamp-field">
               <span>Name</span>
@@ -480,14 +524,14 @@
             <textarea id="filmTimestampInput"
                       rows="3"
                       maxlength="500"
-                      placeholder="What happens at this position?"></textarea>
+                      placeholder="What would you like to discuss?"></textarea>
 
             <div class="comments-actions">
               <button id="saveFilmTimestampButton"
                       class="gold-button"
                       type="button"
                       disabled>
-                Save at current time
+                Create discussion
               </button>
             </div>
           </div>
@@ -779,6 +823,31 @@
                  autocomplete="name"
                  placeholder="Your name">
         </label>
+        <fieldset id="mobileComposerScope"
+                  class="thread-scope-picker mobile-thread-scope hidden">
+          <legend>Where should this discussion begin?</legend>
+          <label>
+            <input id="mobileScopeGeneral"
+                   type="radio"
+                   name="mobileThreadScope"
+                   value="general">
+            <span>
+              <strong>Whole recording</strong>
+              <small>General discussion</small>
+            </span>
+          </label>
+          <label>
+            <input id="mobileScopeMoment"
+                   type="radio"
+                   name="mobileThreadScope"
+                   value="moment"
+                   checked>
+            <span>
+              <strong>Current playback position</strong>
+              <small id="mobileScopeMomentLabel">Linked to 0:00</small>
+            </span>
+          </label>
+        </fieldset>
 
         <label>
           <span id="mobileComposerTextLabel">Note</span>
