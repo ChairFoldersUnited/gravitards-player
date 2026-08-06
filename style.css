@@ -4847,3 +4847,150 @@ body:has(#filmArchiveView:not(.hidden)) {
     min-height: 58px;
   }
 }
+
+
+/* V13.5 – clean sidebar and Forum moderation */
+.elsewhere-heading {
+  padding: 13px 15px 10px;
+}
+
+.elsewhere-heading > p {
+  margin: 3px 0 0;
+  color: #817a70;
+  font-family: Inter, sans-serif;
+  font-size: .65rem;
+}
+
+.elsewhere-link {
+  min-height: 52px;
+  padding-top: 7px;
+  padding-bottom: 7px;
+}
+
+.elsewhere-icon {
+  width: 32px;
+  height: 32px;
+}
+
+.elsewhere-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+#timestampTitleInput,
+#filmTimestampTitleInput,
+#mobileComposerThreadTitle {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  font-size: 16px;
+}
+
+#mobileComposerTitleField.hidden {
+  display: none !important;
+}
+
+.forum-post-header {
+  align-items: flex-start;
+}
+
+.forum-post-author {
+  display: grid;
+  gap: 3px;
+}
+
+.forum-post-menu,
+.thread-item-menu {
+  position: relative;
+  margin-left: auto;
+}
+
+.forum-post-menu summary,
+.thread-item-menu summary {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 30px;
+  border: 1px solid transparent;
+  color: #9a9286;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  list-style: none;
+}
+
+.forum-post-menu summary::-webkit-details-marker,
+.thread-item-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.forum-post-menu[open] summary,
+.thread-item-menu[open] summary,
+.forum-post-menu summary:hover,
+.thread-item-menu summary:hover {
+  border-color: rgba(212,184,117,.28);
+  color: var(--brass-light);
+  background: rgba(182,148,85,.07);
+}
+
+.forum-post-menu-items,
+.thread-item-menu > div {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 4px);
+  right: 0;
+  display: grid;
+  min-width: 150px;
+  padding: 5px;
+  border: 1px solid rgba(212,184,117,.3);
+  background: rgba(10,10,9,.995);
+  box-shadow: 0 12px 28px rgba(0,0,0,.55);
+}
+
+.forum-post-menu button,
+.thread-item-menu button {
+  width: 100%;
+  padding: 9px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--bone);
+  font-family: Oswald, sans-serif;
+  font-size: .68rem;
+  letter-spacing: .05em;
+  text-align: left;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.forum-post-menu button:hover,
+.thread-item-menu button:hover {
+  background: rgba(182,148,85,.1);
+}
+
+.forum-post-menu button.danger,
+.thread-item-menu button.danger {
+  color: #d69b91;
+}
+
+.timestamp-discussion-main {
+  grid-template-columns: auto minmax(0,1fr) auto;
+}
+
+@media (max-width: 700px) {
+  .forum-post-menu-items,
+  .thread-item-menu > div {
+    position: fixed;
+    right: 12px;
+    bottom: 12px;
+    top: auto;
+    left: 12px;
+    min-width: 0;
+  }
+
+  .forum-post-menu button,
+  .thread-item-menu button {
+    min-height: 46px;
+    text-align: center;
+  }
+}

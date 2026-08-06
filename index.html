@@ -115,7 +115,7 @@
             ×
           </button>
 
-          <button id="addTimestampButton" class="gold-button compact-button" type="button" disabled>+ New discussion</button>
+          <button id="addTimestampButton" class="gold-button compact-button" type="button" disabled>+ New Thread</button>
         </div>
 
         <div id="timestampComposer" class="timestamp-composer hidden">
@@ -154,12 +154,20 @@
                    placeholder="Your name">
           </label>
 
+          <label class="timestamp-field">
+            <span>Title</span>
+            <input id="timestampTitleInput"
+                   type="text"
+                   maxlength="160"
+                   placeholder="Give this thread a short title">
+          </label>
+
           <textarea id="timestampInput"
-                    rows="3"
-                    maxlength="500"
+                    rows="4"
+                    maxlength="2000"
                     placeholder="What would you like to discuss?"></textarea>
           <div class="comments-actions">
-            <button id="saveTimestampButton" class="gold-button" type="button">Create discussion</button>
+            <button id="saveTimestampButton" class="gold-button" type="button">Create Thread</button>
             <button id="cancelTimestampButton" class="text-button" type="button">Cancel</button>
           </div>
         </div>
@@ -169,72 +177,10 @@
         </div>
       </section>
 
-      
-
-      <section class="connect-card">
-        <div class="connect-card-icon" aria-hidden="true">◎</div>
-        <div class="connect-card-copy">
-          <p class="sidebar-kicker">CONNECT</p>
-          <h2>Follow Gravitards</h2>
-          <p>News, clips and new material on Instagram.</p>
-          <a href="https://www.instagram.com/gravitardsmusic/"
-             target="_blank"
-             rel="noopener noreferrer">
-            @gravitardsmusic ↗
-          </a>
-        </div>
-      </section>
-<section class="comments-card">
-        <div class="comments-heading">
-          <h2>Vault Comments</h2>
-          <span id="commentStatus">No recording selected</span>
-        </div>
-
-        <div id="audioCommentList" class="shared-comment-list">
-          <p class="shared-comments-empty">Select a recording to view comments.</p>
-        </div>
-
-        <div class="shared-comment-form">
-          <label class="comment-author-field">
-            <span>Namn</span>
-            <input id="commentAuthorInput"
-                   type="text"
-                   maxlength="80"
-                   placeholder="Your name">
-          </label>
-
-          <textarea id="commentInput"
-                    rows="4"
-                    maxlength="2000"
-                    placeholder="Write a comment about this Vault Entry…"></textarea>
-
-          <div class="comments-actions">
-            <button id="saveCommentButton"
-                    class="gold-button"
-                    type="button"
-                    disabled>
-              Post comment
-            </button>
-          </div>
-        </div>
-
-        <p class="comments-note">
-          Comments are stored in The Gravitards Vault and are visible to everyone.
-        </p>
-      </section>
-
-      
-
-      <section class="info-card">
-        <h2>About the Vault</h2>
-        <p>Every recording is a fragment of Gravitards history. Rehearsals, improvisations and completed works are preserved here in the order they were created — a vault of musical experiments and collective creation.</p>
-        <p>Space plays or pauses. The arrow keys change recording.</p>
-      </section>
-    
       <section class="elsewhere-card" aria-labelledby="elsewhereTitle">
         <div class="elsewhere-heading">
-          <p class="elsewhere-eyebrow">OUTSIDE THE VAULT</p>
           <h2 id="elsewhereTitle">Elsewhere</h2>
+          <p>Outside the Vault</p>
         </div>
 
         <div class="elsewhere-links">
@@ -251,23 +197,6 @@
             <span class="elsewhere-copy">
               <strong>SoundCloud</strong>
               <small>Official releases</small>
-            </span>
-            <span class="elsewhere-arrow" aria-hidden="true">↗</span>
-          </a>
-
-          <a class="elsewhere-link"
-             href="https://www.youtube.com/playlist?list=PLA74wG8-e4XBIKCB6HkAg-s2nvVR1hFQ8"
-             target="_blank"
-             rel="noopener noreferrer">
-            <span class="elsewhere-icon" aria-hidden="true">
-              <svg viewBox="0 0 48 48" role="img">
-                <rect x="6" y="11" width="36" height="26" rx="7" fill="none" stroke="currentColor" stroke-width="3"/>
-                <path d="M21 18l11 6-11 6z" fill="currentColor"/>
-              </svg>
-            </span>
-            <span class="elsewhere-copy">
-              <strong>YouTube Playlist</strong>
-              <small>Archive videos</small>
             </span>
             <span class="elsewhere-arrow" aria-hidden="true">↗</span>
           </a>
@@ -308,6 +237,8 @@
           </a>
         </div>
       </section>
+    
+      
 
 </aside>
       </div>
@@ -568,9 +499,17 @@
                      placeholder="Your name">
             </label>
 
+            <label class="timestamp-field">
+              <span>Title</span>
+              <input id="filmTimestampTitleInput"
+                     type="text"
+                     maxlength="160"
+                     placeholder="Give this thread a short title">
+            </label>
+
             <textarea id="filmTimestampInput"
-                      rows="3"
-                      maxlength="500"
+                      rows="4"
+                      maxlength="2000"
                       placeholder="What would you like to discuss?"></textarea>
 
             <div class="comments-actions">
@@ -578,7 +517,7 @@
                       class="gold-button"
                       type="button"
                       disabled>
-                Create discussion
+                Create Thread
               </button>
             </div>
           </div>
