@@ -8,6 +8,8 @@ const latestActivityList = document.querySelector("#latestActivityList");
 const latestActivityCount = document.querySelector("#latestActivityCount");
 const activityFilterButtons =
   document.querySelectorAll("[data-activity-filter]");
+const forumSearchInput =
+  document.querySelector("#forumSearchInput");
 const filmArchiveCount = document.querySelector("#filmArchiveCount");
 const audioArchiveView = document.querySelector("#audioArchiveView");
 const bottomPlayerDock = document.querySelector(".bottom-player-dock");
@@ -162,7 +164,7 @@ let audioSharedComments = [];
 let filmSharedComments = [];
 let filmYearFilter = null;
 let filmClockTimer = null;
-let activeActivityFilter = "all";
+let activeActivityFilter = "latest";
 let activityReplies = {};
 let commentLikeCounts = {};
 const likedCommentIds = new Set();
@@ -2233,12 +2235,57 @@ function getFilmSourceFromId(id) {
 function getLatestActivityEntries() {
   const entries = [];
 
+  const createEntry = ({
+    note,
+    type,
+    id,
+    source,
+    title
+  }) => {
+    const replies = activityReplies[note.id] || [];
+    const replyDates = replies
+      .map(reply => new Date(reply.createdAt || 0).getTime())
+      .filter(Number.isFinite);
+
+    const rootDate =
+      new Date(note.createdAt || 0).getTime();
+
+    const lastActivityAt = Math.max(
+      Number.isFinite(rootDate) ? rootDate : 0,
+      ...replyDates,
+      0
+    );
+
+    const firstLine =
+      String(note.text || "")
+        .split(/\r?\n/)[0]
+        .trim();
+
+    entries.push({
+      noteId: note.id,
+      type,
+      id,
+      source,
+      title,
+      threadTitle:
+        firstLine.length > 86
+          ? `${firstLine.slice(0, 83)}…`
+          : firstLine || "Untitled thread",
+      seconds: Number(note.seconds || 0),
+      text: note.text || "",
+      author: note.author || "Anonymous",
+      createdAt: note.createdAt || "",
+      lastActivityAt,
+      replies
+    });
+  };
+
   for (const [trackId, notes] of Object.entries(timestampNotes)) {
     const track = tracks.find(item => item.id === trackId);
 
     for (const note of notes || []) {
-      entries.push({
-        noteId: note.id,
+      createEntry({
+        note,
         type: "audio",
         id: trackId,
         source: "dropbox",
@@ -2246,12 +2293,7 @@ function getLatestActivityEntries() {
           track?.displayTitle ||
           track?.title ||
           note.entryTitle ||
-          "Audio recording",
-        seconds: Number(note.seconds || 0),
-        text: note.text || "",
-        author: note.author || "Anonymous",
-        createdAt: note.createdAt || "",
-        replies: activityReplies[note.id] || []
+          "Audio recording"
       });
     }
   }
@@ -2266,40 +2308,86 @@ function getLatestActivityEntries() {
     const film = allFilms.find(item => item.id === filmId);
 
     for (const note of notes || []) {
-      entries.push({
-        noteId: note.id,
+      createEntry({
+        note,
         type: "video",
         id: filmId,
         source: film?.source || getFilmSourceFromId(filmId),
         title:
           film?.title ||
           note.entryTitle ||
-          "Video",
-        seconds: Number(note.seconds || 0),
-        text: note.text || "",
-        author: note.author || "Anonymous",
-        createdAt: note.createdAt || "",
-        replies: activityReplies[note.id] || []
+          "Video"
       });
     }
   }
 
-  return entries.sort((a, b) => {
-    const aTime = new Date(a.createdAt || 0).getTime();
-    const bTime = new Date(b.createdAt || 0).getTime();
-    return bTime - aTime;
-  });
+  return entries;
 }
 
 function renderLatestActivity() {
   const allEntries = getLatestActivityEntries();
+  const query =
+    forumSearchInput?.value
+      .trim()
+      .toLocaleLowerCase("en") || "";
 
-  const entries =
-    activeActivityFilter === "all"
-      ? allEntries
-      : allEntries.filter(
-          entry => entry.type === activeActivityFilter
-        );
+  let entries = allEntries.filter(entry => {
+    if (activeActivityFilter === "audio") {
+      return entry.type === "audio";
+    }
+
+    if (activeActivityFilter === "video") {
+      return entry.type === "video";
+    }
+
+    if (activeActivityFilter === "unanswered") {
+      return !entry.replies?.length;
+    }
+
+    return true;
+  });
+
+  if (query) {
+    entries = entries.filter(entry =>
+      [
+        entry.threadTitle,
+        entry.text,
+        entry.title,
+        entry.author,
+        ...(entry.replies || []).flatMap(reply => [
+          reply.text,
+          reply.author
+        ])
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLocaleLowerCase("en")
+        .includes(query)
+    );
+  }
+
+  if (activeActivityFilter === "popular") {
+    entries.sort((a, b) => {
+      const aLikes =
+        Number(commentLikeCounts[String(a.noteId)] || 0);
+      const bLikes =
+        Number(commentLikeCounts[String(b.noteId)] || 0);
+
+      const aScore =
+        aLikes * 2 + (a.replies?.length || 0) * 3;
+      const bScore =
+        bLikes * 2 + (b.replies?.length || 0) * 3;
+
+      return (
+        bScore - aScore ||
+        b.lastActivityAt - a.lastActivityAt
+      );
+    });
+  } else {
+    entries.sort(
+      (a, b) => b.lastActivityAt - a.lastActivityAt
+    );
+  }
 
   const replyCount = allEntries.reduce(
     (total, entry) =>
@@ -2310,7 +2398,7 @@ function renderLatestActivity() {
   if (latestActivityCount) {
     latestActivityCount.textContent =
       `${allEntries.length} ${
-        allEntries.length === 1 ? "note" : "notes"
+        allEntries.length === 1 ? "thread" : "threads"
       } · ${replyCount} ${
         replyCount === 1 ? "reply" : "replies"
       }`;
@@ -2326,56 +2414,72 @@ function renderLatestActivity() {
 
   if (!entries.length) {
     latestActivityList.innerHTML =
-      '<p class="activity-empty">No timestamp notes found yet.</p>';
+      '<p class="activity-empty">No forum threads match this view.</p>';
     return;
   }
 
   latestActivityList.innerHTML = entries
-    .slice(0, 100)
+    .slice(0, 150)
     .map(entry => {
       const replies = entry.replies || [];
       const likes = Number(
         commentLikeCounts[String(entry.noteId)] || 0
       );
 
+      const lastReply = replies.at(-1);
+      const lastActivityLabel = lastReply
+        ? `Last reply by ${escapeHtml(
+            lastReply.author || "Anonymous"
+          )}`
+        : "No replies yet";
+
       return `
-        <article class="activity-thread"
+        <article class="activity-thread forum-thread"
                  data-activity-note-id="${entry.noteId}"
                  data-activity-type="${entry.type}"
                  data-activity-id="${escapeHtml(entry.id)}"
                  data-activity-source="${escapeHtml(entry.source)}"
                  data-activity-seconds="${entry.seconds}"
                  data-activity-title="${escapeHtml(entry.title)}">
-          <div class="activity-entry">
+          <button class="forum-thread-open"
+                  type="button">
             <span class="activity-type-icon" aria-hidden="true">
               ${entry.type === "audio" ? "♫" : "▸"}
             </span>
 
-            <span class="activity-entry-copy">
-              <strong class="activity-entry-title">
+            <span class="forum-thread-copy">
+              <span class="forum-thread-source">
                 ${escapeHtml(entry.title)}
-              </strong>
-              <span class="activity-entry-note">
-                “${escapeHtml(entry.text)}”
-              </span>
-              <span class="activity-entry-meta">
-                <span class="activity-timestamp">
-                  ${formatTime(entry.seconds)}
-                </span>
-                <span>${escapeHtml(entry.author || "Anonymous")}</span>
-                <span>${escapeHtml(formatActivityDate(entry.createdAt))}</span>
-                <span>♡ ${likes}</span>
-                <span>💬 ${replies.length}</span>
+                <b>${formatTime(entry.seconds)}</b>
               </span>
 
-              <span class="activity-entry-actions">
-                <button class="activity-open-button"
-                        type="button">
-                  Open discussion
-                </button>
+              <strong class="forum-thread-title">
+                ${escapeHtml(entry.threadTitle)}
+              </strong>
+
+              <span class="forum-thread-excerpt">
+                ${escapeHtml(entry.text)}
+              </span>
+
+              <span class="activity-entry-meta forum-thread-meta">
+                <span>Started by ${escapeHtml(
+                  entry.author || "Anonymous"
+                )}</span>
+                <span>♡ ${likes}</span>
+                <span>💬 ${replies.length}</span>
+                <span>${lastActivityLabel}</span>
+                <span>${escapeHtml(
+                  formatActivityDate(
+                    new Date(entry.lastActivityAt).toISOString()
+                  )
+                )}</span>
               </span>
             </span>
-          </div>
+
+            <span class="forum-open-label">
+              Open thread →
+            </span>
+          </button>
         </article>
       `;
     })
@@ -3982,12 +4086,17 @@ activityFilterButtons.forEach(button => {
   });
 });
 
+forumSearchInput?.addEventListener(
+  "input",
+  renderLatestActivity
+);
+
 latestActivityList.addEventListener("click", event => {
   const thread = event.target.closest(".activity-thread");
 
   if (
     thread &&
-    event.target.closest(".activity-open-button")
+    event.target.closest(".forum-thread-open")
   ) {
     void openActivityEntry(thread);
   }

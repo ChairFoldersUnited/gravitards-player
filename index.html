@@ -38,7 +38,7 @@
       <button id="audioArchiveTab" class="archive-tab active" type="button" data-archive-view="audio">
         <span class="archive-tab__icon" aria-hidden="true">♫</span>
         <span>
-          <strong>Audio Archive</strong>
+          <strong>Audio</strong>
           <small id="audioArchiveCount">Vault Entries</small>
         </span>
       </button>
@@ -46,7 +46,7 @@
       <button id="filmArchiveTab" class="archive-tab" type="button" data-archive-view="film">
         <span class="archive-tab__icon" aria-hidden="true">▸</span>
         <span>
-          <strong>Film Archive</strong>
+          <strong>Video</strong>
           <small id="filmArchiveCount">Loading…</small>
         </span>
       </button>
@@ -54,8 +54,8 @@
       <button id="activityArchiveTab" class="archive-tab" type="button" data-archive-view="activity">
         <span class="archive-tab__icon" aria-hidden="true">◆</span>
         <span>
-          <strong>Latest Activity</strong>
-          <small id="latestActivityCount">Timestamp notes</small>
+          <strong>Forum</strong>
+          <small id="latestActivityCount">Forum threads</small>
         </span>
       </button>
     </div>
@@ -543,42 +543,58 @@
 
   <main id="activityArchiveView"
         class="activity-layout archive-view hidden">
-    <section class="activity-card">
-      <header class="activity-header">
+    <section class="activity-card forum-card">
+      <header class="activity-header forum-header">
         <div>
-          <p class="activity-eyebrow">THE VAULT FEED</p>
-          <h2>Latest Activity</h2>
+          <p class="activity-eyebrow">THE GRAVITARDS VAULT</p>
+          <h2>Forum</h2>
           <p>
-            The newest timestamp notes from Audio Archive and Film Archive.
+            Every thread is connected to a specific moment in the archive.
           </p>
         </div>
 
-        <div class="activity-tools">
-          <button id="activityAllFilter"
-                  class="activity-filter active"
-                  type="button"
-                  data-activity-filter="all">
-            All
-          </button>
-          <button id="activityAudioFilter"
-                  class="activity-filter"
-                  type="button"
-                  data-activity-filter="audio">
-            Audio
-          </button>
-          <button id="activityVideoFilter"
-                  class="activity-filter"
-                  type="button"
-                  data-activity-filter="video">
-            Video
-          </button>
-        </div>
+        <label class="forum-search">
+          <span>Search forum</span>
+          <input id="forumSearchInput"
+                 type="search"
+                 placeholder="Search threads, recordings or members…"
+                 autocomplete="off">
+        </label>
       </header>
 
+      <nav class="activity-tools forum-filters"
+           aria-label="Forum filters">
+        <button class="activity-filter active"
+                type="button"
+                data-activity-filter="latest">
+          Latest
+        </button>
+        <button class="activity-filter"
+                type="button"
+                data-activity-filter="popular">
+          Popular
+        </button>
+        <button class="activity-filter"
+                type="button"
+                data-activity-filter="unanswered">
+          Unanswered
+        </button>
+        <button class="activity-filter"
+                type="button"
+                data-activity-filter="audio">
+          Audio
+        </button>
+        <button class="activity-filter"
+                type="button"
+                data-activity-filter="video">
+          Video
+        </button>
+      </nav>
+
       <div id="latestActivityList"
-           class="latest-activity-list"
+           class="latest-activity-list forum-thread-list"
            aria-live="polite">
-        <p class="activity-empty">Loading activity…</p>
+        <p class="activity-empty">Loading forum…</p>
       </div>
     </section>
   </main>

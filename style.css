@@ -4261,3 +4261,150 @@ body:has(#filmArchiveView:not(.hidden)) {
     display: none !important;
   }
 }
+
+
+/* V13 – Forum */
+.forum-header {
+  align-items: center;
+}
+
+.forum-search {
+  display: grid;
+  gap: 6px;
+  width: min(420px, 100%);
+}
+
+.forum-search > span {
+  color: #8f887d;
+  font-family: Oswald, sans-serif;
+  font-size: .68rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.forum-search input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  background: #090908;
+  color: var(--bone);
+  font-size: 16px;
+}
+
+.forum-filters {
+  justify-content: flex-start;
+  padding: 13px 22px;
+  border-bottom: 1px solid var(--line);
+}
+
+.forum-thread {
+  border-bottom: 1px solid var(--line);
+}
+
+.forum-thread:last-child {
+  border-bottom: 0;
+}
+
+.forum-thread-open {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 18px 22px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.forum-thread-open:hover {
+  background: rgba(182,148,85,.07);
+}
+
+.forum-thread-copy {
+  display: grid;
+  min-width: 0;
+}
+
+.forum-thread-source {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: #948d82;
+  font-family: Oswald, sans-serif;
+  font-size: .68rem;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.forum-thread-source b {
+  color: var(--brass-light);
+  font-weight: 500;
+}
+
+.forum-thread-title {
+  margin-top: 5px;
+  color: var(--bone);
+  font-family: Cinzel, serif;
+  font-size: .94rem;
+  line-height: 1.35;
+}
+
+.forum-thread-excerpt {
+  display: -webkit-box;
+  overflow: hidden;
+  margin-top: 6px;
+  color: #aaa195;
+  font-family: Inter, sans-serif;
+  font-size: .8rem;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.forum-thread-meta {
+  margin-top: 10px;
+}
+
+.forum-open-label {
+  color: var(--brass-light);
+  font-family: Oswald, sans-serif;
+  font-size: .68rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+@media (max-width: 800px) {
+  .forum-header {
+    align-items: stretch;
+  }
+
+  .forum-search {
+    width: 100%;
+  }
+
+  .forum-filters {
+    display: flex;
+    overflow-x: auto;
+    padding: 10px 12px;
+    scrollbar-width: thin;
+  }
+
+  .forum-filters .activity-filter {
+    flex: 0 0 auto;
+  }
+
+  .forum-thread-open {
+    grid-template-columns: auto minmax(0, 1fr);
+    padding: 15px 13px;
+  }
+
+  .forum-open-label {
+    display: none;
+  }
+}

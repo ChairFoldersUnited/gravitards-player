@@ -1,30 +1,27 @@
-THE GRAVITARDS VAULT V12 – UNIFIED COMMENTS
-
-Your vault_comments table has already been prepared correctly.
+THE GRAVITARDS VAULT V13 – FORUM UPDATE
 
 Replace:
 - index.html
 - app.js
 - style.css
-- server.js
 
-New:
-- Ordinary comments and timestamp comments use vault_comments.
-- Timestamp comments are shared between desktop, mobile and all visitors.
-- Latest Activity shows the same shared notes on every device.
-- Audio and video timestamp comments include an author name.
-- The name is remembered locally after the first use.
-- Add Note is mobile-friendly and scrolls into view above the fixed player.
-- Existing ordinary comments remain separate because seconds is NULL.
-- Timestamp comments have a numeric seconds value.
+No new SQL is required.
 
-Important:
-Old timestamp notes stored only in localStorage are not automatically uploaded.
-Re-enter any important old notes once after V12 is deployed.
+Main menu:
+- Audio
+- Video
+- Forum
 
-After deployment:
-1. Replace all four files.
-2. Wait for Render to finish.
-3. Press Ctrl + Shift + R.
-4. Add one timestamp note on desktop.
-5. Open Latest Activity on mobile and verify the same note appears.
+Forum:
+- Latest
+- Popular
+- Unanswered
+- Audio
+- Video
+- Search across threads, recordings, authors and replies
+- Latest is sorted by most recent reply/activity
+- Popular combines likes and reply counts
+- Open thread opens the correct media, timestamp and discussion
+- Existing timestamp notes, replies and likes are reused
+
+Thread titles currently use the first line of the timestamp message.
