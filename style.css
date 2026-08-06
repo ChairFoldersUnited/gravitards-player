@@ -4705,3 +4705,19 @@ body:has(#filmArchiveView:not(.hidden)) {
     margin-bottom: 2px;
   }
 }
+
+
+/* V13.3 – thread titles */
+#mobileComposerTitleField.hidden {
+  display: none !important;
+}
+
+#timestampTitleInput,
+#filmTimestampTitleInput,
+#mobileComposerThreadTitle {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  font-size: 16px;
+}

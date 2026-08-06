@@ -536,7 +536,7 @@ app.get("/api/comments", async (req, res) => {
 
     const query = new URLSearchParams({
       select:
-        "id,entry_type,entry_id,entry_title,source,author,comment,seconds,parent_id,created_at",
+        "id,entry_type,entry_id,entry_title,thread_title,source,author,comment,seconds,parent_id,created_at",
       order: latest ? "created_at.desc" : "created_at.asc",
       limit: String(limit)
     });
@@ -653,6 +653,10 @@ app.post("/api/comments", async (req, res) => {
       req.body?.source || ""
     ).trim().slice(0, 80);
 
+    const threadTitle = String(
+      req.body?.thread_title || ""
+    ).trim().slice(0, 160);
+
     const rawParentId = req.body?.parent_id;
     const parentId =
       rawParentId === null ||
@@ -681,6 +685,7 @@ app.post("/api/comments", async (req, res) => {
           entry_type: entryType,
           entry_id: entryId,
           entry_title: entryTitle || null,
+          thread_title: parentId ? null : (threadTitle || null),
           source,
           author,
           comment,

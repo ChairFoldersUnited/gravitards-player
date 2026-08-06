@@ -85,6 +85,8 @@ const filmCommentStatus = document.querySelector("#filmCommentStatus");
 const saveFilmCommentButton = document.querySelector("#saveFilmCommentButton");
 const filmCurrentTime = document.querySelector("#filmCurrentTime");
 const filmTimestampInput = document.querySelector("#filmTimestampInput");
+const filmTimestampTitleInput =
+  document.querySelector("#filmTimestampTitleInput");
 const filmTimestampAuthorInput =
   document.querySelector("#filmTimestampAuthorInput");
 const saveFilmTimestampButton = document.querySelector("#saveFilmTimestampButton");
@@ -125,6 +127,8 @@ const addTimestampButton = document.querySelector("#addTimestampButton");
 const timestampComposer = document.querySelector("#timestampComposer");
 const timestampComposerTime = document.querySelector("#timestampComposerTime");
 const timestampInput = document.querySelector("#timestampInput");
+const timestampTitleInput =
+  document.querySelector("#timestampTitleInput");
 const timestampAuthorInput =
   document.querySelector("#timestampAuthorInput");
 const mobileCommentComposer =
@@ -147,6 +151,10 @@ const mobileComposerContext =
   document.querySelector("#mobileComposerContext");
 const mobileComposerTextLabel =
   document.querySelector("#mobileComposerTextLabel");
+const mobileComposerTitleField =
+  document.querySelector("#mobileComposerTitleField");
+const mobileComposerThreadTitle =
+  document.querySelector("#mobileComposerThreadTitle");
 const mobileComposerScope =
   document.querySelector("#mobileComposerScope");
 const mobileScopeGeneral =
@@ -2007,6 +2015,8 @@ function normalizeVaultTimestampComment(row) {
     author: row.author || "Anonymous",
     createdAt: row.created_at || row.createdAt || "",
     entryTitle: row.entry_title || row.entryTitle || "",
+    threadTitle:
+      row.thread_title || row.threadTitle || "",
     source: row.source || "",
     parentId:
       row.parent_id === null ||
@@ -2330,9 +2340,12 @@ function getLatestActivityEntries() {
       source,
       title,
       threadTitle:
-        firstLine.length > 86
-          ? `${firstLine.slice(0, 83)}…`
-          : firstLine || "Untitled thread",
+        note.threadTitle ||
+        (
+          firstLine.length > 86
+            ? `${firstLine.slice(0, 83)}…`
+            : firstLine || "Untitled thread"
+        ),
       seconds:
         note.seconds === null || note.seconds === undefined
           ? null
@@ -3162,13 +3175,20 @@ addTimestampButton.addEventListener("click", event => {
       allowThreadScope: true,
       momentLabel: `Linked to ${formatTime(pendingTimestampSeconds)}`,
       generalLabel: "Whole recording",
+      requireThreadTitle: true,
       author: timestampAuthorInput.value,
       trigger: event.currentTarget,
-      action: async ({ author, text, scope }) => {
+      action: async ({
+        author,
+        text,
+        scope,
+        threadTitle
+      }) => {
         await saveAudioTimestampNote(
           author,
           text,
-          scope === "general" ? null : pendingTimestampSeconds
+          scope === "general" ? null : pendingTimestampSeconds,
+          threadTitle
         );
       }
     });
@@ -3200,10 +3220,11 @@ addTimestampButton.addEventListener("click", event => {
 
 cancelTimestampButton.addEventListener("click", () => {
   timestampComposer.classList.add("hidden");
+  timestampTitleInput.value = "";
   timestampInput.value = "";
 });
 
-async function saveAudioTimestampNote(author, text, seconds) {
+async function saveAudioTimestampNote(author, text, seconds, threadTitle) {
   if (!currentTrack) return;
 
   const saved = await createCentralTimestampComment({
@@ -3215,6 +3236,7 @@ async function saveAudioTimestampNote(author, text, seconds) {
       currentTrack.name ||
       "Audio recording",
     source: "dropbox",
+    thread_title: threadTitle,
     author,
     comment: text,
     seconds
@@ -3238,10 +3260,16 @@ saveTimestampButton.addEventListener("click", async event => {
   event.stopPropagation();
 
   const author = timestampAuthorInput.value.trim();
+  const threadTitle = timestampTitleInput.value.trim();
   const text = timestampInput.value.trim();
 
   if (!author) {
     timestampAuthorInput.focus();
+    return;
+  }
+
+  if (!threadTitle) {
+    timestampTitleInput.focus();
     return;
   }
 
@@ -3265,7 +3293,8 @@ saveTimestampButton.addEventListener("click", async event => {
     await saveAudioTimestampNote(
       author,
       text,
-      scope === "general" ? null : pendingTimestampSeconds
+      scope === "general" ? null : pendingTimestampSeconds,
+      threadTitle
     );
   } catch (error) {
     showShareToast(error.message);
@@ -3369,7 +3398,8 @@ function openMobileCommentComposer({
   trigger,
   allowThreadScope = false,
   momentLabel = "",
-  generalLabel = "Whole recording"
+  generalLabel = "Whole recording",
+  requireThreadTitle = false
 }) {
   mobileComposerMode.textContent = mode;
   mobileComposerTitle.textContent = title;
@@ -3381,6 +3411,11 @@ function openMobileCommentComposer({
     localStorage.getItem("gravitards-timestamp-author") ||
     "";
   mobileComposerText.value = "";
+  mobileComposerThreadTitle.value = "";
+  mobileComposerTitleField.classList.toggle(
+    "hidden",
+    !requireThreadTitle
+  );
 
   mobileComposerScope.classList.toggle(
     "hidden",
@@ -3418,9 +3453,21 @@ async function submitMobileCommentComposer() {
 
   const author = mobileComposerAuthor.value.trim();
   const text = mobileComposerText.value.trim();
+  const threadTitle =
+    mobileComposerTitleField.classList.contains("hidden")
+      ? ""
+      : mobileComposerThreadTitle.value.trim();
 
   if (!author) {
     mobileComposerAuthor.focus();
+    return;
+  }
+
+  if (
+    !mobileComposerTitleField.classList.contains("hidden") &&
+    !threadTitle
+  ) {
+    mobileComposerThreadTitle.focus();
     return;
   }
 
@@ -3447,7 +3494,12 @@ async function submitMobileCommentComposer() {
             'input[name="mobileThreadScope"]:checked'
           )?.value || "moment";
 
-    await mobileComposerAction({ author, text, scope });
+    await mobileComposerAction({
+      author,
+      text,
+      scope,
+      threadTitle
+    });
     closeMobileCommentComposer();
   } catch (error) {
     showShareToast(error.message);
@@ -3996,7 +4048,7 @@ saveFilmCommentButton.addEventListener("click", async () => {
   }
 });
 
-async function saveVideoTimestampNote(author, text, seconds) {
+async function saveVideoTimestampNote(author, text, seconds, threadTitle) {
   if (!currentFilm) return;
 
   const saved = await createCentralTimestampComment({
@@ -4007,6 +4059,7 @@ async function saveVideoTimestampNote(author, text, seconds) {
       currentFilm.originalName ||
       "Video",
     source: activeFilmSource,
+    thread_title: threadTitle,
     author,
     comment: text,
     seconds
@@ -4016,6 +4069,7 @@ async function saveVideoTimestampNote(author, text, seconds) {
   filmTimestampNotes[currentFilm.id].push(saved);
 
   saveFilmTimestampNotes();
+  filmTimestampTitleInput.value = "";
   filmTimestampInput.value = "";
 
   renderFilmTimestampNotes();
@@ -4029,10 +4083,16 @@ saveFilmTimestampButton.addEventListener("click", async event => {
   event.stopPropagation();
 
   const author = filmTimestampAuthorInput.value.trim();
+  const threadTitle = filmTimestampTitleInput.value.trim();
   const text = filmTimestampInput.value.trim();
 
   if (!author) {
     filmTimestampAuthorInput.focus();
+    return;
+  }
+
+  if (!threadTitle) {
+    filmTimestampTitleInput.focus();
     return;
   }
 
@@ -4058,7 +4118,12 @@ saveFilmTimestampButton.addEventListener("click", async event => {
         ? null
         : Math.max(0, Math.floor(getCurrentFilmSeconds()));
 
-    await saveVideoTimestampNote(author, text, seconds);
+    await saveVideoTimestampNote(
+      author,
+      text,
+      seconds,
+      threadTitle
+    );
   } catch (error) {
     showShareToast(error.message);
   } finally {
