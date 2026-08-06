@@ -1,27 +1,19 @@
-THE GRAVITARDS VAULT V13 – FORUM UPDATE
+THE GRAVITARDS VAULT V13.1 – FORUM THREAD VIEW
 
 Replace:
 - index.html
 - app.js
 - style.css
 
-No new SQL is required.
+No SQL changes are required.
 
-Main menu:
-- Audio
-- Video
-- Forum
-
-Forum:
-- Latest
-- Popular
-- Unanswered
-- Audio
-- Video
-- Search across threads, recordings, authors and replies
-- Latest is sorted by most recent reply/activity
-- Popular combines likes and reply counts
-- Open thread opens the correct media, timestamp and discussion
-- Existing timestamp notes, replies and likes are reused
-
-Thread titles currently use the first line of the timestamp message.
+Forum changes:
+- Opening a thread stays inside Forum.
+- Full thread view shows the original post and all replies.
+- Reply form is available directly beneath the thread.
+- Root posts and replies can be liked in the Forum view.
+- Back to Forum restores the thread list and previous scroll position.
+- Audio threads include Play moment and use the fixed audio player.
+- Video threads include an embedded video player.
+- Filters and search remain on the Forum list.
+- Audio and Video pages still show their local thread lists.

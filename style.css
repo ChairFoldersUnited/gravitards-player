@@ -4408,3 +4408,225 @@ body:has(#filmArchiveView:not(.hidden)) {
     display: none;
   }
 }
+
+
+/* V13.1 – internal Forum thread view */
+.forum-thread-view {
+  min-height: 520px;
+}
+
+.forum-thread-view-header {
+  display: grid;
+  gap: 20px;
+  padding: 24px;
+  border-bottom: 1px solid var(--line);
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(182,148,85,.09),
+      transparent 40%
+    );
+}
+
+.forum-back-button {
+  justify-self: start;
+  padding: 8px 12px;
+  border: 1px solid rgba(212,184,117,.28);
+  background: rgba(182,148,85,.07);
+  color: var(--brass-light);
+  font-family: Oswald, sans-serif;
+  font-size: .7rem;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.forum-thread-view-header h2 {
+  margin: 5px 0 0;
+  color: var(--bone);
+  font-family: Cinzel, serif;
+  font-size: clamp(1.2rem, 3vw, 2rem);
+  line-height: 1.3;
+}
+
+.forum-thread-view-meta {
+  margin: 0;
+  color: #968f84;
+  font-family: Oswald, sans-serif;
+  font-size: .7rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.forum-thread-media {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(0,0,0,.18);
+}
+
+.forum-audio-moment {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.forum-audio-moment span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--bone);
+  font-family: Cinzel, serif;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.forum-audio-moment strong {
+  color: var(--brass-light);
+  font-family: Oswald, sans-serif;
+}
+
+.forum-thread-media button {
+  margin-left: auto;
+  min-height: 42px;
+  padding: 8px 14px;
+  border: 1px solid var(--brass-light);
+  background: rgba(182,148,85,.14);
+  color: var(--bone);
+  font-family: Oswald, sans-serif;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.forum-video-moment {
+  display: grid;
+  gap: 12px;
+}
+
+.forum-video-moment video {
+  width: 100%;
+  max-height: 560px;
+  background: #000;
+}
+
+.forum-video-moment button {
+  justify-self: start;
+  margin-left: 0;
+}
+
+.forum-thread-posts {
+  display: grid;
+  gap: 1px;
+  background: var(--line);
+}
+
+.forum-post {
+  padding: 20px 24px;
+  background: rgba(12,12,11,.99);
+}
+
+.forum-post-root {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(31,28,23,.98),
+      rgba(15,14,12,.99)
+    );
+}
+
+.forum-post-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  color: #79736b;
+  font-family: Oswald, sans-serif;
+  font-size: .68rem;
+}
+
+.forum-post-header strong {
+  color: var(--brass-light);
+  font-weight: 500;
+}
+
+.forum-post p {
+  margin: 12px 0;
+  color: #c1b8ab;
+  font-family: Inter, sans-serif;
+  font-size: .88rem;
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+
+.forum-reply-form {
+  display: grid;
+  gap: 14px;
+  padding: 24px;
+  border-top: 1px solid var(--line);
+  background: rgba(7,7,6,.99);
+}
+
+.forum-reply-form h3 {
+  margin: 0;
+  color: var(--bone);
+  font-family: Cinzel, serif;
+}
+
+.forum-reply-form label {
+  display: grid;
+  gap: 6px;
+}
+
+.forum-reply-form label > span {
+  color: #918a80;
+  font-family: Oswald, sans-serif;
+  font-size: .68rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.forum-reply-form input,
+.forum-reply-form textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 11px;
+  border: 1px solid var(--line);
+  background: #090908;
+  color: var(--bone);
+  font-family: Inter, sans-serif;
+  font-size: 16px;
+}
+
+.forum-reply-form button {
+  justify-self: start;
+  min-height: 44px;
+  padding: 9px 16px;
+  border: 1px solid var(--brass-light);
+  background: rgba(182,148,85,.15);
+  color: var(--bone);
+  font-family: Oswald, sans-serif;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+@media (max-width: 700px) {
+  .forum-thread-view-header,
+  .forum-thread-media,
+  .forum-post,
+  .forum-reply-form {
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+
+  .forum-audio-moment {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .forum-thread-media button,
+  .forum-reply-form button {
+    width: 100%;
+    margin-left: 0;
+  }
+}

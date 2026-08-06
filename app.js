@@ -10,6 +10,26 @@ const activityFilterButtons =
   document.querySelectorAll("[data-activity-filter]");
 const forumSearchInput =
   document.querySelector("#forumSearchInput");
+const forumThreadView =
+  document.querySelector("#forumThreadView");
+const forumBackButton =
+  document.querySelector("#forumBackButton");
+const forumThreadHeading =
+  document.querySelector("#forumThreadHeading");
+const forumThreadMediaMeta =
+  document.querySelector("#forumThreadMediaMeta");
+const forumThreadMedia =
+  document.querySelector("#forumThreadMedia");
+const forumThreadPosts =
+  document.querySelector("#forumThreadPosts");
+const forumReplyForm =
+  document.querySelector("#forumReplyForm");
+const forumReplyAuthor =
+  document.querySelector("#forumReplyAuthor");
+const forumReplyText =
+  document.querySelector("#forumReplyText");
+const forumReplySubmit =
+  document.querySelector("#forumReplySubmit");
 const filmArchiveCount = document.querySelector("#filmArchiveCount");
 const audioArchiveView = document.querySelector("#audioArchiveView");
 const bottomPlayerDock = document.querySelector(".bottom-player-dock");
@@ -165,6 +185,9 @@ let filmSharedComments = [];
 let filmYearFilter = null;
 let filmClockTimer = null;
 let activeActivityFilter = "latest";
+let activeForumThreadId = null;
+let forumListScrollPosition = 0;
+
 let activityReplies = {};
 let commentLikeCounts = {};
 const likedCommentIds = new Set();
@@ -2092,6 +2115,10 @@ async function loadCommentLikes() {
   renderTimestampNotes();
   renderFilmTimestampNotes();
   renderLatestActivity();
+
+  if (activeForumThreadId) {
+    renderForumThread();
+  }
 }
 
 async function toggleCommentLike(commentId) {
@@ -2322,6 +2349,203 @@ function getLatestActivityEntries() {
   }
 
   return entries;
+}
+
+
+function getForumThreadById(noteId) {
+  return getLatestActivityEntries().find(
+    entry => String(entry.noteId) === String(noteId)
+  );
+}
+
+function forumVideoPlayUrl(entry) {
+  const encodedId = encodeURIComponent(
+    entry.id.startsWith("youtube:") ||
+    entry.id.startsWith("facebook:") ||
+    entry.id.startsWith("instagram:")
+      ? entry.id.split(":").slice(1).join(":")
+      : entry.id
+  );
+
+  if (entry.source === "facebook") {
+    return `/api/facebook-streams/play/${encodedId}`;
+  }
+
+  if (entry.source === "instagram") {
+    return `/api/instagram-streams/play/${encodedId}`;
+  }
+
+  const film = [
+    ...youtubeFilms,
+    ...facebookStreams,
+    ...instagramStreams
+  ].find(item => item.id === entry.id);
+
+  return `/api/videos/play/${encodeURIComponent(
+    film?.dropboxId || entry.id
+  )}`;
+}
+
+function renderForumPost({
+  id,
+  author,
+  text,
+  createdAt,
+  root = false
+}) {
+  return `
+    <article class="forum-post ${root ? "forum-post-root" : ""}">
+      <header class="forum-post-header">
+        <strong>${escapeHtml(author || "Anonymous")}</strong>
+        <time>${escapeHtml(formatActivityDate(createdAt))}</time>
+      </header>
+
+      <p>${escapeHtml(text || "")}</p>
+
+      <footer>
+        ${renderLikeButton(id)}
+      </footer>
+    </article>
+  `;
+}
+
+function closeForumThread() {
+  activeForumThreadId = null;
+  forumThreadView.classList.add("hidden");
+  latestActivityList.classList.remove("hidden");
+  document.querySelector(".forum-header")?.classList.remove("hidden");
+  document.querySelector(".forum-filters")?.classList.remove("hidden");
+  window.scrollTo(0, forumListScrollPosition);
+}
+
+function renderForumThread() {
+  if (!activeForumThreadId) return;
+
+  const entry = getForumThreadById(activeForumThreadId);
+
+  if (!entry) {
+    closeForumThread();
+    showShareToast("The forum thread could not be found");
+    return;
+  }
+
+  const replies = activityReplies[String(entry.noteId)] || [];
+
+  forumThreadHeading.textContent = entry.threadTitle;
+  forumThreadMediaMeta.textContent =
+    `${entry.type === "audio" ? "Audio" : "Video"} · ` +
+    `${entry.title} · ${formatTime(entry.seconds)}`;
+
+  forumThreadPosts.innerHTML =
+    renderForumPost({
+      id: entry.noteId,
+      author: entry.author,
+      text: entry.text,
+      createdAt: entry.createdAt,
+      root: true
+    }) +
+    replies.map(reply =>
+      renderForumPost({
+        id: reply.id,
+        author: reply.author,
+        text: reply.text,
+        createdAt: reply.createdAt
+      })
+    ).join("");
+
+  forumReplyAuthor.value =
+    localStorage.getItem("gravitards-timestamp-author") ||
+    savedTimestampAuthor ||
+    "";
+
+  forumThreadMedia.classList.remove("hidden");
+
+  if (entry.type === "audio") {
+    forumThreadMedia.innerHTML = `
+      <div class="forum-audio-moment">
+        <span>♫ ${escapeHtml(entry.title)}</span>
+        <strong>${formatTime(entry.seconds)}</strong>
+        <button id="forumPlayMoment"
+                type="button">
+          Play moment
+        </button>
+      </div>
+    `;
+  } else {
+    forumThreadMedia.innerHTML = `
+      <div class="forum-video-moment">
+        <video id="forumVideoPlayer"
+               controls
+               preload="metadata"
+               playsinline></video>
+        <button id="forumPlayMoment"
+                type="button">
+          Load video at ${formatTime(entry.seconds)}
+        </button>
+      </div>
+    `;
+  }
+}
+
+function openForumThread(noteId) {
+  forumListScrollPosition = window.scrollY;
+  activeForumThreadId = String(noteId);
+
+  latestActivityList.classList.add("hidden");
+  document.querySelector(".forum-header")?.classList.add("hidden");
+  document.querySelector(".forum-filters")?.classList.add("hidden");
+  forumThreadView.classList.remove("hidden");
+
+  renderForumThread();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+async function playForumMoment() {
+  const entry = getForumThreadById(activeForumThreadId);
+  if (!entry) return;
+
+  if (entry.type === "audio") {
+    if (!tracks.length) {
+      await loadTracks();
+    }
+
+    const track = tracks.find(item => item.id === entry.id);
+
+    if (!track) {
+      showShareToast("The recording could not be found");
+      return;
+    }
+
+    await playTrack(track);
+    seekSharedAudio(entry.seconds);
+
+    // Keep Forum visible while exposing the fixed audio player.
+    bottomPlayerDock?.classList.remove("hidden");
+    showShareToast(`Playing from ${formatTime(entry.seconds)}`);
+    return;
+  }
+
+  const player =
+    forumThreadMedia.querySelector("#forumVideoPlayer");
+
+  if (!player) return;
+
+  player.src = forumVideoPlayUrl(entry);
+
+  const seekAndPlay = () => {
+    player.currentTime = Math.max(0, entry.seconds);
+    player.play().catch(() => {});
+  };
+
+  if (player.readyState >= 1) {
+    seekAndPlay();
+  } else {
+    player.addEventListener(
+      "loadedmetadata",
+      seekAndPlay,
+      { once: true }
+    );
+  }
 }
 
 function renderLatestActivity() {
@@ -2646,6 +2870,10 @@ function setArchiveView(view) {
 
   if (!showAudio && isMobileComposerLayout()) {
     setMobileNotesPanel(false);
+  }
+
+  if (!showActivity && activeForumThreadId) {
+    closeForumThread();
   }
 
   localStorage.setItem("gravitards-archive-view", view);
@@ -4073,6 +4301,87 @@ window.addEventListener("hashchange", () => {
 });
 
 audioArchiveTab.addEventListener("click", () => setArchiveView("audio"));
+forumBackButton?.addEventListener(
+  "click",
+  closeForumThread
+);
+
+forumThreadMedia?.addEventListener("click", event => {
+  if (event.target.closest("#forumPlayMoment")) {
+    void playForumMoment();
+  }
+});
+
+forumThreadPosts?.addEventListener("click", event => {
+  const likeButton =
+    event.target.closest("[data-comment-like]");
+
+  if (!likeButton) return;
+
+  void toggleCommentLike(
+    likeButton.dataset.commentLike
+  ).catch(error => {
+    showShareToast(error.message);
+  });
+});
+
+forumReplyForm?.addEventListener("submit", event => {
+  event.preventDefault();
+
+  void (async () => {
+    const entry = getForumThreadById(activeForumThreadId);
+    if (!entry) return;
+
+    const author = forumReplyAuthor.value.trim();
+    const text = forumReplyText.value.trim();
+
+    if (!author) {
+      forumReplyAuthor.focus();
+      return;
+    }
+
+    if (!text) {
+      forumReplyText.focus();
+      return;
+    }
+
+    forumReplySubmit.disabled = true;
+
+    try {
+      localStorage.setItem(
+        "gravitards-timestamp-author",
+        author
+      );
+
+      timestampAuthorInput.value = author;
+      filmTimestampAuthorInput.value = author;
+
+      const saved = await createActivityReply({
+        entry_type: entry.type,
+        entry_id: entry.id,
+        entry_title: entry.title,
+        source: entry.source,
+        author,
+        comment: text,
+        seconds: null,
+        parent_id: Number(entry.noteId)
+      });
+
+      activityReplies[String(entry.noteId)] ||= [];
+      activityReplies[String(entry.noteId)].push(saved);
+
+      forumReplyText.value = "";
+      renderLatestActivity();
+      renderForumThread();
+      showShareToast("Reply posted");
+    } catch (error) {
+      showShareToast(error.message);
+    } finally {
+      forumReplySubmit.disabled = false;
+    }
+  })();
+});
+
 filmArchiveTab.addEventListener("click", () => setArchiveView("film"));
 activityArchiveTab.addEventListener(
   "click",
@@ -4098,7 +4407,7 @@ latestActivityList.addEventListener("click", event => {
     thread &&
     event.target.closest(".forum-thread-open")
   ) {
-    void openActivityEntry(thread);
+    openForumThread(thread.dataset.activityNoteId);
   }
 });
 filmArchiveTab.addEventListener("click", () => setArchiveView("film"));

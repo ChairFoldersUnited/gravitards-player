@@ -596,6 +596,57 @@
            aria-live="polite">
         <p class="activity-empty">Loading forum…</p>
       </div>
+
+      <article id="forumThreadView"
+               class="forum-thread-view hidden"
+               aria-live="polite">
+        <header class="forum-thread-view-header">
+          <button id="forumBackButton"
+                  class="forum-back-button"
+                  type="button">
+            ← Back to Forum
+          </button>
+
+          <div>
+            <p id="forumThreadMediaMeta"
+               class="forum-thread-view-meta"></p>
+            <h2 id="forumThreadHeading"></h2>
+          </div>
+        </header>
+
+        <section id="forumThreadMedia"
+                 class="forum-thread-media hidden"></section>
+
+        <section id="forumThreadPosts"
+                 class="forum-thread-posts"></section>
+
+        <form id="forumReplyForm"
+              class="forum-reply-form">
+          <h3>Post a reply</h3>
+
+          <label>
+            <span>Name</span>
+            <input id="forumReplyAuthor"
+                   type="text"
+                   maxlength="80"
+                   autocomplete="name"
+                   placeholder="Your name">
+          </label>
+
+          <label>
+            <span>Reply</span>
+            <textarea id="forumReplyText"
+                      rows="6"
+                      maxlength="2000"
+                      placeholder="Write your reply…"></textarea>
+          </label>
+
+          <button id="forumReplySubmit"
+                  type="submit">
+            Post reply
+          </button>
+        </form>
+      </article>
     </section>
   </main>
 
