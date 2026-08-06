@@ -4847,3 +4847,17 @@ body:has(#filmArchiveView:not(.hidden)) {
     min-height: 58px;
   }
 }
+
+
+/* V13.4.2 – explicit Audio sidebar order */
+#audioArchiveView .timestamp-card {
+  order: 1;
+}
+
+#audioArchiveView .elsewhere-card {
+  order: 2;
+}
+
+#audioArchiveView .info-card {
+  order: 3;
+}
