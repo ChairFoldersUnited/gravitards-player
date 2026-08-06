@@ -1456,7 +1456,9 @@ function updateFilmNavigationControls() {
 
   filmPreviousButton.disabled = !canNavigate;
   filmNextButton.disabled = !canNavigate;
-  shareFilmButton.disabled = !hasSelection;
+  if (filmShareMenuButton) {
+    filmShareMenuButton.disabled = !hasSelection;
+  }
 
   filmDownloadLink.classList.toggle(
     "disabled-link",
