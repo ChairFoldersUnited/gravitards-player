@@ -963,16 +963,10 @@ function renderTimestampNotes() {
             </div>
           </div>
 
-          <details class="thread-item-menu">
-            <summary aria-label="Thread options">⋯</summary>
-            <div>
-              <button class="danger"
-                      type="button"
-                      data-delete-timestamp="${index}">
-                Delete Thread
-              </button>
-            </div>
-          </details>
+          <button class="timestamp-delete"
+                  type="button"
+                  data-delete-timestamp="${index}"
+                  title="Delete">×</button>
         </div>
 
         <div class="timestamp-inline-reply-form ${replyOpen ? "" : "hidden"}">
@@ -1375,16 +1369,10 @@ function renderFilmTimestampNotes() {
             </div>
           </div>
 
-          <details class="thread-item-menu">
-            <summary aria-label="Thread options">⋯</summary>
-            <div>
-              <button class="danger"
-                      type="button"
-                      data-film-timestamp-delete="${index}">
-                Delete Thread
-              </button>
-            </div>
-          </details>
+          <button class="timestamp-delete"
+                  type="button"
+                  data-film-timestamp-delete="${index}"
+                  title="Delete">×</button>
         </div>
 
         <div class="timestamp-inline-reply-form ${replyOpen ? "" : "hidden"}">
@@ -2113,7 +2101,6 @@ async function loadCentralTimestampComments() {
   renderTracks();
   renderFilms();
   renderLatestActivity();
-  openForumThreadFromHash();
 }
 
 async function createCentralTimestampComment(payload) {
@@ -2458,37 +2445,10 @@ function renderForumPost({
   root = false
 }) {
   return `
-    <article class="forum-post ${root ? "forum-post-root" : ""}"
-             data-forum-post-id="${escapeHtml(String(id))}"
-             data-forum-post-root="${root ? "true" : "false"}">
+    <article class="forum-post ${root ? "forum-post-root" : ""}">
       <header class="forum-post-header">
-        <span class="forum-post-author">
-          <strong>${escapeHtml(author || "Anonymous")}</strong>
-          <time>${escapeHtml(formatActivityDate(createdAt))}</time>
-        </span>
-
-        <details class="forum-post-menu">
-          <summary aria-label="Post options">⋯</summary>
-          <div class="forum-post-menu-items">
-            ${
-              root
-                ? `<button type="button"
-                           data-copy-forum-thread="${escapeHtml(String(id))}">
-                     Copy link
-                   </button>
-                   <button type="button"
-                           class="danger"
-                           data-delete-forum-thread="${escapeHtml(String(id))}">
-                     Delete Thread
-                   </button>`
-                : `<button type="button"
-                           class="danger"
-                           data-delete-forum-reply="${escapeHtml(String(id))}">
-                     Delete Reply
-                   </button>`
-            }
-          </div>
-        </details>
+        <strong>${escapeHtml(author || "Anonymous")}</strong>
+        <time>${escapeHtml(formatActivityDate(createdAt))}</time>
       </header>
 
       <p>${escapeHtml(text || "")}</p>
@@ -2498,129 +2458,6 @@ function renderForumPost({
       </footer>
     </article>
   `;
-}
-
-function removeForumThreadFromState(noteId) {
-  const targetId = String(noteId);
-
-  for (const [trackId, notes] of Object.entries(timestampNotes)) {
-    const filtered = (notes || []).filter(
-      note => String(note.id) !== targetId
-    );
-
-    if (filtered.length) {
-      timestampNotes[trackId] = filtered;
-    } else {
-      delete timestampNotes[trackId];
-    }
-  }
-
-  for (const [filmId, notes] of Object.entries(filmTimestampNotes)) {
-    const filtered = (notes || []).filter(
-      note => String(note.id) !== targetId
-    );
-
-    if (filtered.length) {
-      filmTimestampNotes[filmId] = filtered;
-    } else {
-      delete filmTimestampNotes[filmId];
-    }
-  }
-
-  delete activityReplies[targetId];
-  delete commentLikeCounts[targetId];
-  likedCommentIds.delete(targetId);
-
-  saveTimestampNotes();
-  saveFilmTimestampNotes();
-}
-
-function removeForumReplyFromState(replyId) {
-  const targetId = String(replyId);
-
-  for (const [rootId, replies] of Object.entries(activityReplies)) {
-    const filtered = (replies || []).filter(
-      reply => String(reply.id) !== targetId
-    );
-
-    if (filtered.length) {
-      activityReplies[rootId] = filtered;
-    } else {
-      delete activityReplies[rootId];
-    }
-  }
-
-  delete commentLikeCounts[targetId];
-  likedCommentIds.delete(targetId);
-}
-
-async function copyForumThreadLink(noteId) {
-  const url = new URL(window.location.href);
-  url.hash = `forum=${encodeURIComponent(noteId)}`;
-
-  await copyTextToClipboard(url.toString());
-  showShareToast("Forum thread link copied");
-}
-
-async function deleteForumThread(noteId) {
-  const confirmed = window.confirm(
-    "Delete this thread? The thread, all replies and all likes will be permanently removed."
-  );
-
-  if (!confirmed) return;
-
-  await deleteCentralTimestampComment(noteId);
-  removeForumThreadFromState(noteId);
-
-  activeForumThreadId = null;
-  forumThreadView.classList.add("hidden");
-  latestActivityList.classList.remove("hidden");
-  document.querySelector(".forum-header")?.classList.remove("hidden");
-  document.querySelector(".forum-filters")?.classList.remove("hidden");
-
-  renderTimestampNotes();
-  renderFilmTimestampNotes();
-  renderTracks();
-  renderFilms();
-  renderLatestActivity();
-  showShareToast("Thread deleted");
-}
-
-async function deleteForumReply(replyId) {
-  const confirmed = window.confirm(
-    "Delete this reply permanently?"
-  );
-
-  if (!confirmed) return;
-
-  await deleteCentralTimestampComment(replyId);
-  removeForumReplyFromState(replyId);
-
-  renderTimestampNotes();
-  renderFilmTimestampNotes();
-  renderLatestActivity();
-  renderForumThread();
-  showShareToast("Reply deleted");
-}
-
-function openForumThreadFromHash() {
-  const match = window.location.hash.match(
-    /^#forum=([^&]+)$/
-  );
-
-  if (!match) return false;
-
-  const noteId = decodeURIComponent(match[1]);
-  const entry = getForumThreadById(noteId);
-
-  if (!entry) return false;
-
-  setArchiveView("activity");
-  window.setTimeout(() => {
-    openForumThread(noteId);
-  }, 0);
-
-  return true;
 }
 
 function closeForumThread() {
@@ -2652,7 +2489,7 @@ function renderForumThread() {
       entry.seconds === null
         ? "GENERAL"
         : formatTime(entry.seconds)
-    } · Started by ${entry.author || "Anonymous"}`;
+    }`;
 
   forumThreadPosts.innerHTML =
     renderForumPost({
@@ -3327,7 +3164,7 @@ addTimestampButton.addEventListener("click", event => {
 
     openMobileCommentComposer({
       mode: "Forum",
-      title: "New Thread",
+      title: "New discussion",
       context: `${
         currentTrack.displayTitle ||
         currentTrack.title ||
@@ -3410,13 +3247,12 @@ async function saveAudioTimestampNote(author, text, seconds, threadTitle) {
 
   saveTimestampNotes();
   timestampComposer.classList.add("hidden");
-  timestampTitleInput.value = "";
   timestampInput.value = "";
 
   renderTimestampNotes();
   renderTracks();
   renderLatestActivity();
-  showShareToast("Thread created");
+  showShareToast("Discussion created");
 }
 
 saveTimestampButton.addEventListener("click", async event => {
@@ -4239,7 +4075,7 @@ async function saveVideoTimestampNote(author, text, seconds, threadTitle) {
   renderFilmTimestampNotes();
   renderFilms();
   renderLatestActivity();
-  showShareToast("Thread created");
+  showShareToast("Discussion created");
 }
 
 saveFilmTimestampButton.addEventListener("click", async event => {
@@ -4630,10 +4466,6 @@ window.addEventListener("resize", () => {
 });
 
 window.addEventListener("hashchange", () => {
-  if (openForumThreadFromHash()) {
-    return;
-  }
-
   pendingSharedLocation = parseVaultShareLocation();
 
   if (!pendingSharedLocation) return;
@@ -4658,42 +4490,6 @@ forumThreadMedia?.addEventListener("click", event => {
 });
 
 forumThreadPosts?.addEventListener("click", event => {
-  const copyButton =
-    event.target.closest("[data-copy-forum-thread]");
-
-  if (copyButton) {
-    void copyForumThreadLink(
-      copyButton.dataset.copyForumThread
-    ).catch(error => {
-      showShareToast(error.message);
-    });
-    return;
-  }
-
-  const deleteThreadButton =
-    event.target.closest("[data-delete-forum-thread]");
-
-  if (deleteThreadButton) {
-    void deleteForumThread(
-      deleteThreadButton.dataset.deleteForumThread
-    ).catch(error => {
-      showShareToast(error.message);
-    });
-    return;
-  }
-
-  const deleteReplyButton =
-    event.target.closest("[data-delete-forum-reply]");
-
-  if (deleteReplyButton) {
-    void deleteForumReply(
-      deleteReplyButton.dataset.deleteForumReply
-    ).catch(error => {
-      showShareToast(error.message);
-    });
-    return;
-  }
-
   const likeButton =
     event.target.closest("[data-comment-like]");
 
