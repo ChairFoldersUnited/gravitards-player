@@ -4950,3 +4950,40 @@ body:has(#filmArchiveView:not(.hidden)) {
     gap: 6px !important;
   }
 }
+
+
+/* V13.4.7 – CORRECT Audio Vault Timeline selector */
+#vaultTimeline.vault-timeline {
+  display: grid !important;
+  grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+  overflow-x: visible !important;
+  overflow-y: visible !important;
+  padding: 2px 1px 5px !important;
+  scrollbar-width: none !important;
+}
+
+#vaultTimeline.vault-timeline::-webkit-scrollbar {
+  display: none !important;
+}
+
+#vaultTimeline .timeline-year {
+  box-sizing: border-box !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  flex: none !important;
+}
+
+@media (max-width: 900px) {
+  #vaultTimeline.vault-timeline {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 520px) {
+  #vaultTimeline.vault-timeline {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+  }
+}
