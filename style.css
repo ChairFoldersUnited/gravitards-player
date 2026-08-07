@@ -4905,3 +4905,48 @@ body:has(#filmArchiveView:not(.hidden)) {
     padding: 6px 8px;
   }
 }
+
+
+/* V13.4.6 – Vault Timeline: 7 years per row */
+.year-filter-row,
+.timeline-years,
+.vault-years {
+  display: grid !important;
+  grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+  overflow-x: visible !important;
+  overflow-y: visible !important;
+  scrollbar-width: none;
+}
+
+.year-filter-row::-webkit-scrollbar,
+.timeline-years::-webkit-scrollbar,
+.vault-years::-webkit-scrollbar {
+  display: none;
+}
+
+.year-filter-row > *,
+.timeline-years > *,
+.vault-years > * {
+  box-sizing: border-box;
+  width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+}
+
+@media (max-width: 900px) {
+  .year-filter-row,
+  .timeline-years,
+  .vault-years {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .year-filter-row,
+  .timeline-years,
+  .vault-years {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+  }
+}
